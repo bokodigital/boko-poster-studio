@@ -6,6 +6,7 @@ BASE = pathlib.Path(__file__).resolve().parent
 LOGO   = (BASE / "logo_datauri.txt").read_text().strip()
 KWHITE = (BASE / "k_white_datauri.txt").read_text().strip()
 KBLACK = (BASE / "k_black_datauri.txt").read_text().strip()
+KLIME  = (BASE / "k_lime_datauri.txt").read_text().strip()
 today = datetime.date.today()
 WEEK_KEY = f"{today.isocalendar()[0]}-W{today.isocalendar()[1]:02d}"
 
@@ -38,7 +39,7 @@ POSTS = [
 ]
 
 HTML = open(BASE / "app_template.html").read()
-out = (HTML.replace("__LOGO__", LOGO).replace("__KWHITE__", KWHITE).replace("__KBLACK__", KBLACK)
+out = (HTML.replace("__LOGO__", LOGO).replace("__KWHITE__", KWHITE).replace("__KBLACK__", KBLACK).replace("__KLIME__", KLIME)
            .replace("__POSTS__", json.dumps(POSTS)).replace("__WEEK_KEY__", WEEK_KEY))
 (BASE / "boko_poster_studio.html").write_text(out, encoding="utf-8")
 print("Wrote boko_poster_studio.html (", len(out), "bytes ) week", WEEK_KEY)

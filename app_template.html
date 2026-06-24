@@ -69,6 +69,7 @@
 const LOGO_URL="__LOGO__";
 const K_WHITE="__KWHITE__";
 const K_BLACK="__KBLACK__";
+const K_LIME="__KLIME__";
 const POSTS=__POSTS__;
 const WEEK_KEY="__WEEK_KEY__";
 const STORAGE="boko_posters_"+WEEK_KEY;
@@ -84,18 +85,18 @@ try{const saved=JSON.parse(localStorage.getItem(STORAGE)||"null");
   if(saved&&Array.isArray(saved)){state=state.map(p=>{const s=saved.find(x=>x.id===p.id);return s?{...p,...s}:p;});}}catch(e){}
 function save(){localStorage.setItem(STORAGE,JSON.stringify(state));}
 
-let ready=0; const need=2;
-const kWhite=new Image(); const kBlack=new Image();
+let ready=0; const need=3;
+const kWhite=new Image(); const kBlack=new Image(); const kLime=new Image();
 function onReady(){ready++;if(ready>=need)renderAll();}
-kWhite.onload=onReady; kBlack.onload=onReady;
-kWhite.src=K_WHITE; kBlack.src=K_BLACK;
+kWhite.onload=onReady; kBlack.onload=onReady; kLime.onload=onReady;
+kWhite.src=K_WHITE; kBlack.src=K_BLACK; kLime.src=K_LIME;
 
 function wrapLines(ctx,text,maxW){const words=text.split(/\s+/);const lines=[];let line="";
   for(const w of words){const test=line?line+" "+w:w;
     if(ctx.measureText(test).width<=maxW||!line){line=test;}else{lines.push(line);line=w;}}
   if(line)lines.push(line);return lines;}
-function kMark(ctx,W,margin,dark){const img=dark?kWhite:kBlack;if(!img.complete)return;
-  const kw=W*0.11,kh=kw/KASPECT;ctx.drawImage(img,margin,margin,kw,kh);return kh;}
+function kMark(ctx,W,margin,dark,center){const img=dark?kLime:kBlack;if(!img.complete)return;
+  const kw=W*0.11,kh=kw/KASPECT;const x=center?(W-kw)/2:margin;ctx.drawImage(img,x,margin,kw,kh);return kh;}
 function footer(ctx,W,H,margin,color){ctx.fillStyle=color;ctx.textBaseline="alphabetic";ctx.textAlign="left";
   ctx.font="600 "+(W*0.026)+"px Poppins";ctx.fillText("boko.com.au",margin,H-margin*0.7);ctx.textBaseline="top";}
 function drawAccentLines(ctx,lines,accent,x,yStart,lh,baseColor,accentColor,align,W){ctx.textBaseline="top";
@@ -113,12 +114,12 @@ function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=
   const isLime=tpl==="lime";const bg=isLime?C.lime:C.black;const base=isLime?C.black:C.white;
   ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.textBaseline="top";
   // K mark top-left (split & lime handle their own marks)
-  if(tpl!=="split"){kMark(ctx,W,margin,!isLime);}
+  if(tpl!=="split"&&tpl!=="statement"&&tpl!=="stat"){kMark(ctx,W,margin,!isLime);}
 
-  if(tpl==="statement"){const fs=W*0.072,lh=fs*1.12;ctx.font="700 "+fs+"px Poppins";
+  if(tpl==="statement"){kMark(ctx,W,margin,true,true);const fs=W*0.072,lh=fs*1.12;ctx.font="700 "+fs+"px Poppins";
     const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);const yStart=(H-lines.length*lh)/2;
     drawAccentLines(ctx,lines,p.accent,margin,yStart,lh,base,C.lime,"center",W);footer(ctx,W,H,margin,base);}
-  else if(tpl==="stat"){ctx.textAlign="center";ctx.fillStyle=base;ctx.textBaseline="top";
+  else if(tpl==="stat"){kMark(ctx,W,margin,true,true);ctx.textAlign="center";ctx.fillStyle=base;ctx.textBaseline="top";
     ctx.font="600 "+(W*0.034)+"px Poppins";ctx.fillText((p.eyebrow||"").toUpperCase(),W/2,H*0.30);
     let fs=W*0.26;ctx.font="800 "+fs+"px Poppins";
     while(ctx.measureText(p.accent).width>W-2*margin&&fs>40){fs*=0.94;ctx.font="800 "+fs+"px Poppins";}
