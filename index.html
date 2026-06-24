@@ -161,7 +161,7 @@ function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=
       ctx.fillStyle=base;ctx.textBaseline="top";ctx.fillText(it,margin+r*2+W*0.03,y+ifs*0.12);y+=ifs*1.9;}
     footer(ctx,W,H,margin,base);}
   else if(tpl==="quote"){ctx.fillStyle=C.lime;ctx.textAlign="left";ctx.textBaseline="top";
-    ctx.font="800 "+(W*0.20)+"px Poppins";ctx.fillText("“",margin,margin+W*0.11/KASPECT+W*0.04);
+    ctx.font="800 "+(W*0.20)+"px Poppins";ctx.fillText("“",margin,H*0.40-W*0.135);
     const fs=W*0.060,lh=fs*1.26;ctx.font="600 "+fs+"px Poppins";ctx.fillStyle=base;
     const lines=wrapLines(ctx,p.headline,W-2*margin);let y=H*0.40;
     for(const l of lines){ctx.fillText(l,margin,y);y+=lh;}
