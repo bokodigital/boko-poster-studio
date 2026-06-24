@@ -123,7 +123,7 @@ function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=
     let fs=W*0.26;ctx.font="800 "+fs+"px Poppins";
     while(ctx.measureText(p.accent).width>W-2*margin&&fs>40){fs*=0.94;ctx.font="800 "+fs+"px Poppins";}
     ctx.fillStyle=C.lime;ctx.textBaseline="middle";ctx.fillText(p.accent,W/2,H*0.50);
-    ctx.fillStyle=base;ctx.textBaseline="top";ctx.font="600 "+(W*0.040)+"px Poppins";
+    ctx.fillStyle=base;ctx.textBaseline="top";ctx.textAlign="left";ctx.font="600 "+(W*0.040)+"px Poppins";
     const lns=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);let y=H*0.66;
     for(const l of lns){const tw=ctx.measureText(l).width;ctx.fillText(l,W/2-tw/2,y);y+=W*0.040*1.2;}
     ctx.textAlign="left";footer(ctx,W,H,margin,base);}
