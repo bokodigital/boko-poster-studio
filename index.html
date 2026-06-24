@@ -161,7 +161,7 @@ function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=
       ctx.fillStyle=base;ctx.textBaseline="top";ctx.fillText(it,margin+r*2+W*0.03,y+ifs*0.12);y+=ifs*1.9;}
     footer(ctx,W,H,margin,base);}
   else if(tpl==="quote"){ctx.fillStyle=C.lime;ctx.textAlign="left";ctx.textBaseline="top";
-    ctx.font="800 "+(W*0.20)+"px Poppins";ctx.fillText("“",margin,H*0.16);
+    ctx.font="800 "+(W*0.20)+"px Poppins";ctx.fillText("“",margin,margin+W*0.11/KASPECT+W*0.04);
     const fs=W*0.060,lh=fs*1.26;ctx.font="600 "+fs+"px Poppins";ctx.fillStyle=base;
     const lines=wrapLines(ctx,p.headline,W-2*margin);let y=H*0.40;
     for(const l of lines){ctx.fillText(l,margin,y);y+=lh;}
@@ -182,15 +182,21 @@ function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=
       for(const l of wl){ctx.fillText(l,cx+W*0.03,ty);ty+=W*0.034*1.1;}}
     footer(ctx,W,H,margin,base);}
   else if(tpl==="index"){ctx.textAlign="left";ctx.textBaseline="top";
-    ctx.fillStyle=C.lime;ctx.font="600 "+(W*0.032)+"px Poppins";ctx.fillText((p.eyebrow||"TIP 01").toUpperCase(),margin,H*0.20);
-    let big=(p.accent||"01");ctx.font="800 "+(W*0.20)+"px Poppins";ctx.fillStyle=C.lime;
-    ctx.fillText(big,W-margin-ctx.measureText(big).width,H*0.10);
-    const fs=W*0.064,lh=fs*1.14;ctx.font="700 "+fs+"px Poppins";ctx.fillStyle=base;
-    const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);let y=H*0.30;
+    let y=margin+W*0.11/KASPECT+W*0.05;
+    ctx.fillStyle=C.lime;ctx.font="600 "+(W*0.032)+"px Poppins";
+    ctx.fillText((p.eyebrow||"TIP 01").toUpperCase(),margin,y);
+    y+=W*0.032*1.3+W*0.02;
+    const big=(p.accent||"01");const bfs=W*0.17;ctx.font="800 "+bfs+"px Poppins";ctx.fillStyle=C.lime;
+    ctx.fillText(big,margin,y);
+    y+=bfs*1.0;
+    const fs=W*0.060,lh=fs*1.16;ctx.font="700 "+fs+"px Poppins";ctx.fillStyle=base;
+    const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);
     for(const l of lines){ctx.fillText(l,margin,y);y+=lh;}
-    ctx.strokeStyle=C.lime;ctx.lineWidth=W*0.012;ctx.beginPath();ctx.moveTo(margin,y+W*0.01);ctx.lineTo(margin+W*0.18,y+W*0.01);ctx.stroke();
-    const body=(p.caption||"").split("\n")[0];ctx.fillStyle=base;ctx.font="400 "+(W*0.034)+"px Poppins";
-    let by=y+W*0.06;for(const l of wrapLines(ctx,body,W-2*margin).slice(0,4)){ctx.fillText(l,margin,by);by+=W*0.034*1.45;}
+    y+=W*0.025;
+    ctx.strokeStyle=C.lime;ctx.lineWidth=W*0.012;ctx.beginPath();ctx.moveTo(margin,y);ctx.lineTo(margin+W*0.18,y);ctx.stroke();
+    y+=W*0.05;
+    const body=(p.caption||"").split("\n")[0];ctx.fillStyle=base;ctx.font="400 "+(W*0.032)+"px Poppins";
+    for(const l of wrapLines(ctx,body,W-2*margin).slice(0,4)){ctx.fillText(l,margin,y);y+=W*0.032*1.5;}
     footer(ctx,W,H,margin,base);}
   else if(tpl==="split"){const bandH=H*0.42;
     ctx.fillStyle=C.lime;ctx.fillRect(0,0,W,bandH);
