@@ -23,6 +23,8 @@
   .filters{display:flex;gap:6px;flex-wrap:wrap}
   .chip{font-size:12px;font-weight:600;color:var(--muted);border:1px solid var(--line);background:#fff;padding:6px 12px;border-radius:999px;cursor:pointer}
   .chip.on{background:var(--lime);color:#000;border-color:var(--lime)}
+  .newbtn{font-family:inherit;font-weight:700;font-size:12px;border:1px solid var(--lime);background:var(--lime);color:#000;padding:7px 14px;border-radius:999px;cursor:pointer}
+  .newbtn:hover{filter:brightness(.96)}
   .board{display:flex;gap:14px;padding:6px 22px 30px;overflow-x:auto;align-items:flex-start;min-height:60vh}
   .col{flex:0 0 300px;background:#eef0f5;border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;max-height:82vh}
   .col.drag{border-color:var(--lime);box-shadow:0 0 0 2px var(--lime) inset}
@@ -83,7 +85,10 @@
 </header>
 <div class="toolbar">
   <h1 id="weekTitle">Content board</h1>
-  <div class="filters" id="filters"></div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <div class="filters" id="filters"></div>
+    <button id="newBtn" class="newbtn">+ New post</button>
+  </div>
 </div>
 <div class="board" id="board"></div>
 
@@ -211,6 +216,7 @@ function openEditor(id){
         <button class="btn warn" data-a="changes">Request changes</button>
         <button class="btn ghost" data-a="caption">Copy caption</button>
         <button class="btn ghost" data-a="download">Download PNG</button>
+        <button class="btn" data-a="delete" style="color:#c0392b;border-color:#e9b7b1;background:#fff">Delete</button>
         <button class="btn ghost" data-a="close" style="margin-left:auto">Close</button>
       </div>
     </div>`;
@@ -227,6 +233,7 @@ function openEditor(id){
   m.querySelector('[data-a="caption"]').onclick=()=>navigator.clipboard.writeText(p.caption||"").then(()=>toast("Caption copied"));
   m.querySelector('[data-a="download"]').onclick=()=>downloadPNG(p);
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
+  const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this post?")){state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
   document.getElementById("overlay").classList.add("show");
 }
 function closeEditor(){document.getElementById("overlay").classList.remove("show");renderBoard();}
@@ -242,6 +249,13 @@ let toastT;function toast(msg){let t=document.getElementById("__t");
     document.body.appendChild(t);}
   t.textContent=msg;t.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>t.style.opacity=0,1400);}
 
+function newPost(){
+  const p={id:"u"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New post",
+    template:"statement",ratio:"square",headline:"YOUR HEADLINE HERE",accent:"",cta:"DM US",
+    eyebrow:"BOKO DIGITAL",bullets:["Point one","Point two","Point three"],caption:"",pillar:"Draft",changeNote:""};
+  state.push(p);save();renderBoard();openEditor(p.id);
+}
+document.getElementById("newBtn").onclick=newPost;
 function boot(){renderBoard();}
 if(document.fonts&&document.fonts.load){
   Promise.all([document.fonts.load("700 80px Poppins"),document.fonts.load("800 80px Poppins"),document.fonts.load("500 40px Poppins"),document.fonts.load("400 40px Poppins")])
