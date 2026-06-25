@@ -216,11 +216,13 @@ function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=
   else if(tpl==="founder"){ctx.textAlign="left";
     const name=(p.eyebrow||"Maria Jose Mendieta");const handle=(p.cta&&p.cta.indexOf("@")===0)?p.cta:"@boko.digital.solutions";
     const av=W*0.052,hx=margin,hcy=H*0.305;
-    ctx.beginPath();ctx.arc(hx+av,hcy,av,0,Math.PI*2);ctx.fillStyle="#26292e";ctx.fill();
-    ctx.lineWidth=W*0.004;ctx.strokeStyle=C.lime;ctx.stroke();
-    const ini=name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
-    ctx.fillStyle=C.white;ctx.font="700 "+(av*0.92)+"px Poppins";ctx.textAlign="center";ctx.textBaseline="middle";
-    ctx.fillText(ini,hx+av,hcy+av*0.04);ctx.textAlign="left";
+    const avImg=(p.avatar&&typeof AVATARS!=="undefined"&&AVATARS[p.avatar]&&AVATARS[p.avatar].complete&&AVATARS[p.avatar].naturalWidth)?AVATARS[p.avatar]:null;
+    if(avImg){ctx.save();ctx.beginPath();ctx.arc(hx+av,hcy,av,0,Math.PI*2);ctx.clip();ctx.drawImage(avImg,hx,hcy-av,av*2,av*2);ctx.restore();}
+    else{ctx.beginPath();ctx.arc(hx+av,hcy,av,0,Math.PI*2);ctx.fillStyle="#26292e";ctx.fill();
+      const ini=name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+      ctx.fillStyle=C.white;ctx.font="700 "+(av*0.92)+"px Poppins";ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText(ini,hx+av,hcy+av*0.04);ctx.textAlign="left";}
+    ctx.beginPath();ctx.arc(hx+av,hcy,av,0,Math.PI*2);ctx.lineWidth=W*0.004;ctx.strokeStyle=C.lime;ctx.stroke();
     const nx=hx+av*2+W*0.025,nameY=hcy-av*0.55;
     ctx.fillStyle=C.white;ctx.font="700 "+(W*0.034)+"px Poppins";ctx.textBaseline="top";ctx.fillText(name,nx,nameY);
     const nameW=ctx.measureText(name).width,bcx=nx+nameW+W*0.018,bcy=nameY+W*0.018,br=W*0.016;

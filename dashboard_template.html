@@ -119,6 +119,8 @@ try{const saved=JSON.parse(localStorage.getItem(STORAGE)||"null");
   if(saved&&Array.isArray(saved)){state=state.map(p=>{const s=saved.find(x=>x.id===p.id);return s?{...p,...s}:p;});}}catch(e){}
 function save(){localStorage.setItem(STORAGE,JSON.stringify(state));}
 
+const AVATARS={};
+function preloadAvatars(cb){const urls=[...new Set(state.map(p=>p.avatar).filter(Boolean))];if(!urls.length){cb();return;}let n=0;urls.forEach(u=>{const im=new Image();im.onload=im.onerror=()=>{if(++n>=urls.length)cb();};im.src=u;AVATARS[u]=im;});}
 let ready=0;const need=3;
 const kWhite=new Image(),kBlack=new Image(),kLime=new Image();
 function onReady(){ready++;if(ready>=need)boot();}
@@ -268,7 +270,7 @@ function newPost(){
   state.push(p);save();renderBoard();openEditor(p.id);
 }
 document.getElementById("newBtn").onclick=newPost;
-function boot(){renderBoard();}
+function boot(){preloadAvatars(renderBoard);}
 if(document.fonts&&document.fonts.load){
   Promise.all([document.fonts.load("700 80px Poppins"),document.fonts.load("800 80px Poppins"),document.fonts.load("500 40px Poppins"),document.fonts.load("400 40px Poppins")])
     .then(()=>document.fonts.ready).then(()=>{if(ready>=need)boot();}).catch(()=>{});
