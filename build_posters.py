@@ -50,6 +50,11 @@ POSTS = [
   "headline":"YOU DON'T NEED A $50K AI PROJECT","accent":"$50K","cta":"DM US PLAN",
   "eyebrow":"AU RETAIL, $1M-$5M","bullets":["3 automations","4 weeks","You own it"],
   "caption":"The big agencies quote $15K-$50K for 'enterprise AI'. For a $1-5M retailer, that's a no.\n\nYou don't need enterprise. You need the right 3 automations live in 4 weeks - customer service, email, and reporting.\n\nThat's the whole on-ramp.\n\nDM us PLAN for the 4-week automation roadmap.\n#AIAutomation #AustralianRetail #SmallBusiness","changeNote":""},
+ {"id":"p6","type":"post","platform":"LinkedIn","status":"review","date":"2026-07-02","title":"Founder story - From Colombia to Sydney",
+  "pillar":"Founder insight - Maria","template":"founder","ratio":"square",
+  "headline":"From Colombia to Sydney.","accent":"","cta":"@boko.digital.solutions",
+  "eyebrow":"Maria Jose Mendieta","bullets":[],
+  "caption":"I watched my parents build businesses with pure grit. When I moved to Australia, I wanted to build something of my own.\n\nToday, that's Boko - helping retail and e-commerce brands use AI to run leaner and grow faster.\n\nThe grind doesn't have to be manual anymore.","changeNote":""},
 ]
 
 HTML = (BASE / "dashboard_template.html").read_text()

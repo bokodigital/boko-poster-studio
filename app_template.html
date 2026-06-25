@@ -74,7 +74,7 @@ const POSTS=__POSTS__;
 const WEEK_KEY="__WEEK_KEY__";
 const STORAGE="boko_posters_"+WEEK_KEY;
 const C={lime:"#BFFC00",black:"#000000",white:"#FFFFFF"};
-const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","grid","index","split"];
+const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","grid","index","split","founder"];
 const DIMS={square:[1080,1080],story:[1080,1920]};
 const KASPECT=1.046;
 document.getElementById("logo").src=LOGO_URL;
@@ -114,7 +114,7 @@ function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=
   const isLime=tpl==="lime";const bg=isLime?C.lime:C.black;const base=isLime?C.black:C.white;
   ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.textBaseline="top";
   // K mark top-left (split & lime handle their own marks)
-  if(tpl!=="split"&&tpl!=="statement"&&tpl!=="stat"){kMark(ctx,W,margin,!isLime);}
+  if(tpl!=="split"&&tpl!=="statement"&&tpl!=="stat"&&tpl!=="founder"){kMark(ctx,W,margin,!isLime);}
 
   if(tpl==="statement"){kMark(ctx,W,margin,true,true);const fs=W*0.072,lh=fs*1.12;ctx.font="700 "+fs+"px Poppins";
     const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);const yStart=(H-lines.length*lh)/2;
@@ -213,6 +213,29 @@ function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=
     ctx.fillStyle=C.lime;ctx.beginPath();ctx.moveTo(bx+r,by);ctx.arcTo(bx+bw,by,bx+bw,by+bh,r);ctx.arcTo(bx+bw,by+bh,bx,by+bh,r);
     ctx.arcTo(bx,by+bh,bx,by,r);ctx.arcTo(bx,by,bx+bw,by,r);ctx.closePath();ctx.fill();
     ctx.fillStyle=C.black;ctx.textAlign="left";ctx.fillText(btnText,bx+padX,by+bh/2);ctx.textBaseline="top";}
+  else if(tpl==="founder"){ctx.textAlign="left";
+    const name=(p.eyebrow||"Maria Jose Mendieta");const handle=(p.cta&&p.cta.indexOf("@")===0)?p.cta:"@boko.digital.solutions";
+    const av=W*0.052,hx=margin,hcy=H*0.305;
+    ctx.beginPath();ctx.arc(hx+av,hcy,av,0,Math.PI*2);ctx.fillStyle="#26292e";ctx.fill();
+    ctx.lineWidth=W*0.004;ctx.strokeStyle=C.lime;ctx.stroke();
+    const ini=name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+    ctx.fillStyle=C.white;ctx.font="700 "+(av*0.92)+"px Poppins";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(ini,hx+av,hcy+av*0.04);ctx.textAlign="left";
+    const nx=hx+av*2+W*0.025,nameY=hcy-av*0.55;
+    ctx.fillStyle=C.white;ctx.font="700 "+(W*0.034)+"px Poppins";ctx.textBaseline="top";ctx.fillText(name,nx,nameY);
+    const nameW=ctx.measureText(name).width,bcx=nx+nameW+W*0.018,bcy=nameY+W*0.018,br=W*0.016;
+    ctx.beginPath();ctx.arc(bcx,bcy,br,0,Math.PI*2);ctx.fillStyle="#1d9bf0";ctx.fill();
+    ctx.strokeStyle="#fff";ctx.lineWidth=W*0.006;ctx.lineCap="round";ctx.lineJoin="round";
+    ctx.beginPath();ctx.moveTo(bcx-br*0.42,bcy);ctx.lineTo(bcx-br*0.08,bcy+br*0.4);ctx.lineTo(bcx+br*0.5,bcy-br*0.42);ctx.stroke();
+    ctx.fillStyle="#8a8f98";ctx.font="500 "+(W*0.026)+"px Poppins";ctx.fillText(handle,nx,nameY+W*0.042);
+    ctx.textBaseline="top";const bfs=W*0.030,blh=bfs*1.5;let y=H*0.42;
+    ctx.fillStyle=C.white;ctx.font="700 "+bfs+"px Poppins";
+    for(const l of wrapLines(ctx,p.headline||"",W-2*margin)){ctx.fillText(l,margin,y);y+=blh;}
+    y+=blh*0.45;ctx.font="400 "+bfs+"px Poppins";
+    const paras=(p.caption||"").split("\n");
+    for(const para of paras){if(para.trim()===""){y+=blh*0.55;continue;}
+      for(const l of wrapLines(ctx,para,W-2*margin)){ctx.fillStyle=C.white;ctx.fillText(l,margin,y);y+=blh;}y+=blh*0.4;}
+  }
 }
 
 function dayName(i){return["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i];}
