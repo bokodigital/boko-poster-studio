@@ -73,6 +73,17 @@
   .btn.warn{color:#9a6a00;border-color:#f0d488;background:#fff7e3}
   .btn.ghost{background:#fff}
   .btn:hover{filter:brightness(.98)}
+  .gate{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:100}
+  .gate.show{display:flex}
+  .gatecard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px;width:min(360px,92vw);box-shadow:0 20px 60px rgba(16,19,22,.18);text-align:center}
+  .gatecard img{height:30px;margin-bottom:14px}
+  .gatecard h3{margin:0 0 14px;font-size:16px}
+  .gatecard input{width:100%;background:#fff;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;font-family:inherit;font-size:14px;margin-bottom:10px}
+  .gatecard button{width:100%;justify-content:center}
+  .gerr{color:#c0392b;font-size:12px;min-height:16px;margin-bottom:8px}
+  .offbanner{display:none;position:fixed;bottom:14px;left:14px;background:#fff7e3;color:#8a6a00;border:1px solid #f0d488;border-radius:10px;padding:8px 12px;font-size:12px;z-index:40}
+  .syncdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#cfd3d8;margin-left:8px;vertical-align:middle}
+  .syncdot.on{background:#3fb950}
   .x{margin-left:auto;background:transparent;border:0;color:var(--muted);font-size:20px;cursor:pointer}
 </style>
 </head>
@@ -82,7 +93,7 @@
   <div class="topcount">
     <span class="pill">Total <b id="cTotal">0</b></span>
     <span class="pill">Needs review <b id="cReview">0</b></span>
-    <span class="pill">Approved <b id="cApproved">0</b></span>
+    <span class="pill">Approved <b id="cApproved">0</b></span><span class="syncdot" id="syncdot" title="Cloud sync"></span>
   </div>
 </header>
 <div class="toolbar">
@@ -94,6 +105,14 @@
 </div>
 <div class="board" id="board"></div>
 
+<div class="gate" id="gate"><div class="gatecard">
+  <img id="glogo" alt="Boko Digital">
+  <h3>Enter passcode</h3>
+  <input id="gpass" type="password" placeholder="Passcode" autocomplete="off">
+  <div class="gerr" id="gerr"></div>
+  <button class="btn lime" id="gbtn">Open board</button>
+</div></div>
+<div class="offbanner" id="offbanner">Working offline on this device — cloud sync not set up yet.</div>
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 
 <script>
@@ -117,7 +136,32 @@ document.getElementById("weekTitle").textContent="Content board · Week "+WEEK_K
 let state=POSTS.map(p=>({...p}));
 try{const saved=JSON.parse(localStorage.getItem(STORAGE)||"null");
   if(saved&&Array.isArray(saved)){state=state.map(p=>{const s=saved.find(x=>x.id===p.id);return s?{...p,...s}:p;});}}catch(e){}
-function save(){localStorage.setItem(STORAGE,JSON.stringify(state));}
+let syncOn=false,PASS="",_pushT=null,_poll=null;
+function save(){localStorage.setItem(STORAGE,JSON.stringify(state));if(syncOn){clearTimeout(_pushT);_pushT=setTimeout(pushServer,600);}}
+function pushServer(){if(!syncOn)return;fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json','x-board-pass':PASS},body:JSON.stringify({state})}).catch(()=>{});}
+function mergeServer(sv){let st=Array.isArray(sv)?sv.map(p=>({...p})):[];POSTS.forEach(seed=>{if(!st.find(p=>p.id===seed.id))st.push({...seed});});return st;}
+function setSyncDot(){const d=document.getElementById("syncdot");if(d)d.className="syncdot"+(syncOn?" on":"");}
+function startPoll(){if(!syncOn||_poll)return;_poll=setInterval(()=>{if(document.getElementById('overlay').classList.contains('show'))return;
+  fetch('/api/state',{headers:{'x-board-pass':PASS}}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.state){const m=mergeServer(d.state);
+    if(JSON.stringify(m)!==JSON.stringify(state)){state=m;localStorage.setItem(STORAGE,JSON.stringify(state));renderBoard();}}}).catch(()=>{});},8000);}
+function afterLoad(){document.getElementById("gate").classList.remove("show");preloadAvatars(()=>{renderBoard();setSyncDot();startPoll();});}
+function loadFrom(sv){state=mergeServer(sv);localStorage.setItem(STORAGE,JSON.stringify(state));pushServer();afterLoad();}
+function offline(){syncOn=false;document.getElementById("offbanner").style.display="block";afterLoad();}
+function showGate(msg){const g=document.getElementById("gate");document.getElementById("gerr").textContent=msg||"";g.classList.add("show");
+  const inp=document.getElementById("gpass");inp.value="";setTimeout(()=>inp.focus(),50);}
+function tryPass(p){fetch('/api/state',{headers:{'x-board-pass':p}}).then(r=>{
+  if(r.status===401){localStorage.removeItem("boko_pass");showGate("Wrong passcode");return;}
+  if(!r.ok){offline();return;}
+  r.json().then(d=>{PASS=p;syncOn=true;localStorage.setItem("boko_pass",p);loadFrom(d.state);});
+}).catch(()=>offline());}
+function detectSync(){fetch('/api/state').then(r=>{
+  if(r.status===401){const sp=localStorage.getItem("boko_pass");if(sp){tryPass(sp);}else{syncOn=true;showGate("");}}
+  else if(r.ok){syncOn=true;r.json().then(d=>loadFrom(d.state));}
+  else{offline();}
+}).catch(()=>offline());}
+document.getElementById("glogo").src=LOGO_LIGHT;
+document.getElementById("gbtn").onclick=()=>{const p=document.getElementById("gpass").value.trim();if(!p){showGate("Enter the passcode");return;}tryPass(p);};
+document.getElementById("gpass").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("gbtn").click();});
 
 const AVATARS={};
 function preloadAvatars(cb){const urls=[...new Set(state.map(p=>p.avatar).filter(Boolean))];if(!urls.length){cb();return;}let n=0;urls.forEach(u=>{const im=new Image();im.onload=im.onerror=()=>{if(++n>=urls.length)cb();};im.src=u;AVATARS[u]=im;});}
@@ -270,7 +314,7 @@ function newPost(){
   state.push(p);save();renderBoard();openEditor(p.id);
 }
 document.getElementById("newBtn").onclick=newPost;
-function boot(){preloadAvatars(renderBoard);}
+function boot(){detectSync();}
 if(document.fonts&&document.fonts.load){
   Promise.all([document.fonts.load("700 80px Poppins"),document.fonts.load("800 80px Poppins"),document.fonts.load("500 40px Poppins"),document.fonts.load("400 40px Poppins")])
     .then(()=>document.fonts.ready).then(()=>{if(ready>=need)boot();}).catch(()=>{});
