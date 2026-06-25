@@ -3,93 +3,119 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Boko Digital - Weekly Poster Studio</title>
+<title>Boko Digital - Content Command Center</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root{--lime:#BFFC00;--black:#000;--lilac:#F8F9FC;--white:#FFF;--muted:#8a8f98;--line:#23262b;--panel:#15171a;}
+  :root{--lime:#BFFC00;--black:#000;--white:#FFF;--muted:#8a8f98;--line:#23262b;--panel:#15171a;--panel2:#1b1e22;}
   *{box-sizing:border-box}
-  body{margin:0;font-family:'Poppins',system-ui,sans-serif;background:var(--black);color:var(--white);}
-  header.app{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#0a0b0c;z-index:5;flex-wrap:wrap}
+  body{margin:0;font-family:'Poppins',system-ui,sans-serif;background:#0a0b0c;color:var(--white);}
+  header.app{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 22px;border-bottom:1px solid var(--line);background:#0a0b0c;position:sticky;top:0;z-index:20;flex-wrap:wrap}
   .brand{display:flex;align-items:center;gap:12px}
-  .brand img{height:30px}
+  .brand img{height:28px}
   .brand .sub{font-size:12px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
-  .counters{display:flex;gap:10px;flex-wrap:wrap}
+  .topcount{display:flex;gap:8px;flex-wrap:wrap}
   .pill{font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel)}
-  .pill.ok b{color:var(--lime)} .pill.warn b{color:#ffcf3f} .pill.pend b{color:#8a8f98}
-  .wrap{max-width:1180px;margin:0 auto;padding:24px}
-  .weekbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
-  .weekbar h1{font-size:20px;margin:0;font-weight:700}
-  .cal{display:flex;gap:6px;flex-wrap:wrap}
-  .day{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:6px 9px;min-width:78px;text-align:center}
-  .day b{display:block;color:var(--white);font-size:12px;margin-top:2px;font-weight:600}
-  .day.has{border-color:var(--lime)} .day.has b{color:var(--lime)}
-  .grid{display:grid;grid-template-columns:1fr;gap:22px}
-  @media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
-  .preview{background:#0a0b0c;display:flex;align-items:center;justify-content:center;padding:18px}
-  canvas.disp{width:100%;max-width:360px;height:auto;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.45)}
-  .body{padding:16px 16px 18px;display:flex;flex-direction:column;gap:11px}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .seg{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-  .seg button{background:transparent;color:var(--muted);border:0;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
-  .seg button.on{background:var(--lime);color:#000}
-  label.fl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px}
-  input.f,textarea.f{width:100%;background:#0e1012;border:1px solid var(--line);color:var(--white);border-radius:8px;padding:9px 10px;font-family:inherit;font-size:13px}
-  textarea.f{resize:vertical;min-height:70px}
+  .pill b{color:var(--lime)}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 22px;flex-wrap:wrap}
+  .toolbar h1{font-size:18px;margin:0;font-weight:700}
+  .filters{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:12px;font-weight:600;color:var(--muted);border:1px solid var(--line);background:var(--panel);padding:6px 12px;border-radius:999px;cursor:pointer}
+  .chip.on{background:var(--lime);color:#000;border-color:var(--lime)}
+  .board{display:flex;gap:14px;padding:6px 22px 30px;overflow-x:auto;align-items:flex-start;min-height:60vh}
+  .col{flex:0 0 300px;background:var(--panel);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;max-height:82vh}
+  .col.drag{border-color:var(--lime);box-shadow:0 0 0 1px var(--lime) inset}
+  .col h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:0;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);color:#cfd3d8}
+  .col h2 .n{color:var(--muted);font-weight:600}
+  .col .cards{padding:11px;display:flex;flex-direction:column;gap:11px;overflow-y:auto}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .15s}
+  .card:hover{border-color:#3a3f46}
+  .card.dragging{opacity:.5}
+  .thumb{background:#000;display:block}
+  .thumb canvas{width:100%;height:auto;display:block}
+  .cbody{padding:10px 11px 11px;display:flex;flex-direction:column;gap:7px}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .badge{font-size:10px;font-weight:700;letter-spacing:.04em;padding:3px 7px;border-radius:6px;text-transform:uppercase}
+  .badge.type{background:#23303a;color:#8fd0ff}
+  .badge.ig{background:#3a2233;color:#ff9ad2}
+  .badge.li{background:#1f2b3a;color:#7fb6ff}
+  .badge.fb{background:#1d2740;color:#9db4ff}
+  .ctitle{font-size:13.5px;font-weight:600;line-height:1.3}
+  .pillar{font-size:11px;color:var(--muted)}
+  .cact{display:flex;gap:6px;margin-top:3px}
+  .mini{font-family:inherit;font-size:11px;font-weight:600;border-radius:7px;padding:6px 9px;cursor:pointer;border:1px solid var(--line);background:#0e1012;color:var(--white)}
+  .mini.ok{background:var(--lime);color:#000;border-color:var(--lime)}
+  .mini.warn{color:#ffcf3f;border-color:rgba(255,207,63,.4)}
+  .note{font-size:11px;color:#ffcf3f;background:rgba(255,207,63,.08);border:1px solid rgba(255,207,63,.25);border-radius:7px;padding:6px 8px}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.66);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .overlay.show{display:flex}
+  .modal{background:#101214;border:1px solid var(--line);border-radius:16px;width:min(900px,96vw);max-height:92vh;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:0}
+  @media(max-width:760px){.modal{grid-template-columns:1fr}}
+  .mprev{background:#0a0b0c;padding:18px;display:flex;align-items:flex-start;justify-content:center;border-right:1px solid var(--line)}
+  .mprev canvas{width:100%;max-width:360px;height:auto;border-radius:10px;box-shadow:0 10px 34px rgba(0,0,0,.5)}
+  .mform{padding:18px;display:flex;flex-direction:column;gap:11px}
+  .mform h3{margin:0;font-size:15px}
+  label.fl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px}
+  input.f,textarea.f,select.f{width:100%;background:#0e1012;border:1px solid var(--line);color:var(--white);border-radius:8px;padding:9px 10px;font-family:inherit;font-size:13px}
+  textarea.f{resize:vertical;min-height:90px}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .status-line{display:flex;align-items:center;gap:8px;font-size:12px}
-  .dot{width:9px;height:9px;border-radius:50%}
-  .dot.pending{background:var(--muted)} .dot.approved{background:var(--lime)} .dot.changes{background:#ffcf3f}
-  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+  .seg{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{background:transparent;color:var(--muted);border:0;padding:6px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+  .seg button.on{background:var(--lime);color:#000}
+  .mactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;border-top:1px solid var(--line);padding-top:12px}
   .btn{font-family:inherit;font-weight:600;font-size:13px;border-radius:9px;padding:9px 13px;cursor:pointer;border:1px solid var(--line);background:#0e1012;color:var(--white)}
   .btn.lime{background:var(--lime);color:#000;border-color:var(--lime)}
   .btn.ghost{background:transparent}
   .btn:hover{filter:brightness(1.08)}
-  .changes-note{font-size:12px;color:#ffcf3f;background:rgba(255,207,63,.08);border:1px solid rgba(255,207,63,.25);border-radius:8px;padding:8px 10px;display:none}
-  footer.app{padding:22px 24px;color:var(--muted);font-size:12px;text-align:center;border-top:1px solid var(--line)}
+  .x{margin-left:auto;background:transparent;border:0;color:var(--muted);font-size:20px;cursor:pointer}
 </style>
 </head>
 <body>
 <header class="app">
-  <div class="brand"><img id="logo" alt="Boko Digital"><span class="sub">Weekly Poster Studio</span></div>
-  <div class="counters">
-    <span class="pill ok">Approved <b id="cApproved">0</b></span>
-    <span class="pill warn">Changes <b id="cChanges">0</b></span>
-    <span class="pill pend">Pending <b id="cPending">0</b></span>
+  <div class="brand"><img id="logo" alt="Boko Digital"><span class="sub">Content Command Center</span></div>
+  <div class="topcount">
+    <span class="pill">Total <b id="cTotal">0</b></span>
+    <span class="pill">Needs review <b id="cReview">0</b></span>
+    <span class="pill">Approved <b id="cApproved">0</b></span>
   </div>
 </header>
-<div class="wrap">
-  <div class="weekbar"><h1 id="weekTitle">This week</h1><div class="cal" id="cal"></div></div>
-  <div class="grid" id="grid"></div>
+<div class="toolbar">
+  <h1 id="weekTitle">Content board</h1>
+  <div class="filters" id="filters"></div>
 </div>
-<footer class="app">Strategize. Execute. Deliver. - boko.com.au &middot; Posters render on-brand at 1080&times;1080 / 1080&times;1920. Edits save in your browser.</footer>
+<div class="board" id="board"></div>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+
 <script>
 const LOGO_URL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjYxMDAgLTIwNzMuMiAxMjUwMCA0NDQ3LjIiPgoJPHBhdGggZmlsbD0iI0ZGRkZGRiIgZD0iTTExNjM2LjksOTA4LjhjMC00ODUuNi0zOTQuMy04NzkuMy04ODAuOC04NzkuM3MtODgwLjksMzkzLjYtODgwLjksODc5LjNzMzk0LjMsODc5LjMsODgwLjksODc5LjMKCQlDMTEyNDIuNiwxNzg3LjgsMTE2MzYuOSwxMzk0LjMsMTE2MzYuOSw5MDguOHogTTEyMjI0LjIsOTA4LjhjMCw4MDkuMy02NTcuMywxNDY1LjMtMTQ2OC4xLDE0NjUuM1M5Mjg4LDE3MTcuOSw5Mjg4LDkwOC44CgkJYzAtODA5LjMsNjU3LjMtMTQ2NS4zLDE0NjguMS0xNDY1LjNDMTE1NjYuOS01NTYuOCwxMjIyNC4yLDk5LjUsMTIyMjQuMiw5MDguOHoiLz4KCTxwYXRoIGZpbGw9IiNCRkZDMDAiIGQ9Ik0xMzUyNC41LDE3ODcuOGMtMTQuOCwwLTI5LjYtMC43LTQ0LjEtMi4xbDE5MjcuNS0xOTIzLjdsLTQxNS4zLTQxNC40bC0xOTI3LjQsMTkyMy43CgkJYy0xLjQtMTQuNS0yLjEtMjkuMi0yLjEtNDRWLTU1Ni44aC01ODcuM3YxODg0LjFjMCw1NzguMSw0NjkuNCwxMDQ2LjcsMTA0OC42LDEwNDYuN0gxNTQxMnYtNTg2LjJMMTM1MjQuNSwxNzg3LjhMMTM1MjQuNSwxNzg3Ljh6CgkJIi8+Cgk8cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNMTgwMTIuNyw5MDguOGMwLTQ4NS42LTM5NC4zLTg3OS4zLTg4MC44LTg3OS4zUzE2MjUxLDQyMy4xLDE2MjUxLDkwOC44czM5NC41LDg3OS4zLDg4MC45LDg3OS4zCgkJQzE3NjE4LjQsMTc4OC4xLDE4MDEyLjcsMTM5NC4zLDE4MDEyLjcsOTA4Ljh6IE0xODYwMCw5MDguOGMwLDgwOS4zLTY1Ny4zLDE0NjUuMy0xNDY4LjEsMTQ2NS4zCgkJYy04MTAuOSwwLTE0NjguMS02NTYuMS0xNDY4LjEtMTQ2NS4zYzAtODA5LjMsNjU3LjMtMTQ2NS4zLDE0NjguMS0xNDY1LjNDMTc5NDIuNy01NTYuOCwxODYwMCw5OS41LDE4NjAwLDkwOC44eiIvPgoJPHBhdGggZmlsbD0iI0ZGRkZGRiIgZD0iTTc1NjguMS01NTYuOGgtODgwLjd2LTEyMzcuMmMwLTIwMy42LTEwMy0yNzkuMy0yMzAtMjc5LjNINjEwMHYxNTE2LjNsMjkzLjEsMC4xSDYxMDBWOTA4LjgKCQljMCw4MDkuMiw2NTcuMywxNDY1LjMsMTQ2OC4xLDE0NjUuM3MxNDY4LjEtNjU2LDE0NjguMS0xNDY1LjNTODM3OS01NTYuOCw3NTY4LjEtNTU2Ljh6IE03NTY4LjIsMTc4OC4xCgkJYy00ODYuNSwwLTg4MC44LTM5My42LTg4MC44LTg3OS4zVjI5LjVoODgwLjhjNDg2LjUsMCw4ODAuOCwzOTMuNiw4ODAuOCw4NzkuM0M4NDQ5LjEsMTM5NC4zLDgwNTQuNywxNzg4LjEsNzU2OC4yLDE3ODguMXoiLz4KPC9zdmc+";
-const K_WHITE="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjIxNzYgLTIwNzMuMiA0NjUyLjMgNDQ0Ny4yIj48cGF0aCBkPSJNMzkxNi4yLDEzNzguOWMtMjAuNywwLTQxLjQtMS02MS42LTIuOUw2NTQ4LTEzMTIuMWwtNTgwLjMtNTc5LjFMMzI3NC40LDc5Ni45Yy0yLTIwLjMtMi45LTQwLjgtMi45LTYxLjUKCQl2LTI2MzIuN2gtODIwLjdWNzM1LjVjMCw4MDcuOCw2NTUuOSwxNDYyLjYsMTQ2NS4yLDE0NjIuNmgyNjM3LjZWMTM3OUgzOTE2LjJWMTM3OC45eiIgZmlsbD0iI0ZGRkZGRiIvPjwvc3ZnPg==";
-const K_BLACK="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjIxNzYgLTIwNzMuMiA0NjUyLjMgNDQ0Ny4yIj48cGF0aCBkPSJNMzkxNi4yLDEzNzguOWMtMjAuNywwLTQxLjQtMS02MS42LTIuOUw2NTQ4LTEzMTIuMWwtNTgwLjMtNTc5LjFMMzI3NC40LDc5Ni45Yy0yLTIwLjMtMi45LTQwLjgtMi45LTYxLjUKCQl2LTI2MzIuN2gtODIwLjdWNzM1LjVjMCw4MDcuOCw2NTUuOSwxNDYyLjYsMTQ2NS4yLDE0NjIuNmgyNjM3LjZWMTM3OUgzOTE2LjJWMTM3OC45eiIgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
-const K_LIME="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjIxNzYgLTIwNzMuMiA0NjUyLjMgNDQ0Ny4yIj48cGF0aCBkPSJNMzkxNi4yLDEzNzguOWMtMjAuNywwLTQxLjQtMS02MS42LTIuOUw2NTQ4LTEzMTIuMWwtNTgwLjMtNTc5LjFMMzI3NC40LDc5Ni45Yy0yLTIwLjMtMi45LTQwLjgtMi45LTYxLjUKCQl2LTI2MzIuN2gtODIwLjdWNzM1LjVjMCw4MDcuOCw2NTUuOSwxNDYyLjYsMTQ2NS4yLDE0NjIuNmgyNjM3LjZWMTM3OUgzOTE2LjJWMTM3OC45eiIgZmlsbD0iI0JGRkMwMCIvPjwvc3ZnPg==";
-const POSTS=[{"id": "p1", "template": "statement", "ratio": "square", "headline": "ONE PARTNER FOR YOUR ENTIRE DIGITAL JOURNEY", "accent": "DIGITAL", "cta": "BOOK A FREE CALL", "eyebrow": "BOKO DIGITAL", "bullets": ["Strategy", "Design", "Development", "Marketing"], "caption": "Strategy, design, development, and performance marketing - integrated under one roof so every piece works together. That's how Boko clients outperform their goals.\n\nStrategize. Execute. Deliver.\nboko.com.au", "status": "pending"}, {"id": "p2", "template": "stat", "ratio": "square", "headline": "SEAMLESS DIGITAL SOLUTIONS", "accent": "360", "cta": "SEE HOW", "eyebrow": "FROM STRATEGY TO PERFORMANCE", "bullets": ["Strategy", "Design", "Development", "Marketing"], "caption": "Design, code, and marketing that move as one. No silos, no dropped handoffs - just one integrated team driving real, measurable results.\n\nboko.com.au", "status": "pending"}, {"id": "p3", "template": "checklist", "ratio": "square", "headline": "EVERYTHING YOUR BRAND NEEDS", "accent": "EVERYTHING", "cta": "GET STARTED", "eyebrow": "ONE INTEGRATED TEAM", "bullets": ["Digital strategy", "Design & branding", "Web development", "Performance marketing"], "caption": "Why juggle five vendors? Boko delivers your full digital stack as one connected system - aligned, accountable, and built to grow with you.\n\nboko.com.au", "status": "pending"}, {"id": "p4", "template": "cta", "ratio": "square", "headline": "READY TO OUTPERFORM YOUR GOALS?", "accent": "OUTPERFORM", "cta": "BOOK A FREE CALL", "eyebrow": "LET'S TALK", "bullets": ["Strategy", "Design", "Development", "Marketing"], "caption": "Tell us where you want to be. We'll map the strategy, build it, and drive the performance to get you there.\n\nStrategize. Execute. Deliver.\nboko.com.au", "status": "pending"}, {"id": "p5", "template": "lime", "ratio": "square", "headline": "STRATEGIZE. EXECUTE. DELIVER.", "accent": "DELIVER.", "cta": "WORK WITH US", "eyebrow": "BOKO DIGITAL", "bullets": ["Strategy", "Design", "Development", "Marketing"], "caption": "Three words. One promise. We manage the whole journey so your brand performs - every time.\n\nboko.com.au", "status": "pending"}];
+const K_WHITE="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjIxNzYgLTIwNzMuMiA0NjUyLjMgNDQ0Ny4yIj48cGF0aCBkPSJNMzkxNi4yLDEzNzguOWMtMjAuNywwLTQxLjQtMS02MS42LTIuOUw2NTQ4LTEzMTIuMWwtNTgwLjMtNTc5LjFMMzI3NC40LDc5Ni45Yy0yLTIwLjMtMi45LTQwLjgtMi45LTYxLjUKCQl2LTI2MzIuN2gtODIwLjdWNzM1LjVjMCw4MDcuOCw2NTUuOSwxNDYyLjYsMTQ2NS4yLDE0NjIuNmgyNjM3LjZWMTM3OUgzOTE2LjJWMTM3OC45eiIgZmlsbD0iI0ZGRkZGRiIvPjwvc3ZnPg==";const K_BLACK="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjIxNzYgLTIwNzMuMiA0NjUyLjMgNDQ0Ny4yIj48cGF0aCBkPSJNMzkxNi4yLDEzNzguOWMtMjAuNywwLTQxLjQtMS02MS42LTIuOUw2NTQ4LTEzMTIuMWwtNTgwLjMtNTc5LjFMMzI3NC40LDc5Ni45Yy0yLTIwLjMtMi45LTQwLjgtMi45LTYxLjUKCQl2LTI2MzIuN2gtODIwLjdWNzM1LjVjMCw4MDcuOCw2NTUuOSwxNDYyLjYsMTQ2NS4yLDE0NjIuNmgyNjM3LjZWMTM3OUgzOTE2LjJWMTM3OC45eiIgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";const K_LIME="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjIxNzYgLTIwNzMuMiA0NjUyLjMgNDQ0Ny4yIj48cGF0aCBkPSJNMzkxNi4yLDEzNzguOWMtMjAuNywwLTQxLjQtMS02MS42LTIuOUw2NTQ4LTEzMTIuMWwtNTgwLjMtNTc5LjFMMzI3NC40LDc5Ni45Yy0yLTIwLjMtMi45LTQwLjgtMi45LTYxLjUKCQl2LTI2MzIuN2gtODIwLjdWNzM1LjVjMCw4MDcuOCw2NTUuOSwxNDYyLjYsMTQ2NS4yLDE0NjIuNmgyNjM3LjZWMTM3OUgzOTE2LjJWMTM3OC45eiIgZmlsbD0iI0JGRkMwMCIvPjwvc3ZnPg==";
+const POSTS=[{"id": "p1", "type": "post", "platform": "Instagram", "status": "review", "title": "Stop paying humans for robot work", "pillar": "How-To \u00b7 Cost of manual work", "template": "statement", "ratio": "square", "headline": "STOP PAYING HUMANS TO DO ROBOT WORK", "accent": "ROBOT", "cta": "DM US AUTOMATE", "eyebrow": "BOKO DIGITAL", "bullets": ["WISMO replies", "Email flows", "Product copy", "Weekly reports"], "caption": "Customer replies. Product descriptions. Weekly reports. Inventory updates. If a human on your team still does these in 2026, you're paying salary for robot work.\n\nThe fix isn't more staff - it's the right 3 automations.\n\nDM us AUTOMATE for the list of tasks AU retailers should hand to AI first.\n#AIAutomation #ShopifyAU #AustralianBusiness", "changeNote": ""}, {"id": "p2", "type": "post", "platform": "Instagram", "status": "drafting", "title": "74% raising AI spend / ad leak", "pillar": "Data \u00b7 Your data is smarter", "template": "stat", "ratio": "square", "headline": "OF ANZ RETAILERS ARE RAISING AI SPEND", "accent": "74%", "cta": "DM US ADS", "eyebrow": "ANZ RETAIL \u00b7 2026", "bullets": ["Server-side tracking", "Conversions API", "Daily AI ad audit"], "caption": "Your CPAs keep climbing and you can't see why. iOS and Chrome privacy changes broke the pixel - Meta and Google are flying blind on your data.\n\n74% of ANZ retailers are raising AI spend in 2026. The smart ones point it at the leak: server-side tracking + AI reading the account every day.\n\nDM us ADS for our AI ad-audit prompt.\n#AIAutomation #ROAS #ShopifyAU", "changeNote": ""}, {"id": "p3", "type": "post", "platform": "LinkedIn", "status": "approved", "title": "We build it. You own it. (positioning)", "pillar": "Hot take \u00b7 Positioning vs competitors", "template": "lime", "ratio": "square", "headline": "WE BUILD IT. YOU OWN IT.", "accent": "OWN", "cta": "DM US BUILD", "eyebrow": "BOKO DIGITAL", "bullets": ["No lock-in", "No retainer trap", "Your team runs it"], "caption": "Every AI agency in Australia falls into two camps: they manage it for you forever (you never own it), or they build it and vanish.\n\nWe do neither. We build the systems, then hand them over - your team runs them without us.\n\nThat's the difference between renting AI and owning it.\n\nDM us BUILD to see what a hand-over looks like.\n#AIAutomation #AustralianBusiness #Retail", "changeNote": ""}, {"id": "p4", "type": "post", "platform": "Instagram", "status": "review", "title": "Automate these 4 first (Shopify)", "pillar": "How-To \u00b7 Automate the repetitive", "template": "checklist", "ratio": "square", "headline": "AUTOMATE THESE 4 FIRST", "accent": "4", "cta": "DM US SHOPIFY", "eyebrow": "SHOPIFY RETAILERS", "bullets": ["WISMO customer replies", "Klaviyo email & SMS", "Product descriptions", "Weekly sales reports"], "caption": "Your Shopify store can now run its own admin. AI plugs straight into the Shopify API - orders, products, inventory, customers.\n\nStart with the 4 tasks eating your week:\n- WISMO 'where's my order' replies\n- Klaviyo email + SMS flows\n- Product descriptions\n- Weekly sales reporting\n\nAutomate the repetitive. Spend your hours on the creative.\n\nDM us SHOPIFY for the automation map.\n#ShopifyAU #AIAutomation #Ecommerce", "changeNote": ""}, {"id": "p5", "type": "post", "platform": "LinkedIn", "status": "idea", "title": "You don't need a $50K AI project", "pillar": "Framework \u00b7 The AI-powered business", "template": "cta", "ratio": "square", "headline": "YOU DON'T NEED A $50K AI PROJECT", "accent": "$50K", "cta": "DM US PLAN", "eyebrow": "AU RETAIL, $1M-$5M", "bullets": ["3 automations", "4 weeks", "You own it"], "caption": "The big agencies quote $15K-$50K for 'enterprise AI'. For a $1-5M retailer, that's a no.\n\nYou don't need enterprise. You need the right 3 automations live in 4 weeks - customer service, email, and reporting.\n\nThat's the whole on-ramp.\n\nDM us PLAN for the 4-week automation roadmap.\n#AIAutomation #AustralianRetail #SmallBusiness", "changeNote": ""}];
 const WEEK_KEY="2026-W26";
-const STORAGE="boko_posters_"+WEEK_KEY;
+const STORAGE="boko_board_"+WEEK_KEY;
 const C={lime:"#BFFC00",black:"#000000",white:"#FFFFFF"};
 const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","grid","index","split"];
 const DIMS={square:[1080,1080],story:[1080,1920]};
 const KASPECT=1.046;
+const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"review",label:"Needs review"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
+const PLATFORMS=["Instagram","LinkedIn","Facebook"];
+let filter="All";
+
 document.getElementById("logo").src=LOGO_URL;
-document.getElementById("weekTitle").textContent="Week "+WEEK_KEY.split("-W")[1]+" · "+WEEK_KEY.split("-")[0];
+document.getElementById("weekTitle").textContent="Content board · Week "+WEEK_KEY.split("-W")[1]+" "+WEEK_KEY.split("-")[0];
 
 let state=POSTS.map(p=>({...p}));
 try{const saved=JSON.parse(localStorage.getItem(STORAGE)||"null");
   if(saved&&Array.isArray(saved)){state=state.map(p=>{const s=saved.find(x=>x.id===p.id);return s?{...p,...s}:p;});}}catch(e){}
 function save(){localStorage.setItem(STORAGE,JSON.stringify(state));}
 
-let ready=0; const need=3;
-const kWhite=new Image(); const kBlack=new Image(); const kLime=new Image();
-function onReady(){ready++;if(ready>=need)renderAll();}
-kWhite.onload=onReady; kBlack.onload=onReady; kLime.onload=onReady;
-kWhite.src=K_WHITE; kBlack.src=K_BLACK; kLime.src=K_LIME;
+let ready=0;const need=3;
+const kWhite=new Image(),kBlack=new Image(),kLime=new Image();
+function onReady(){ready++;if(ready>=need)boot();}
+kWhite.onload=onReady;kBlack.onload=onReady;kLime.onload=onReady;
+kWhite.src=K_WHITE;kBlack.src=K_BLACK;kLime.src=K_LIME;
 
 function wrapLines(ctx,text,maxW){const words=text.split(/\s+/);const lines=[];let line="";
   for(const w of words){const test=line?line+" "+w:w;
@@ -215,31 +241,80 @@ function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=
     ctx.fillStyle=C.black;ctx.textAlign="left";ctx.fillText(btnText,bx+padX,by+bh/2);ctx.textBaseline="top";}
 }
 
-function dayName(i){return["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i];}
-function buildCalendar(){const cal=document.getElementById("cal");cal.innerHTML="";
-  state.forEach((p,i)=>{const d=document.createElement("div");d.className="day has";
-    d.innerHTML=dayName(i%7)+"<b>"+p.template+"</b>";cal.appendChild(d);});}
-function updateCounters(){cApproved.textContent=state.filter(p=>p.status==="approved").length;
-  cChanges.textContent=state.filter(p=>p.status==="changes").length;
-  cPending.textContent=state.filter(p=>p.status==="pending").length;}
-function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
-function statusLabel(s){return s==="approved"?"Approved":s==="changes"?"Changes requested":"Pending review";}
-function refreshStatus(p,card){card.querySelector('.dot').className='dot '+p.status;
-  card.querySelector('#st_'+p.id).textContent=statusLabel(p.status);
-  const note=card.querySelector('#note_'+p.id);note.textContent=p.changeNote||"";
-  note.style.display=(p.status==="changes"&&p.changeNote)?"block":"none";updateCounters();}
-function drawInto(p){const cv=document.getElementById("cv_"+p.id);if(cv)renderPoster(cv,p);}
-function refreshCard(p,idx,card){const fresh=renderCard(p,idx);card.replaceWith(fresh);drawInto(p);refreshStatus(p,fresh);}
-function renderCard(p,idx){const card=document.createElement("div");card.className="card";
-  card.innerHTML=`
-    <div class="preview"><canvas class="disp" id="cv_${p.id}"></canvas></div>
-    <div class="body">
-      <div class="row" style="justify-content:space-between">
-        <div class="seg" data-k="template">${TEMPLATES.map(t=>`<button data-t="${t}" class="${p.template===t?'on':''}">${t}</button>`).join("")}</div>
-        <div class="seg" data-k="ratio">
-          <button data-r="square" class="${p.ratio!=='story'?'on':''}">1:1</button>
-          <button data-r="story" class="${p.ratio==='story'?'on':''}">Story</button>
+/* ---------- board ---------- */
+function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":"fb";}
+function visible(){return state.filter(p=>filter==="All"||p.platform===filter);}
+function counts(){
+  cTotal.textContent=state.length;
+  cReview.textContent=state.filter(p=>p.status==="review").length;
+  cApproved.textContent=state.filter(p=>p.status==="approved").length;
+}
+function renderFilters(){
+  const el=document.getElementById("filters");el.innerHTML="";
+  ["All",...PLATFORMS].forEach(f=>{const b=document.createElement("button");
+    b.className="chip"+(filter===f?" on":"");b.textContent=f;b.onclick=()=>{filter=f;renderBoard();};el.appendChild(b);});
+}
+function renderBoard(){
+  renderFilters();counts();
+  const board=document.getElementById("board");board.innerHTML="";
+  STATUSES.forEach(st=>{
+    const col=document.createElement("div");col.className="col";col.dataset.status=st.id;
+    const items=visible().filter(p=>p.status===st.id);
+    col.innerHTML=`<h2>${st.label} <span class="n">${items.length}</span></h2><div class="cards"></div>`;
+    const cards=col.querySelector(".cards");
+    items.forEach(p=>cards.appendChild(cardEl(p)));
+    // drop zone
+    col.addEventListener("dragover",e=>{e.preventDefault();col.classList.add("drag");});
+    col.addEventListener("dragleave",()=>col.classList.remove("drag"));
+    col.addEventListener("drop",e=>{e.preventDefault();col.classList.remove("drag");
+      const id=e.dataTransfer.getData("text/plain");const p=state.find(x=>x.id===id);
+      if(p&&p.status!==st.id){p.status=st.id;save();renderBoard();}});
+    board.appendChild(col);
+  });
+}
+function cardEl(p){
+  const c=document.createElement("div");c.className="card";c.draggable=true;
+  const cv=document.createElement("canvas");
+  c.innerHTML=`<div class="thumb"></div>
+    <div class="cbody">
+      <div class="badges"><span class="badge type">${p.type}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span></div>
+      <div class="ctitle">${esc(p.title)}</div>
+      <div class="pillar">${esc(p.pillar||"")}</div>
+      ${p.changeNote?`<div class="note">✎ ${esc(p.changeNote)}</div>`:""}
+      <div class="cact">
+        <button class="mini" data-a="open">Open</button>
+        <button class="mini ok" data-a="approve">Approve</button>
+        <button class="mini warn" data-a="changes">Changes</button>
+      </div>
+    </div>`;
+  c.querySelector(".thumb").appendChild(cv);renderPoster(cv,p);
+  c.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",p.id);c.classList.add("dragging");});
+  c.addEventListener("dragend",()=>c.classList.remove("dragging"));
+  c.addEventListener("click",e=>{if(e.target.closest("[data-a]"))return;openEditor(p.id);});
+  c.querySelector('[data-a="open"]').onclick=()=>openEditor(p.id);
+  c.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();renderBoard();toast("Approved");};
+  c.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();renderBoard();};
+  return c;
+}
+
+/* ---------- editor modal ---------- */
+function openEditor(id){
+  const p=state.find(x=>x.id===id);if(!p)return;
+  const m=document.getElementById("modal");
+  m.innerHTML=`
+    <div class="mprev"><canvas id="mcv"></canvas></div>
+    <div class="mform">
+      <div style="display:flex;align-items:center"><h3>${esc(p.title)}</h3><button class="x" data-a="close">×</button></div>
+      <div class="seg" id="tplseg">${TEMPLATES.map(t=>`<button data-t="${t}" class="${p.template===t?'on':''}">${t}</button>`).join("")}</div>
+      <div class="two">
+        <div><label class="fl">Status</label><select class="f" data-f="status">${STATUSES.map(s=>`<option value="${s.id}" ${p.status===s.id?'selected':''}>${s.label}</option>`).join("")}</select></div>
+        <div><label class="fl">Platform</label><select class="f" data-f="platform">${PLATFORMS.map(pl=>`<option ${p.platform===pl?'selected':''}>${pl}</option>`).join("")}</select></div>
+      </div>
+      <div class="two">
+        <div><label class="fl">Format</label>
+          <div class="seg" id="ratioseg"><button data-r="square" class="${p.ratio!=='story'?'on':''}">1:1</button><button data-r="story" class="${p.ratio==='story'?'on':''}">Story</button></div>
         </div>
+        <div><label class="fl">Title (internal)</label><input class="f" data-f="title" value="${esc(p.title)}"></div>
       </div>
       <div><label class="fl">Headline / message</label><input class="f" data-f="headline" value="${esc(p.headline)}"></div>
       <div class="two">
@@ -251,43 +326,49 @@ function renderCard(p,idx){const card=document.createElement("div");card.classNa
         <div><label class="fl">Bullets (comma)</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>
       </div>
       <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>
-      <div class="status-line"><span class="dot ${p.status}"></span><span id="st_${p.id}">${statusLabel(p.status)}</span></div>
-      <div class="changes-note" id="note_${p.id}">${esc(p.changeNote||'')}</div>
-      <div class="actions">
-        <button class="btn lime" data-act="approve">Approve</button>
-        <button class="btn" data-act="changes">Request changes</button>
-        <button class="btn ghost" data-act="caption">Copy caption</button>
-        <button class="btn ghost" data-act="download">Download PNG</button>
+      ${p.changeNote?`<div class="note">✎ ${esc(p.changeNote)}</div>`:""}
+      <div class="mactions">
+        <button class="btn lime" data-a="approve">Approve</button>
+        <button class="btn warn" data-a="changes">Request changes</button>
+        <button class="btn ghost" data-a="caption">Copy caption</button>
+        <button class="btn ghost" data-a="download">Download PNG</button>
+        <button class="btn ghost" data-a="close" style="margin-left:auto">Close</button>
       </div>
     </div>`;
-  card.querySelectorAll('.seg[data-k="template"] button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;save();refreshCard(p,idx,card);});
-  card.querySelectorAll('.seg[data-k="ratio"] button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;save();refreshCard(p,idx,card);});
-  card.querySelectorAll('[data-f]').forEach(inp=>inp.oninput=()=>{const f=inp.dataset.f;
+  const cv=m.querySelector("#mcv");renderPoster(cv,p);
+  const redraw=()=>renderPoster(cv,p);
+  m.querySelectorAll('#tplseg button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;save();openEditor(id);renderBoardThumb(id);});
+  m.querySelectorAll('#ratioseg button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;save();openEditor(id);renderBoardThumb(id);});
+  m.querySelectorAll('[data-f]').forEach(inp=>inp.oninput=()=>{const f=inp.dataset.f;
     if(f==="bullets")p.bullets=inp.value.split(",").map(s=>s.trim()).filter(Boolean);else p[f]=inp.value;
-    save();drawInto(p);});
-  card.querySelector('[data-act="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();refreshStatus(p,card);};
-  card.querySelector('[data-act="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;
-    p.status="changes";p.changeNote=n;save();refreshStatus(p,card);};
-  card.querySelector('[data-act="caption"]').onclick=()=>{navigator.clipboard.writeText(p.caption||"").then(()=>toast("Caption copied"));};
-  card.querySelector('[data-act="download"]').onclick=()=>downloadPNG(p);
-  return card;}
-function renderAll(){const grid=document.getElementById("grid");grid.innerHTML="";
-  state.forEach((p,i)=>grid.appendChild(renderCard(p,i)));
-  state.forEach(p=>{drawInto(p);if(p.status==="changes"&&p.changeNote){const n=document.getElementById("note_"+p.id);if(n)n.style.display="block";}});
-  buildCalendar();updateCounters();}
+    save();redraw();});
+  m.querySelectorAll('[data-f="status"],[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p[sel.dataset.f]=sel.value;save();counts();});
+  m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();closeEditor();renderBoard();toast("Approved");};
+  m.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();closeEditor();renderBoard();};
+  m.querySelector('[data-a="caption"]').onclick=()=>navigator.clipboard.writeText(p.caption||"").then(()=>toast("Caption copied"));
+  m.querySelector('[data-a="download"]').onclick=()=>downloadPNG(p);
+  m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
+  document.getElementById("overlay").classList.add("show");
+}
+function closeEditor(){document.getElementById("overlay").classList.remove("show");renderBoard();}
+function renderBoardThumb(id){/* board re-renders on close; cheap no-op live */}
+document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeEditor();});
+
+function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
 function downloadPNG(p){const off=document.createElement("canvas");renderPoster(off,p);
-  const a=document.createElement("a");a.download="boko_"+WEEK_KEY+"_"+p.id+"_"+(p.ratio||"square")+".png";
-  a.href=off.toDataURL("image/png");a.click();}
+  const a=document.createElement("a");a.download="boko_"+p.id+"_"+(p.ratio||"square")+".png";a.href=off.toDataURL("image/png");a.click();}
 let toastT;function toast(msg){let t=document.getElementById("__t");
   if(!t){t=document.createElement("div");t.id="__t";
     t.style.cssText="position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#BFFC00;color:#000;font-weight:600;padding:10px 16px;border-radius:10px;z-index:99;font-size:13px";
     document.body.appendChild(t);}
   t.textContent=msg;t.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>t.style.opacity=0,1400);}
+
+function boot(){renderBoard();}
 if(document.fonts&&document.fonts.load){
   Promise.all([document.fonts.load("700 80px Poppins"),document.fonts.load("800 80px Poppins"),document.fonts.load("500 40px Poppins"),document.fonts.load("400 40px Poppins")])
-    .then(()=>document.fonts.ready).then(renderAll).catch(renderAll);
-}else{window.onload=renderAll;}
-setTimeout(renderAll,700);
+    .then(()=>document.fonts.ready).then(()=>{if(ready>=need)boot();}).catch(()=>{});
+}
+setTimeout(()=>{if(ready>=need)boot();},800);
 </script>
 </body>
 </html>
