@@ -43,6 +43,8 @@
   .badge.ig{background:#fce6f1;color:#c2186e}
   .badge.li{background:#e6eefc;color:#2456b8}
   .badge.fb{background:#e8ebfb;color:#2a3fa8}
+  .badge.date{background:#eef0f5;color:#3a4048}
+  .badge.date.od{background:#fdecea;color:#c0392b}
   .ctitle{font-size:13.5px;font-weight:600;line-height:1.3;color:var(--text)}
   .pillar{font-size:11px;color:var(--muted)}
   .cact{display:flex;gap:6px;margin-top:3px}
@@ -126,6 +128,10 @@ kWhite.src=K_WHITE;kBlack.src=K_BLACK;kLime.src=K_LIME;
 __ENGINE__
 
 /* ---------- board ---------- */
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],WK=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function fmtDate(d){if(!d)return "";const dt=new Date(d+"T00:00:00");if(isNaN(dt))return d;return WK[dt.getDay()]+" "+dt.getDate()+" "+MON[dt.getMonth()];}
+function isOverdue(p){return p.date && p.date<todayStr() && p.status!=="published";}
 function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":"fb";}
 function visible(){return state.filter(p=>filter==="All"||p.platform===filter);}
 function counts(){
@@ -161,7 +167,7 @@ function cardEl(p){
   const cv=document.createElement("canvas");
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.type}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span></div>
+      <div class="badges"><span class="badge type">${p.type}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}</span>`:""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
       ${p.changeNote?`<div class="note">✎ ${esc(p.changeNote)}</div>`:""}
@@ -193,6 +199,10 @@ function openEditor(id){
       <div class="two">
         <div><label class="fl">Status</label><select class="f" data-f="status">${STATUSES.map(s=>`<option value="${s.id}" ${p.status===s.id?'selected':''}>${s.label}</option>`).join("")}</select></div>
         <div><label class="fl">Platform</label><select class="f" data-f="platform">${PLATFORMS.map(pl=>`<option ${p.platform===pl?'selected':''}>${pl}</option>`).join("")}</select></div>
+      </div>
+      <div class="two">
+        <div><label class="fl">Scheduled / post date</label><input type="date" class="f" data-f="date" value="${p.date||''}"></div>
+        <div><label class="fl">Status</label><select class="f" data-f="status2">${STATUSES.map(sx=>`<option value="${sx.id}" ${p.status===sx.id?'selected':''}>${sx.label}</option>`).join("")}</select></div>
       </div>
       <div class="two">
         <div><label class="fl">Format</label>
@@ -228,6 +238,8 @@ function openEditor(id){
     if(f==="bullets")p.bullets=inp.value.split(",").map(s=>s.trim()).filter(Boolean);else p[f]=inp.value;
     save();redraw();});
   m.querySelectorAll('[data-f="status"],[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p[sel.dataset.f]=sel.value;save();counts();});
+  m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;save();counts();});
+  const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();};
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();closeEditor();renderBoard();toast("Approved");};
   m.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();closeEditor();renderBoard();};
   m.querySelector('[data-a="caption"]').onclick=()=>navigator.clipboard.writeText(p.caption||"").then(()=>toast("Caption copied"));
@@ -252,7 +264,7 @@ let toastT;function toast(msg){let t=document.getElementById("__t");
 function newPost(){
   const p={id:"u"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New post",
     template:"statement",ratio:"square",headline:"YOUR HEADLINE HERE",accent:"",cta:"DM US",
-    eyebrow:"BOKO DIGITAL",bullets:["Point one","Point two","Point three"],caption:"",pillar:"Draft",changeNote:""};
+    eyebrow:"BOKO DIGITAL",bullets:["Point one","Point two","Point three"],caption:"",pillar:"Draft",date:"",changeNote:""};
   state.push(p);save();renderBoard();openEditor(p.id);
 }
 document.getElementById("newBtn").onclick=newPost;
