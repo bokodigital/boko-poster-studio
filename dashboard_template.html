@@ -73,6 +73,20 @@
   .btn.warn{color:#9a6a00;border-color:#f0d488;background:#fff7e3}
   .btn.ghost{background:#fff}
   .btn:hover{filter:brightness(.98)}
+  .period{display:flex;align-items:center;gap:8px}
+  .period h1{font-size:18px;margin:0;font-weight:700;min-width:150px;text-align:center}
+  .navbtn{font-family:inherit;font-weight:700;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--text);width:32px;height:32px;border-radius:8px;cursor:pointer}
+  .navbtn:hover{background:#eef0f5}
+  .wsel{font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:8px;padding:6px 8px;cursor:pointer}
+  .rightbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .badge.yt{background:#fde7e7;color:#c0202a}
+  .badge.em{background:#eee9fb;color:#5b3ec2}
+  .vthumb{position:relative;width:100%;aspect-ratio:1/1;background:#0c0e10;display:flex;align-items:center;justify-content:center}
+  .vthumb .play{width:52px;height:52px;border-radius:50%;background:var(--lime);display:flex;align-items:center;justify-content:center}
+  .vthumb .play:after{content:"";border-left:17px solid #000;border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px}
+  .vthumb .vlabel{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;letter-spacing:.05em;color:#fff;background:rgba(255,255,255,.14);padding:3px 7px;border-radius:6px;text-transform:uppercase}
+  .vthumb .vtitle{position:absolute;bottom:10px;left:12px;right:12px;font-size:13px;font-weight:600;color:#fff;line-height:1.25}
+  .vnote{font-size:12px;color:#5b6470;background:#f3f5f9;border:1px solid var(--line);border-radius:8px;padding:9px 11px}
   .gate{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:100}
   .gate.show{display:flex}
   .gatecard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px;width:min(360px,92vw);box-shadow:0 20px 60px rgba(16,19,22,.18);text-align:center}
@@ -97,10 +111,16 @@
   </div>
 </header>
 <div class="toolbar">
-  <h1 id="weekTitle">Content board</h1>
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+  <div class="period">
+    <button class="navbtn" id="prevM">&#9664;</button>
+    <h1 id="monthLabel">Month</h1>
+    <button class="navbtn" id="nextM">&#9654;</button>
+    <select class="wsel" id="weekSel"></select>
+  </div>
+  <div class="rightbar">
     <div class="filters" id="filters"></div>
-    <button id="newBtn" class="newbtn">+ New post</button>
+    <button id="newBtn" class="newbtn">+ Post</button>
+    <button id="newVid" class="newbtn">+ Video</button>
   </div>
 </div>
 <div class="board" id="board"></div>
@@ -123,11 +143,11 @@ const POSTS=__POSTS__;
 const WEEK_KEY="__WEEK_KEY__";
 const STORAGE="boko_board_"+WEEK_KEY;
 const C={lime:"#BFFC00",black:"#000000",white:"#FFFFFF"};
-const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","grid","index","split","founder"];
+const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","grid","index","split","founder","carousel"];
 const DIMS={square:[1080,1080],story:[1080,1920]};
 const KASPECT=1.046;
 const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"review",label:"Needs review"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
-const PLATFORMS=["Instagram","LinkedIn","Facebook"];
+const PLATFORMS=["Instagram","LinkedIn","Facebook","YouTube","Email"];
 let filter="All";
 
 document.getElementById("logo").src=LOGO_LIGHT;
@@ -178,8 +198,24 @@ const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","De
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function fmtDate(d){if(!d)return "";const dt=new Date(d+"T00:00:00");if(isNaN(dt))return d;return WK[dt.getDay()]+" "+dt.getDate()+" "+MON[dt.getMonth()];}
 function isOverdue(p){return p.date && p.date<todayStr() && p.status!=="published";}
-function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":"fb";}
-function visible(){return state.filter(p=>filter==="All"||p.platform===filter);}
+function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":p==="YouTube"?"yt":p==="Email"?"em":"fb";}
+let curMonth="",curWeek=null;
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function ym(d){return (d||"").slice(0,7);}
+function isoWeek(d){if(!d)return"";const dt=new Date(d+"T00:00:00");if(isNaN(dt))return"";const t=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate()));const day=(t.getUTCDay()+6)%7;t.setUTCDate(t.getUTCDate()-day+3);const w1=new Date(Date.UTC(t.getUTCFullYear(),0,4));const w=1+Math.round(((t-w1)/864e5-3+((w1.getUTCDay()+6)%7))/7);return t.getUTCFullYear()+"-W"+String(w).padStart(2,"0");}
+function weekMonday(wk){const [y,w]=wk.split("-W").map(Number);const s=new Date(Date.UTC(y,0,4));s.setUTCDate(s.getUTCDate()-((s.getUTCDay()+6)%7)+(w-1)*7);return s;}
+function monthLabel(m){const[y,mm]=m.split("-");return MONTHS[+mm-1]+" "+y;}
+function defaultMonth(){const c={};state.forEach(p=>{if(p.date)c[ym(p.date)]=(c[ym(p.date)]||0)+1;});let best="",n=-1;for(const k in c)if(c[k]>n){n=c[k];best=k;}return best||new Date().toISOString().slice(0,7);}
+function shiftMonth(delta){const[y,m]=curMonth.split("-").map(Number);const d=new Date(y,m-1+delta,1);curMonth=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");curWeek=null;renderBoard();}
+function weeksInMonth(){const ws=new Set();state.forEach(p=>{if(p.date&&ym(p.date)===curMonth)ws.add(isoWeek(p.date));});return [...ws].sort();}
+function renderWeekSel(){const sel=document.getElementById("weekSel");const ws=weeksInMonth();
+  sel.innerHTML='<option value="">All weeks</option>'+ws.map(w=>{const m=weekMonday(w);return `<option value="${w}" ${curWeek===w?"selected":""}>Week of ${m.getUTCDate()} ${MONTHS[m.getUTCMonth()].slice(0,3)}</option>`;}).join("");
+  sel.onchange=()=>{curWeek=sel.value||null;renderBoard();};}
+function visible(){return state.filter(p=>{
+  if(filter!=="All"&&p.platform!==filter)return false;
+  if(curWeek)return isoWeek(p.date)===curWeek;
+  if(!p.date)return true;
+  return ym(p.date)===curMonth;});}
 function counts(){
   cTotal.textContent=state.length;
   cReview.textContent=state.filter(p=>p.status==="review").length;
@@ -191,7 +227,9 @@ function renderFilters(){
     b.className="chip"+(filter===f?" on":"");b.textContent=f;b.onclick=()=>{filter=f;renderBoard();};el.appendChild(b);});
 }
 function renderBoard(){
-  renderFilters();counts();
+  if(!curMonth)curMonth=defaultMonth();
+  document.getElementById("monthLabel").textContent=monthLabel(curMonth);
+  renderWeekSel();renderFilters();counts();
   const board=document.getElementById("board");board.innerHTML="";
   STATUSES.forEach(st=>{
     const col=document.createElement("div");col.className="col";col.dataset.status=st.id;
@@ -210,7 +248,6 @@ function renderBoard(){
 }
 function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;
-  const cv=document.createElement("canvas");
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
       <div class="badges"><span class="badge type">${p.type}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}</span>`:""}</div>
@@ -223,7 +260,7 @@ function cardEl(p){
         <button class="mini warn" data-a="changes">Changes</button>
       </div>
     </div>`;
-  c.querySelector(".thumb").appendChild(cv);renderPoster(cv,p);
+  if(p.type==="video"){c.querySelector(".thumb").innerHTML=videoThumbHTML(p);}else{const cv=document.createElement("canvas");c.querySelector(".thumb").appendChild(cv);renderPoster(cv,p);}
   c.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",p.id);c.classList.add("dragging");});
   c.addEventListener("dragend",()=>c.classList.remove("dragging"));
   c.addEventListener("click",e=>{if(e.target.closest("[data-a]"))return;openEditor(p.id);});
@@ -234,64 +271,63 @@ function cardEl(p){
 }
 
 /* ---------- editor modal ---------- */
+function videoThumbHTML(p){return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span><span class="play"></span><span class="vtitle">${esc(p.title)}</span></div>`;}
 function openEditor(id){
   const p=state.find(x=>x.id===id);if(!p)return;
+  const isVid=p.type==="video";
   const m=document.getElementById("modal");
   m.innerHTML=`
-    <div class="mprev"><canvas id="mcv"></canvas></div>
+    <div class="mprev">${isVid?videoThumbHTML(p):'<canvas id="mcv"></canvas>'}</div>
     <div class="mform">
-      <div style="display:flex;align-items:center"><h3>${esc(p.title)}</h3><button class="x" data-a="close">×</button></div>
-      <div class="seg" id="tplseg">${TEMPLATES.map(t=>`<button data-t="${t}" class="${p.template===t?'on':''}">${t}</button>`).join("")}</div>
+      <div style="display:flex;align-items:center"><h3>${esc(p.title)}</h3><button class="x" data-a="close">&times;</button></div>
+      <div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>
+      ${isVid?'':`<div class="seg" id="tplseg">${TEMPLATES.map(t=>`<button data-t="${t}" class="${p.template===t?'on':''}">${t}</button>`).join("")}</div>`}
       <div class="two">
-        <div><label class="fl">Status</label><select class="f" data-f="status">${STATUSES.map(s=>`<option value="${s.id}" ${p.status===s.id?'selected':''}>${s.label}</option>`).join("")}</select></div>
+        <div><label class="fl">Status</label><select class="f" data-f="status2">${STATUSES.map(sx=>`<option value="${sx.id}" ${p.status===sx.id?'selected':''}>${sx.label}</option>`).join("")}</select></div>
         <div><label class="fl">Platform</label><select class="f" data-f="platform">${PLATFORMS.map(pl=>`<option ${p.platform===pl?'selected':''}>${pl}</option>`).join("")}</select></div>
       </div>
       <div class="two">
         <div><label class="fl">Scheduled / post date</label><input type="date" class="f" data-f="date" value="${p.date||''}"></div>
-        <div><label class="fl">Status</label><select class="f" data-f="status2">${STATUSES.map(sx=>`<option value="${sx.id}" ${p.status===sx.id?'selected':''}>${sx.label}</option>`).join("")}</select></div>
-      </div>
-      <div class="two">
-        <div><label class="fl">Format</label>
-          <div class="seg" id="ratioseg"><button data-r="square" class="${p.ratio!=='story'?'on':''}">1:1</button><button data-r="story" class="${p.ratio==='story'?'on':''}">Story</button></div>
-        </div>
         <div><label class="fl">Title (internal)</label><input class="f" data-f="title" value="${esc(p.title)}"></div>
+      </div>
+      ${isVid?`<div class="vnote">&#127916; Video is uploaded manually${p.platform==="YouTube"?" to YouTube":""}. Use the fields below for the title, script and schedule; approve when the cut is ready.</div>`:`
+      <div class="two">
+        <div><label class="fl">Format</label><div class="seg" id="ratioseg"><button data-r="square" class="${p.ratio!=='story'?'on':''}">1:1</button><button data-r="story" class="${p.ratio==='story'?'on':''}">Story</button></div></div>
+        <div><label class="fl">CTA</label><input class="f" data-f="cta" value="${esc(p.cta||'')}"></div>
       </div>
       <div><label class="fl">Headline / message</label><input class="f" data-f="headline" value="${esc(p.headline)}"></div>
       <div class="two">
         <div><label class="fl">Accent word / number</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
-        <div><label class="fl">CTA</label><input class="f" data-f="cta" value="${esc(p.cta||'')}"></div>
-      </div>
-      <div class="two">
         <div><label class="fl">Eyebrow</label><input class="f" data-f="eyebrow" value="${esc(p.eyebrow||'')}"></div>
-        <div><label class="fl">Bullets (comma)</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>
       </div>
-      <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>
-      ${p.changeNote?`<div class="note">✎ ${esc(p.changeNote)}</div>`:""}
+      <div><label class="fl">Bullets (comma)</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>`}
+      <div><label class="fl">${isVid?'Script / caption':'Caption'}</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>
+      ${p.changeNote?`<div class="note">&#9998; ${esc(p.changeNote)}</div>`:""}
       <div class="mactions">
         <button class="btn lime" data-a="approve">Approve</button>
         <button class="btn warn" data-a="changes">Request changes</button>
-        <button class="btn ghost" data-a="caption">Copy caption</button>
-        <button class="btn ghost" data-a="download">Download PNG</button>
+        <button class="btn ghost" data-a="caption">Copy ${isVid?'script':'caption'}</button>
+        ${isVid?'':'<button class="btn ghost" data-a="download">Download PNG</button>'}
         <button class="btn" data-a="delete" style="color:#c0392b;border-color:#e9b7b1;background:#fff">Delete</button>
         <button class="btn ghost" data-a="close" style="margin-left:auto">Close</button>
       </div>
     </div>`;
-  const cv=m.querySelector("#mcv");renderPoster(cv,p);
-  const redraw=()=>renderPoster(cv,p);
-  m.querySelectorAll('#tplseg button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;save();openEditor(id);renderBoardThumb(id);});
-  m.querySelectorAll('#ratioseg button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;save();openEditor(id);renderBoardThumb(id);});
-  m.querySelectorAll('[data-f]').forEach(inp=>inp.oninput=()=>{const f=inp.dataset.f;
-    if(f==="bullets")p.bullets=inp.value.split(",").map(s=>s.trim()).filter(Boolean);else p[f]=inp.value;
-    save();redraw();});
-  m.querySelectorAll('[data-f="status"],[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p[sel.dataset.f]=sel.value;save();counts();});
+  const cv=m.querySelector("#mcv");if(cv)renderPoster(cv,p);
+  const redraw=()=>{const c2=m.querySelector("#mcv");if(c2)renderPoster(c2,p);};
+  m.querySelectorAll('#typeseg button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"&&(p.platform==="Email"||p.platform==="Facebook"))p.platform="YouTube";save();openEditor(id);});
+  const tplseg=m.querySelector('#tplseg');if(tplseg)tplseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;save();openEditor(id);});
+  const ratioseg=m.querySelector('#ratioseg');if(ratioseg)ratioseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;save();openEditor(id);});
+  m.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f;if(f==="status2"||f==="platform"||f==="date")return;
+    inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();redraw();if(f==="title")m.querySelector("h3").textContent=inp.value;};});
+  m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;save();});
   m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;save();counts();});
   const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();};
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();closeEditor();renderBoard();toast("Approved");};
   m.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();closeEditor();renderBoard();};
-  m.querySelector('[data-a="caption"]').onclick=()=>navigator.clipboard.writeText(p.caption||"").then(()=>toast("Caption copied"));
-  m.querySelector('[data-a="download"]').onclick=()=>downloadPNG(p);
+  m.querySelector('[data-a="caption"]').onclick=()=>navigator.clipboard.writeText(p.caption||"").then(()=>toast("Copied"));
+  const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>downloadPNG(p);
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
-  const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this post?")){state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
+  const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this card?")){state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
   document.getElementById("overlay").classList.add("show");
 }
 function closeEditor(){document.getElementById("overlay").classList.remove("show");renderBoard();}
@@ -313,7 +349,16 @@ function newPost(){
     eyebrow:"BOKO DIGITAL",bullets:["Point one","Point two","Point three"],caption:"",pillar:"Draft",date:"",changeNote:""};
   state.push(p);save();renderBoard();openEditor(p.id);
 }
+function newVideo(){
+  const p={id:"v"+Date.now(),type:"video",platform:"YouTube",status:"idea",title:"New video",
+    template:"statement",ratio:"square",headline:"",accent:"",cta:"",eyebrow:"Boko Digital",
+    bullets:[],caption:"",pillar:"Video",date:"",changeNote:""};
+  state.push(p);save();renderBoard();openEditor(p.id);
+}
 document.getElementById("newBtn").onclick=newPost;
+document.getElementById("newVid").onclick=newVideo;
+document.getElementById("prevM").onclick=()=>shiftMonth(-1);
+document.getElementById("nextM").onclick=()=>shiftMonth(1);
 function boot(){detectSync();}
 if(document.fonts&&document.fonts.load){
   Promise.all([document.fonts.load("700 80px Poppins"),document.fonts.load("800 80px Poppins"),document.fonts.load("500 40px Poppins"),document.fonts.load("400 40px Poppins")])

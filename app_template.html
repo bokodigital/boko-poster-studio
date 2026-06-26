@@ -74,7 +74,7 @@ const POSTS=__POSTS__;
 const WEEK_KEY="__WEEK_KEY__";
 const STORAGE="boko_posters_"+WEEK_KEY;
 const C={lime:"#BFFC00",black:"#000000",white:"#FFFFFF"};
-const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","grid","index","split","founder"];
+const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","grid","index","split","founder","carousel"];
 const DIMS={square:[1080,1080],story:[1080,1920]};
 const KASPECT=1.046;
 document.getElementById("logo").src=LOGO_URL;
@@ -99,6 +99,15 @@ function kMark(ctx,W,margin,dark,center){const img=dark?kLime:kBlack;if(!img.com
   const kw=W*0.11,kh=kw/KASPECT;const x=center?(W-kw)/2:margin;ctx.drawImage(img,x,margin,kw,kh);return kh;}
 function footer(ctx,W,H,margin,color){ctx.fillStyle=color;ctx.textBaseline="alphabetic";ctx.textAlign="left";
   ctx.font="600 "+(W*0.026)+"px Poppins";ctx.fillText("boko.com.au",margin,H-margin*0.7);ctx.textBaseline="top";}
+function drawCTApill(ctx,W,H,margin,p,dark){const txt=(p.cta||"").trim().toUpperCase();if(!txt)return;
+  ctx.font="700 "+(W*0.029)+"px Poppins";ctx.textBaseline="middle";ctx.textAlign="left";
+  let tw=ctx.measureText(txt).width;const padX=W*0.032,bh=W*0.07;let bw=tw+padX*2;const maxw=W*0.56;
+  if(bw>maxw){const f=maxw/bw;ctx.font="700 "+(W*0.029*f)+"px Poppins";tw=ctx.measureText(txt).width;bw=tw+padX*2;}
+  const bx=W-margin-bw,by=margin,r=bh/2;
+  ctx.fillStyle=dark?C.lime:C.black;ctx.beginPath();
+  ctx.moveTo(bx+r,by);ctx.arcTo(bx+bw,by,bx+bw,by+bh,r);ctx.arcTo(bx+bw,by+bh,bx,by+bh,r);
+  ctx.arcTo(bx,by+bh,bx,by,r);ctx.arcTo(bx,by,bx+bw,by,r);ctx.closePath();ctx.fill();
+  ctx.fillStyle=dark?C.black:C.lime;ctx.fillText(txt,bx+padX,by+bh/2);ctx.textBaseline="top";}
 function drawAccentLines(ctx,lines,accent,x,yStart,lh,baseColor,accentColor,align,W){ctx.textBaseline="top";
   const acc=(accent||"").trim().toUpperCase().replace(/[^A-Z0-9.]/g,"");let y=yStart;
   for(const ln of lines){const words=ln.split(" ");const totalW=ctx.measureText(ln).width;
@@ -238,6 +247,19 @@ function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=
     for(const para of paras){if(para.trim()===""){y+=blh*0.55;continue;}
       for(const l of wrapLines(ctx,para,W-2*margin)){ctx.fillStyle=C.white;ctx.fillText(l,margin,y);y+=blh;}y+=blh*0.4;}
   }
+  else if(tpl==="carousel"){kMark(ctx,W,margin,true);
+    const fs=W*0.076,lh=fs*1.1;ctx.font="700 "+fs+"px Poppins";
+    const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);
+    let y=H*0.30;drawAccentLines(ctx,lines,p.accent,margin,y,lh,base,C.lime,"left",W);
+    const dots=5,dr=W*0.012,gap=W*0.045,dy=H*0.64;let dx=margin+dr;
+    for(let i=0;i<dots;i++){ctx.beginPath();ctx.arc(dx,dy,dr,0,Math.PI*2);ctx.fillStyle=i===0?C.lime:"#3a3f46";ctx.fill();dx+=gap;}
+    ctx.fillStyle=C.lime;ctx.font="700 "+(W*0.032)+"px Poppins";ctx.textBaseline="middle";ctx.textAlign="left";
+    ctx.fillText("SWIPE",margin,dy+W*0.075);
+    const sw=ctx.measureText("SWIPE").width,ax=margin+sw+W*0.03,ay=dy+W*0.075;
+    ctx.strokeStyle=C.lime;ctx.lineWidth=W*0.008;ctx.lineCap="round";ctx.lineJoin="round";
+    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax+W*0.055,ay);ctx.moveTo(ax+W*0.036,ay-W*0.018);ctx.lineTo(ax+W*0.055,ay);ctx.lineTo(ax+W*0.036,ay+W*0.018);ctx.stroke();
+    ctx.textBaseline="top";footer(ctx,W,H,margin,base);}
+  if(tpl!=="cta"&&tpl!=="split")drawCTApill(ctx,W,H,margin,p,!isLime);
 }
 
 function dayName(i){return["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i];}

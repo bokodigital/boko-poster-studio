@@ -58,6 +58,8 @@ POSTS = [
   "caption":"When I started Boko, every founder told me the same thing - 'AI sounds great, but not for a business my size.'\n\nIt is. The right three automations - customer replies, email flows, weekly reporting - take weeks, not a year. And you own them.\n\nThat's what we build: systems your team runs without us.\n\nAutomation isn't the future of retail. It's this quarter.","changeNote":""},
 ]
 
+import json as _json
+POSTS += _json.load(open(BASE / "macroplan.json", encoding="utf-8"))
 HTML = (BASE / "dashboard_template.html").read_text()
 out = (HTML.replace("__ENGINE__", ENGINE)
            .replace("__LOGO__", LOGO).replace("__LOGOLIGHT__", LOGOLIGHT).replace("__KWHITE__", KWHITE)
