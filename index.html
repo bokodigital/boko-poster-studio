@@ -70,6 +70,25 @@
   .notedone{flex:0 0 auto;font-family:inherit;font-size:11px;font-weight:800;border:0;background:var(--lime);color:#000;border-radius:999px;padding:5px 14px;cursor:pointer;box-shadow:0 1px 6px rgba(191,252,0,.55);letter-spacing:.02em}
   .notedone:hover{filter:brightness(1.06);transform:translateY(-1px)}
   .notedone:active{transform:translateY(0)}
+  .badge.cmt{background:#eef0f5;color:#3a4048}
+  .comments{margin-top:6px;border-top:1px solid var(--line);padding-top:12px}
+  .clabel{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+  .clist{display:flex;flex-direction:column;gap:11px;margin-bottom:10px;max-height:220px;overflow-y:auto}
+  .cempty{font-size:12px;color:var(--muted)}
+  .citem{display:flex;gap:8px}
+  .cav{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:#e9d5ff;color:#7b3fbf;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+  .cavme{background:#f7c9e6;color:#b4267f}
+  .cmeta{flex:1;min-width:0}
+  .cauthor{font-size:12px;font-weight:700;color:var(--text)}
+  .ctime{font-weight:500;color:var(--muted);font-size:11px;margin-left:6px}
+  .ctext{font-size:13px;color:var(--text);line-height:1.45;white-space:pre-wrap;word-break:break-word}
+  .cdel{margin-left:8px;font-size:10px;color:#c0392b;cursor:pointer;font-weight:600}
+  .cbox{display:flex;gap:8px;align-items:flex-start}
+  .cinput{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff}
+  .cinput textarea{width:100%;border:0;outline:0;resize:vertical;min-height:46px;font-family:inherit;font-size:13px;color:var(--text);background:transparent}
+  .crow{display:flex;align-items:center;justify-content:space-between;margin-top:6px;gap:8px}
+  .cnotify{font-size:11px;color:#7b3fbf}
+  .crow .btn{padding:6px 16px;font-size:12px}
   .overlay{position:fixed;inset:0;background:rgba(16,19,22,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
   .overlay.show{display:flex}
   .modal{background:#fff;border:1px solid var(--line);border-radius:16px;width:min(900px,96vw);max-height:92vh;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:0;box-shadow:0 20px 60px rgba(16,19,22,.25)}
@@ -545,14 +564,12 @@ function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}</div>
+      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
-      ${p.changeNote?`<div class="note"><span>✎ ${esc(p.changeNote)}</span><button class="notedone" data-a="done">✓ Done</button></div>`:""}
       <div class="cact">
         <button class="mini" data-a="open">Open</button>
         <button class="mini ok" data-a="approve">Approve</button>
-        <button class="mini warn" data-a="changes">Changes</button>
       </div>
     </div>`;
   if(p.platform==="Hubspot"){c.querySelector(".thumb").innerHTML=emailThumbHTML(p);}else if(p.type==="video"){c.querySelector(".thumb").innerHTML=videoThumbHTML(p);}else{const cv=document.createElement("canvas");c.querySelector(".thumb").appendChild(cv);renderPoster(cv,p);}
@@ -561,8 +578,6 @@ function cardEl(p){
   c.addEventListener("click",e=>{if(e.target.closest("[data-a]"))return;openEditor(p.id);});
   c.querySelector('[data-a="open"]').onclick=()=>openEditor(p.id);
   c.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();renderBoard();confetti();toast("Approved");};
-  c.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();renderBoard();};
-  const dn=c.querySelector('[data-a="done"]');if(dn)dn.onclick=(e)=>{e.stopPropagation();p.status="review";p.changeNote="";save();renderBoard();toast("Change marked done");};
   return c;
 }
 
@@ -660,10 +675,13 @@ function openEditor(id){
       `}
       <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>`}
       ${isEmail?'':`<div><label class="fl">Hashtags</label><textarea class="f" data-f="hashtags" style="min-height:52px" placeholder="#AIAutomation #ShopifyAU">${esc(p.hashtags||'')}</textarea></div>`}
-      ${p.changeNote?`<div class="note"><span>&#9998; ${esc(p.changeNote)}</span><button class="notedone" data-a="done">&#10003; Done</button></div>`:""}
+      <div class="comments">
+        <div class="clabel">Comments</div>
+        <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem"><div class="cav">${esc(initials(c.a))}</div><div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}</span><span class="cdel" data-del="${ci}">delete</span></div><div class="ctext">${esc(c.t)}</div></div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
+        <div class="cbox"><div class="cav cavme">${esc(initials(commenterName())||"+")}</div><div class="cinput"><textarea id="cnew" placeholder="Add a comment..."></textarea><div class="crow"><span class="cnotify">Maria Jose Mendieta will be notified</span><button class="btn lime" id="cbtn">Comment</button></div></div></div>
+      </div>
       <div class="mactions">
         <button class="btn lime" data-a="approve">Approve</button>
-        <button class="btn warn" data-a="changes">Request changes</button>
         <button class="btn ghost" data-a="copy">${isEmail?'Copy email':'Copy caption'}</button>
         ${(isVid||isEmail)?'':'<button class="btn ghost" data-a="download">Download PNG</button>'}
         ${(isVid&&p.thumbnail)?'<button class="btn ghost" data-a="thumbdl">Download thumbnail</button>':''}
@@ -693,8 +711,9 @@ function openEditor(id){
   const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();scheduleBoard();};
   const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;save();scheduleBoard();};
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();closeEditor();renderBoard();confetti();toast("Approved");};
-  m.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();closeEditor();renderBoard();};
-  const edn=m.querySelector('[data-a="done"]');if(edn)edn.onclick=()=>{p.status="review";p.changeNote="";save();closeEditor();renderBoard();toast("Change marked done");};
+  const cbtn=m.querySelector("#cbtn"),cnew=m.querySelector("#cnew");
+  if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,t:t,ts:Date.now()});save();scheduleBoard();openEditor(id);};
+  m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this comment?")){p.comments.splice(+b.dataset.del,1);save();scheduleBoard();openEditor(id);}});
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
   const td=m.querySelector('[data-a="thumbdl"]');if(td)td.onclick=()=>downloadThumb(p);
@@ -707,6 +726,9 @@ function closeEditor(){const m=document.getElementById("modal");if(m){m.querySel
 function renderBoardThumb(id){/* board re-renders on close; cheap no-op live */}
 document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeEditor();});
 
+function commenterName(){return localStorage.getItem("boko_user")||"";}
+function initials(n){const x=(n||"").trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();return x||"?";}
+function timeAgo(ts){if(!ts)return"";const s=Math.floor((Date.now()-ts)/1000);if(s<60)return"just now";const m=Math.floor(s/60);if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";return Math.floor(h/24)+"d ago";}
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
 function downloadPNG(p,si){const off=document.createElement("canvas");renderPoster(off,p,si||0);
   const a=document.createElement("a");a.download="boko_"+p.id+(si?("_s"+(si+1)):"")+"_"+(p.ratio||"square")+".png";a.href=off.toDataURL("image/png");a.click();}
