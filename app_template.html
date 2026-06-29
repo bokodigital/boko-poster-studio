@@ -118,7 +118,7 @@ function drawAccentLines(ctx,lines,accent,x,yStart,lh,baseColor,accentColor,alig
       cx+=ctx.measureText(word).width;}
     y+=lh;}return y;}
 
-function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=W;canvas.height=H;
+function renderPoster(canvas,p,slideIdx){const[W,H]=DIMS[p.ratio||"square"];canvas.width=W;canvas.height=H;
   const ctx=canvas.getContext("2d");const margin=W*0.085;const tpl=p.template;
   const isLime=tpl==="lime";const bg=isLime?C.lime:C.black;const base=isLime?C.black:C.white;
   ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.textBaseline="top";
@@ -247,18 +247,32 @@ function renderPoster(canvas,p){const[W,H]=DIMS[p.ratio||"square"];canvas.width=
     for(const para of paras){if(para.trim()===""){y+=blh*0.55;continue;}
       for(const l of wrapLines(ctx,para,W-2*margin)){ctx.fillStyle=C.white;ctx.fillText(l,margin,y);y+=blh;}y+=blh*0.4;}
   }
-  else if(tpl==="carousel"){kMark(ctx,W,margin,true);
-    const fs=W*0.076,lh=fs*1.1;ctx.font="700 "+fs+"px Poppins";
-    const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);
-    let y=H*0.30;drawAccentLines(ctx,lines,p.accent,margin,y,lh,base,C.lime,"left",W);
-    const dots=5,dr=W*0.012,gap=W*0.045,dy=H*0.64;let dx=margin+dr;
-    for(let i=0;i<dots;i++){ctx.beginPath();ctx.arc(dx,dy,dr,0,Math.PI*2);ctx.fillStyle=i===0?C.lime:"#3a3f46";ctx.fill();dx+=gap;}
-    ctx.fillStyle=C.lime;ctx.font="700 "+(W*0.032)+"px Poppins";ctx.textBaseline="middle";ctx.textAlign="left";
-    ctx.fillText("SWIPE",margin,dy+W*0.075);
-    const sw=ctx.measureText("SWIPE").width,ax=margin+sw+W*0.03,ay=dy+W*0.075;
-    ctx.strokeStyle=C.lime;ctx.lineWidth=W*0.008;ctx.lineCap="round";ctx.lineJoin="round";
-    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax+W*0.055,ay);ctx.moveTo(ax+W*0.036,ay-W*0.018);ctx.lineTo(ax+W*0.055,ay);ctx.lineTo(ax+W*0.036,ay+W*0.018);ctx.stroke();
-    ctx.textBaseline="top";footer(ctx,W,H,margin,base);}
+  else if(tpl==="carousel"){
+    const sl=(Array.isArray(p.slides)&&p.slides.length)?p.slides:[{h:p.headline||"",b:((p.caption||"").split("\n")[0]||"")}];
+    const idx=Math.max(0,Math.min(slideIdx||0,sl.length-1));const cur=sl[idx],n=sl.length;
+    kMark(ctx,W,margin,true);
+    const dr=W*0.012,gap=W*0.045,dy=H*0.905;let dx=margin+dr;
+    for(let i=0;i<n;i++){ctx.beginPath();ctx.arc(dx,dy,dr,0,Math.PI*2);ctx.fillStyle=i===idx?C.lime:"#3a3f46";ctx.fill();dx+=gap;}
+    ctx.fillStyle="#8a8f98";ctx.font="600 "+(W*0.028)+"px Poppins";ctx.textAlign="right";ctx.textBaseline="middle";
+    ctx.fillText((idx+1)+" / "+n,W-margin,dy);ctx.textAlign="left";ctx.textBaseline="top";
+    if(idx===0){
+      const fs=W*0.076,lh=fs*1.1;ctx.font="700 "+fs+"px Poppins";
+      const lines=wrapLines(ctx,(cur.h||"").toUpperCase(),W-2*margin);
+      drawAccentLines(ctx,lines,p.accent,margin,H*0.30,lh,base,C.lime,"left",W);
+      ctx.fillStyle=C.lime;ctx.font="700 "+(W*0.030)+"px Poppins";ctx.textBaseline="middle";
+      ctx.fillText("SWIPE",margin,H*0.74);
+      const sw=ctx.measureText("SWIPE").width,ax=margin+sw+W*0.03,ay=H*0.74;
+      ctx.strokeStyle=C.lime;ctx.lineWidth=W*0.008;ctx.lineCap="round";ctx.lineJoin="round";
+      ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax+W*0.055,ay);ctx.moveTo(ax+W*0.036,ay-W*0.018);ctx.lineTo(ax+W*0.055,ay);ctx.lineTo(ax+W*0.036,ay+W*0.018);ctx.stroke();
+      ctx.textBaseline="top";
+    } else {
+      const hfs=W*0.056,hlh=hfs*1.12;ctx.font="700 "+hfs+"px Poppins";ctx.fillStyle=base;ctx.textBaseline="top";
+      let y=H*0.20;for(const l of wrapLines(ctx,(cur.h||"").toUpperCase(),W-2*margin)){ctx.fillText(l,margin,y);y+=hlh;}
+      if(cur.h)y+=W*0.03;
+      const bfs=W*0.036,blh=bfs*1.45;ctx.font="400 "+bfs+"px Poppins";ctx.fillStyle=base;
+      for(const para of (cur.b||"").split("\n")){if(!para.trim()){y+=blh*0.5;continue;}for(const l of wrapLines(ctx,para,W-2*margin)){ctx.fillText(l,margin,y);y+=blh;}y+=blh*0.3;}
+    }
+    footer(ctx,W,H,margin,base);}
   if(tpl!=="cta"&&tpl!=="split")drawCTApill(ctx,W,H,margin,p,!isLime);
 }
 

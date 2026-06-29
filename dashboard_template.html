@@ -80,6 +80,11 @@
   .wsel{font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:8px;padding:6px 8px;cursor:pointer}
   .rightbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .fdiv{width:1px;height:20px;background:var(--line)}
+  .slidenav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#eef0f5;border:1px solid var(--line);border-radius:9px;padding:7px 8px}
+  .snbtn{font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:7px;padding:6px 9px;cursor:pointer}
+  .snbtn.add{background:var(--lime);border-color:var(--lime);color:#000}
+  .snbtn.del{color:#c0392b;border-color:#e9b7b1}
+  .slabel{font-size:12px;font-weight:700;color:var(--text);margin:0 4px}
   .badge.yt{background:#fde7e7;color:#c0202a}
   .badge.hs{background:#ffeede;color:#c2640f}
   .ethumb{width:100%;aspect-ratio:1/1;background:#fff;display:flex;flex-direction:column;padding:14px;gap:6px;overflow:hidden;border-bottom:1px solid var(--line)}
@@ -229,7 +234,7 @@ function todayStr(){return new Date().toISOString().slice(0,10);}
 function fmtDate(d){if(!d)return "";const dt=new Date(d+"T00:00:00");if(isNaN(dt))return d;return WK[dt.getDay()]+" "+dt.getDate()+" "+MON[dt.getMonth()];}
 function isOverdue(p){return p.date && p.date<todayStr() && p.status!=="published";}
 function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":p==="YouTube"?"yt":p==="Hubspot"?"hs":"fb";}
-let curMonth="",curWeek=null,_brd=null;
+let curMonth="",curWeek=null,_brd=null,curSlide=0,_openId=null;
 function scheduleBoard(){clearTimeout(_brd);_brd=setTimeout(()=>{if(document.getElementById("overlay").classList.contains("show"))renderBoard();},450);}
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
 function ym(d){return (d||"").slice(0,7);}
@@ -337,7 +342,10 @@ function gmailPreviewHTML(p){
 function copyEmail(p){const txt=(p.subject?("Subject: "+p.subject+"\n\n"):"")+(p.body||p.caption||"")+"\n\n"+EMAIL_SIG;navigator.clipboard.writeText(txt).then(()=>toast("Email + signature copied"));}
 function openEditor(id){
   const p=state.find(x=>x.id===id);if(!p)return;
+  if(_openId!==id){curSlide=0;_openId=id;}
   const isEmail=p.platform==="Hubspot";const isVid=p.type==="video"&&!isEmail;
+  const isCarousel=(!isVid&&!isEmail&&p.template==="carousel");
+  if(isCarousel){if(!Array.isArray(p.slides)||!p.slides.length)p.slides=[{h:p.headline||"",b:(p.caption||"").split("\n")[0]||""}];curSlide=Math.max(0,Math.min(curSlide,p.slides.length-1));}
   const m=document.getElementById("modal");
   m.innerHTML=`
     <div class="mprev">${isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):'<canvas id="mcv"></canvas>'}</div>
@@ -370,12 +378,25 @@ function openEditor(id){
         <div><label class="fl">Format</label><div class="seg" id="ratioseg"><button data-r="square" class="${p.ratio!=='story'?'on':''}">1:1</button><button data-r="story" class="${p.ratio==='story'?'on':''}">Story</button></div></div>
         <div><label class="fl">CTA</label><input class="f" data-f="cta" value="${esc(p.cta||'')}"></div>
       </div>
+      ${isCarousel?`
+      <div class="slidenav">
+        <button class="snbtn" data-sn="prev">&#9664;</button>
+        <span class="slabel">Slide ${curSlide+1} / ${p.slides.length}</span>
+        <button class="snbtn" data-sn="next">&#9654;</button>
+        <button class="snbtn add" data-sn="add">+ Slide</button>
+        <button class="snbtn del" data-sn="del">Delete slide</button>
+      </div>
+      <div><label class="fl">Slide ${curSlide+1} headline</label><input class="f" data-s="h" value="${esc((p.slides[curSlide]||{}).h||'')}"></div>
+      <div><label class="fl">Slide ${curSlide+1} body text</label><textarea class="f" data-s="b" style="min-height:90px">${esc((p.slides[curSlide]||{}).b||'')}</textarea></div>
+      <div><label class="fl">Accent word (cover)</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
+      `:`
       <div><label class="fl">Headline / message</label><input class="f" data-f="headline" value="${esc(p.headline)}"></div>
       <div class="two">
         <div><label class="fl">Accent word / number</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
         <div><label class="fl">Eyebrow</label><input class="f" data-f="eyebrow" value="${esc(p.eyebrow||'')}"></div>
       </div>
       <div><label class="fl">Bullets (comma)</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>
+      `}
       <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>`}
       ${p.changeNote?`<div class="note">&#9998; ${esc(p.changeNote)}</div>`:""}
       <div class="mactions">
@@ -387,11 +408,18 @@ function openEditor(id){
         <button class="btn lime" data-a="save" style="margin-left:auto">Save</button>
       </div>
     </div>`;
-  const cv=m.querySelector("#mcv");if(cv)renderPoster(cv,p);
-  const refreshPrev=()=>{const c2=m.querySelector("#mcv");if(c2){renderPoster(c2,p);}else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):"";}};
+  const cv=m.querySelector("#mcv");if(cv)renderPoster(cv,p,isCarousel?curSlide:0);
+  const refreshPrev=()=>{const c2=m.querySelector("#mcv");if(c2){renderPoster(c2,p,isCarousel?curSlide:0);}else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):"";}};
   const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"&&(p.platform==="Hubspot"||p.platform==="Facebook"))p.platform="YouTube";save();openEditor(id);});
   const tplseg=m.querySelector('#tplseg');if(tplseg)tplseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;save();openEditor(id);});
   const ratioseg=m.querySelector('#ratioseg');if(ratioseg)ratioseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;save();openEditor(id);});
+  m.querySelectorAll('[data-sn]').forEach(b=>b.onclick=()=>{const a=b.dataset.sn;const N=p.slides.length;
+    if(a==="prev")curSlide=Math.max(0,curSlide-1);
+    else if(a==="next")curSlide=Math.min(N-1,curSlide+1);
+    else if(a==="add"){p.slides.splice(curSlide+1,0,{h:"",b:""});curSlide++;}
+    else if(a==="del"&&N>1){p.slides.splice(curSlide,1);curSlide=Math.min(curSlide,p.slides.length-1);}
+    p.headline=p.slides[0].h;save();openEditor(id);scheduleBoard();});
+  m.querySelectorAll('[data-s]').forEach(inp=>inp.oninput=()=>{p.slides[curSlide][inp.dataset.s]=inp.value;if(curSlide===0)p.headline=p.slides[0].h;save();const c2=m.querySelector("#mcv");if(c2)renderPoster(c2,p,curSlide);scheduleBoard();});
   m.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f;if(f==="status2"||f==="platform"||f==="date"||f==="time")return;
     inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();if(f!=="videoUrl"&&f!=="publishedUrl")refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;scheduleBoard();};});
   ["videoUrl","publishedUrl"].forEach(f=>{const el=m.querySelector('[data-f="'+f+'"]');if(el)el.onchange=()=>{refreshPrev();scheduleBoard();};});
@@ -402,7 +430,7 @@ function openEditor(id){
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();closeEditor();renderBoard();toast("Approved");};
   m.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();closeEditor();renderBoard();};
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else navigator.clipboard.writeText(p.caption||"").then(()=>toast("Copied"));};
-  const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>downloadPNG(p);
+  const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else downloadPNG(p);};
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
   const sv=m.querySelector('[data-a="save"]');if(sv)sv.onclick=()=>{save();closeEditor();toast("Saved");};
   const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this card?")){state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
@@ -413,8 +441,9 @@ function renderBoardThumb(id){/* board re-renders on close; cheap no-op live */}
 document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeEditor();});
 
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
-function downloadPNG(p){const off=document.createElement("canvas");renderPoster(off,p);
-  const a=document.createElement("a");a.download="boko_"+p.id+"_"+(p.ratio||"square")+".png";a.href=off.toDataURL("image/png");a.click();}
+function downloadPNG(p,si){const off=document.createElement("canvas");renderPoster(off,p,si||0);
+  const a=document.createElement("a");a.download="boko_"+p.id+(si?("_s"+(si+1)):"")+"_"+(p.ratio||"square")+".png";a.href=off.toDataURL("image/png");a.click();}
+function downloadCarousel(p){const n=(p.slides&&p.slides.length)?p.slides.length:1;let i=0;(function nx(){if(i>=n)return;downloadPNG(p,i);i++;setTimeout(nx,600);})();}
 let toastT;function toast(msg){let t=document.getElementById("__t");
   if(!t){t=document.createElement("div");t.id="__t";
     t.style.cssText="position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#BFFC00;color:#000;font-weight:600;padding:10px 16px;border-radius:10px;z-index:99;font-size:13px";
