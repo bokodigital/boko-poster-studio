@@ -182,6 +182,8 @@ const KASPECT=1.046;
 const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"review",label:"Needs review"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
 const PLATFORMS=["Instagram","LinkedIn","Facebook","YouTube","Hubspot"];
 const EMAIL_SIG="<table cellspacing=\"0\" cellpadding=\"0\"><tbody><tr>\n<td style=\"width:120px; text-align: center;\"><a href=\"https://boko.com.au/\">\n<img src=\"https://boko.com.au/wp-content/uploads/2024/05/WhatsApp-Image-2024-01-19-at-10.17.06-AM-1024x1024-2.jpg\" style=\"width: 140px;border-radius: 50%;margin-right: 15px; border: 3px solid #8484fa;\">\n<img src=\"https://boko.com.au/wp-content/uploads/2026/02/signlogo.png\" style=\"width: 70px;margin-top: 0px;\"></a></td>\n<td style=\"width:240px;\"><div><span style=\"display: inline-block;font-size: 15px;font-family: Helvetica;line-height: 16px;\"><strong style=\"font-weight:600;font-size: 16px; line-height: 30px;font-family: Helvetica; color:#000\">Maria Mendieta</strong>\n<br><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">Digital Strategist | Founder</span>\n<br><a href=\"tel:+61413615016\" style=\"color:#000;\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">+61 413 615 016</span></a>\n<br><a href=\"https://boko.com.au/\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">www.boko.com.au</span></a><br><a href=\"https://boko.com.au/the-lead-generation-discovery-call/\" style=\"color:#000;\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica; color:#000;\">Book a free consultation</span></a><br></div><div style=\"margin-top:15px;\"><span><a href=\"https://www.facebook.com/bokodigitalsolutions/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/9034971_logo_facebook_icon.png\" style=\"width:25px;\"></a></span>&nbsp;&nbsp;<span><a href=\"https://www.instagram.com/boko.digital.solutions/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/1161954_instagram_icon.png\" style=\"width:25px;\"></a></span>&nbsp;&nbsp;<span><a href=\"https://www.linkedin.com/in/maria-jose-mendieta-mayorga/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/287697_linkedin_icon.png\" style=\"width:23px;\"></a></span>&nbsp;&nbsp;&nbsp;<span><a href=\"https://www.tiktok.com/@bokodigital\"><img src=\"https://boko.com.au/wp-content/uploads/2024/05/7693325_tiktok_social-media_logo_apps_icon.png\" style=\"width:23px;\"></a>&nbsp;&nbsp;&nbsp;</span><span><a href=\"https://maps.app.goo.gl/wC7cMc5uBCfkgh1j8\"><img src=\"https://boko.com.au/wp-content/uploads/2024/12/map-black.png\" style=\"width:23px;\"></a></div></td>\n</tr></tbody></table>";
+const FNAME_TAG={Hubspot:"{{ contact.firstname }}"};
+function fname(text,platform){const tag=FNAME_TAG[platform];return tag?(text||"").replace(/\[\s*first[\s_]*name\s*\]/gi,tag):(text||"");}
 let filter="All";let typeFilter="All";
 const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Emails","Email"]];
 function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":"Post";}
@@ -473,7 +475,7 @@ function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.type}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}</div>
+      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
       ${p.changeNote?`<div class="note">✎ ${esc(p.changeNote)}</div>`:""}
@@ -512,17 +514,17 @@ function videoThumbHTML(p){
   const bg=yid?`<img class="vvid" src="https://img.youtube.com/vi/${yid}/hqdefault.jpg" alt="">`:"";
   return `<div class="vthumb">${bg}<span class="vlabel">${esc(p.platform)} &middot; Video</span><span class="play"></span><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;
 }
-function emailThumbHTML(p){return `<div class="ethumb"><span class="elabel">Email &middot; Hubspot</span><div class="esub">${esc(p.subject||p.title)}</div>${p.preview?`<div class="eprev">${esc(p.preview)}</div>`:""}<div class="ebody">${esc((p.body||p.caption||"").slice(0,240))}</div><div class="esig">+ Maria Mendieta email signature (auto)</div></div>`;}
+function emailThumbHTML(p){return `<div class="ethumb"><span class="elabel">Email &middot; Hubspot</span><div class="esub">${esc(fname(p.subject||p.title,p.platform))}</div>${p.preview?`<div class="eprev">${esc(p.preview)}</div>`:""}<div class="ebody">${esc(fname((p.body||p.caption||""),p.platform).slice(0,240))}</div><div class="esig">+ Maria Mendieta email signature (auto)</div></div>`;}
 function gmailPreviewHTML(p){
-  const subj=esc(p.subject||p.title||"(no subject)");
+  const subj=esc(fname(p.subject||p.title||"(no subject)",p.platform));
   const prev=esc(p.preview||"");
-  const body=(p.body||p.caption||"").split("\n").map(l=>l.trim()?("<p>"+esc(l)+"</p>"):"<br>").join("");
+  const body=fname(p.body||p.caption||"",p.platform).split("\n").map(l=>l.trim()?("<p>"+esc(l)+"</p>"):"<br>").join("");
   return `<div class="gmail"><div class="gm-subj">${subj}</div>
     <div class="gm-row"><div class="gm-av">M</div><div><div class="gm-name">Maria Mendieta <span class="gm-em">&lt;maria@boko.com.au&gt;</span></div><div class="gm-to">to me</div></div></div>
     ${prev?`<div class="gm-prev">${prev}</div>`:""}
     <div class="gm-body">${body}<div class="gm-sig">${EMAIL_SIG}</div></div></div>`;
 }
-function copyEmail(p){const txt=(p.subject?("Subject: "+p.subject+"\n\n"):"")+(p.body||p.caption||"")+"\n\n"+EMAIL_SIG;navigator.clipboard.writeText(txt).then(()=>toast("Email + signature copied"));}
+function copyEmail(p){const subj=fname(p.subject,p.platform);const body=fname(p.body||p.caption||"",p.platform);const txt=(subj?("Subject: "+subj+"\n\n"):"")+body+"\n\n"+EMAIL_SIG;navigator.clipboard.writeText(txt).then(()=>toast("Email + signature copied"));}
 function openEditor(id){
   const p=state.find(x=>x.id===id);if(!p)return;
   if(_openId!==id){curSlide=0;_openId=id;}
@@ -612,7 +614,7 @@ function openEditor(id){
   const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;save();scheduleBoard();};
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();closeEditor();renderBoard();toast("Approved");};
   m.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();closeEditor();renderBoard();};
-  m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else navigator.clipboard.writeText(p.caption||"").then(()=>toast("Copied"));};
+  m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else navigator.clipboard.writeText(fname(p.caption||"",p.platform)).then(()=>toast("Copied"));};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else downloadPNG(p);};
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
   const sv=m.querySelector('[data-a="save"]');if(sv)sv.onclick=()=>{save();closeEditor();toast("Saved");};
