@@ -80,7 +80,13 @@
   .wsel{font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:8px;padding:6px 8px;cursor:pointer}
   .rightbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .badge.yt{background:#fde7e7;color:#c0202a}
-  .badge.em{background:#eee9fb;color:#5b3ec2}
+  .badge.hs{background:#ffeede;color:#c2640f}
+  .ethumb{width:100%;aspect-ratio:1/1;background:#fff;display:flex;flex-direction:column;padding:14px;gap:6px;overflow:hidden;border-bottom:1px solid var(--line)}
+  .ethumb .elabel{align-self:flex-start;font-size:9px;font-weight:700;background:#ffeede;color:#c2640f;padding:2px 6px;border-radius:5px;text-transform:uppercase}
+  .ethumb .esub{font-size:13px;font-weight:700;color:#101316;line-height:1.3}
+  .ethumb .eprev{font-size:11px;color:#5b6470}
+  .ethumb .ebody{font-size:11px;color:#3a4048;line-height:1.45;flex:1;overflow:hidden}
+  .ethumb .esig{font-size:9px;color:#8a8f98;border-top:1px solid var(--line);padding-top:5px}
   .vthumb{position:relative;width:100%;aspect-ratio:1/1;background:#0c0e10;display:flex;align-items:center;justify-content:center}
   .vthumb .play{width:52px;height:52px;border-radius:50%;background:var(--lime);display:flex;align-items:center;justify-content:center}
   .vthumb .play:after{content:"";border-left:17px solid #000;border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px}
@@ -147,11 +153,11 @@ const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","gri
 const DIMS={square:[1080,1080],story:[1080,1920]};
 const KASPECT=1.046;
 const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"review",label:"Needs review"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
-const PLATFORMS=["Instagram","LinkedIn","Facebook","YouTube","Email"];
+const PLATFORMS=["Instagram","LinkedIn","Facebook","YouTube","Hubspot"];
+const EMAIL_SIG=__EMAILSIG__;
 let filter="All";
 
 document.getElementById("logo").src=LOGO_LIGHT;
-document.getElementById("weekTitle").textContent="Content board · Week "+WEEK_KEY.split("-W")[1]+" "+WEEK_KEY.split("-")[0];
 
 let state=POSTS.map(p=>({...p}));
 try{const saved=JSON.parse(localStorage.getItem(STORAGE)||"null");
@@ -198,7 +204,7 @@ const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","De
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function fmtDate(d){if(!d)return "";const dt=new Date(d+"T00:00:00");if(isNaN(dt))return d;return WK[dt.getDay()]+" "+dt.getDate()+" "+MON[dt.getMonth()];}
 function isOverdue(p){return p.date && p.date<todayStr() && p.status!=="published";}
-function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":p==="YouTube"?"yt":p==="Email"?"em":"fb";}
+function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":p==="YouTube"?"yt":p==="Hubspot"?"hs":"fb";}
 let curMonth="",curWeek=null;
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
 function ym(d){return (d||"").slice(0,7);}
@@ -250,7 +256,7 @@ function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.type}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}</span>`:""}</div>
+      <div class="badges"><span class="badge type">${p.type}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
       ${p.changeNote?`<div class="note">✎ ${esc(p.changeNote)}</div>`:""}
@@ -260,7 +266,7 @@ function cardEl(p){
         <button class="mini warn" data-a="changes">Changes</button>
       </div>
     </div>`;
-  if(p.type==="video"){c.querySelector(".thumb").innerHTML=videoThumbHTML(p);}else{const cv=document.createElement("canvas");c.querySelector(".thumb").appendChild(cv);renderPoster(cv,p);}
+  if(p.platform==="Hubspot"){c.querySelector(".thumb").innerHTML=emailThumbHTML(p);}else if(p.type==="video"){c.querySelector(".thumb").innerHTML=videoThumbHTML(p);}else{const cv=document.createElement("canvas");c.querySelector(".thumb").appendChild(cv);renderPoster(cv,p);}
   c.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",p.id);c.classList.add("dragging");});
   c.addEventListener("dragend",()=>c.classList.remove("dragging"));
   c.addEventListener("click",e=>{if(e.target.closest("[data-a]"))return;openEditor(p.id);});
@@ -272,25 +278,35 @@ function cardEl(p){
 
 /* ---------- editor modal ---------- */
 function videoThumbHTML(p){return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span><span class="play"></span><span class="vtitle">${esc(p.title)}</span></div>`;}
+function emailThumbHTML(p){return `<div class="ethumb"><span class="elabel">Email &middot; Hubspot</span><div class="esub">${esc(p.subject||p.title)}</div>${p.preview?`<div class="eprev">${esc(p.preview)}</div>`:""}<div class="ebody">${esc((p.body||p.caption||"").slice(0,240))}</div><div class="esig">+ Maria Mendieta email signature (auto)</div></div>`;}
+function copyEmail(p){const txt=(p.subject?("Subject: "+p.subject+"\n\n"):"")+(p.body||p.caption||"")+"\n\n"+EMAIL_SIG;navigator.clipboard.writeText(txt).then(()=>toast("Email + signature copied"));}
 function openEditor(id){
   const p=state.find(x=>x.id===id);if(!p)return;
-  const isVid=p.type==="video";
+  const isEmail=p.platform==="Hubspot";const isVid=p.type==="video"&&!isEmail;
   const m=document.getElementById("modal");
   m.innerHTML=`
-    <div class="mprev">${isVid?videoThumbHTML(p):'<canvas id="mcv"></canvas>'}</div>
+    <div class="mprev">${isEmail?emailThumbHTML(p):isVid?videoThumbHTML(p):'<canvas id="mcv"></canvas>'}</div>
     <div class="mform">
       <div style="display:flex;align-items:center"><h3>${esc(p.title)}</h3><button class="x" data-a="close">&times;</button></div>
-      <div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>
-      ${isVid?'':`<div class="seg" id="tplseg">${TEMPLATES.map(t=>`<button data-t="${t}" class="${p.template===t?'on':''}">${t}</button>`).join("")}</div>`}
+      ${isEmail?'':`<div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>`}
+      ${(isVid||isEmail)?'':`<div class="seg" id="tplseg">${TEMPLATES.map(t=>`<button data-t="${t}" class="${p.template===t?'on':''}">${t}</button>`).join("")}</div>`}
       <div class="two">
         <div><label class="fl">Status</label><select class="f" data-f="status2">${STATUSES.map(sx=>`<option value="${sx.id}" ${p.status===sx.id?'selected':''}>${sx.label}</option>`).join("")}</select></div>
         <div><label class="fl">Platform</label><select class="f" data-f="platform">${PLATFORMS.map(pl=>`<option ${p.platform===pl?'selected':''}>${pl}</option>`).join("")}</select></div>
       </div>
       <div class="two">
-        <div><label class="fl">Scheduled / post date</label><input type="date" class="f" data-f="date" value="${p.date||''}"></div>
-        <div><label class="fl">Title (internal)</label><input class="f" data-f="title" value="${esc(p.title)}"></div>
+        <div><label class="fl">Scheduled date</label><input type="date" class="f" data-f="date" value="${p.date||''}"></div>
+        <div><label class="fl">Time (AEST)</label><input type="time" class="f" data-f="time" value="${p.time||''}"></div>
       </div>
-      ${isVid?`<div class="vnote">&#127916; Video is uploaded manually${p.platform==="YouTube"?" to YouTube":""}. Use the fields below for the title, script and schedule; approve when the cut is ready.</div>`:`
+      <div><label class="fl">Title (internal)</label><input class="f" data-f="title" value="${esc(p.title)}"></div>
+      ${isEmail?`
+      <div><label class="fl">Subject line</label><input class="f" data-f="subject" value="${esc(p.subject||p.title||'')}"></div>
+      <div><label class="fl">Preview text</label><input class="f" data-f="preview" value="${esc(p.preview||'')}"></div>
+      <div><label class="fl">Body message</label><textarea class="f" data-f="body" style="min-height:150px">${esc(p.body||p.caption||'')}</textarea></div>
+      <div class="vnote">&#9993; Maria's HTML email signature is added automatically at the end of the body when you copy the email.</div>
+      `:isVid?`<div class="vnote">&#127916; Video is uploaded manually${p.platform==="YouTube"?" to YouTube":""}. Use the fields below for the title, script and schedule; approve when the cut is ready.</div>
+      <div><label class="fl">Script / caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>
+      `:`
       <div class="two">
         <div><label class="fl">Format</label><div class="seg" id="ratioseg"><button data-r="square" class="${p.ratio!=='story'?'on':''}">1:1</button><button data-r="story" class="${p.ratio==='story'?'on':''}">Story</button></div></div>
         <div><label class="fl">CTA</label><input class="f" data-f="cta" value="${esc(p.cta||'')}"></div>
@@ -300,31 +316,32 @@ function openEditor(id){
         <div><label class="fl">Accent word / number</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
         <div><label class="fl">Eyebrow</label><input class="f" data-f="eyebrow" value="${esc(p.eyebrow||'')}"></div>
       </div>
-      <div><label class="fl">Bullets (comma)</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>`}
-      <div><label class="fl">${isVid?'Script / caption':'Caption'}</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>
+      <div><label class="fl">Bullets (comma)</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>
+      <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>`}
       ${p.changeNote?`<div class="note">&#9998; ${esc(p.changeNote)}</div>`:""}
       <div class="mactions">
         <button class="btn lime" data-a="approve">Approve</button>
         <button class="btn warn" data-a="changes">Request changes</button>
-        <button class="btn ghost" data-a="caption">Copy ${isVid?'script':'caption'}</button>
-        ${isVid?'':'<button class="btn ghost" data-a="download">Download PNG</button>'}
+        <button class="btn ghost" data-a="copy">${isEmail?'Copy email':'Copy caption'}</button>
+        ${(isVid||isEmail)?'':'<button class="btn ghost" data-a="download">Download PNG</button>'}
         <button class="btn" data-a="delete" style="color:#c0392b;border-color:#e9b7b1;background:#fff">Delete</button>
         <button class="btn ghost" data-a="close" style="margin-left:auto">Close</button>
       </div>
     </div>`;
   const cv=m.querySelector("#mcv");if(cv)renderPoster(cv,p);
-  const redraw=()=>{const c2=m.querySelector("#mcv");if(c2)renderPoster(c2,p);};
-  m.querySelectorAll('#typeseg button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"&&(p.platform==="Email"||p.platform==="Facebook"))p.platform="YouTube";save();openEditor(id);});
+  const refreshPrev=()=>{const c2=m.querySelector("#mcv");if(c2){renderPoster(c2,p);}else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?emailThumbHTML(p):isVid?videoThumbHTML(p):"";}};
+  const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"&&(p.platform==="Hubspot"||p.platform==="Facebook"))p.platform="YouTube";save();openEditor(id);});
   const tplseg=m.querySelector('#tplseg');if(tplseg)tplseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;save();openEditor(id);});
   const ratioseg=m.querySelector('#ratioseg');if(ratioseg)ratioseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;save();openEditor(id);});
-  m.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f;if(f==="status2"||f==="platform"||f==="date")return;
-    inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();redraw();if(f==="title")m.querySelector("h3").textContent=inp.value;};});
-  m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;save();});
+  m.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f;if(f==="status2"||f==="platform"||f==="date"||f==="time")return;
+    inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;};});
+  m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";save();openEditor(id);});
   m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;save();counts();});
   const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();};
+  const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;save();};
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();closeEditor();renderBoard();toast("Approved");};
   m.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();closeEditor();renderBoard();};
-  m.querySelector('[data-a="caption"]').onclick=()=>navigator.clipboard.writeText(p.caption||"").then(()=>toast("Copied"));
+  m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else navigator.clipboard.writeText(p.caption||"").then(()=>toast("Copied"));};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>downloadPNG(p);
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
   const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this card?")){state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
