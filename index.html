@@ -214,6 +214,13 @@
   <div class="gerr" id="gerr"></div>
   <button class="btn lime" id="gbtn">Open board</button>
 </div></div>
+<div class="gate" id="namegate"><div class="gatecard">
+  <img id="glogo2" alt="Boko Digital">
+  <h3>Welcome! What's your name?</h3>
+  <input id="gname" type="text" placeholder="Your name" autocomplete="name">
+  <div class="gerr" id="gnerr"></div>
+  <button class="btn lime" id="gnamebtn">Continue</button>
+</div></div>
 <div class="offbanner" id="offbanner">Working offline on this device — cloud sync not set up yet.</div>
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 
@@ -252,7 +259,7 @@ function startPoll(){if(!syncOn||_poll)return;_poll=setInterval(()=>{if(document
   fetch('/api/state',{headers:{'x-board-pass':PASS}}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.state){const m=mergeServer(d.state);
     if(JSON.stringify(m)!==JSON.stringify(state)){state=m;localStorage.setItem(STORAGE,JSON.stringify(state));renderBoard();}}}).catch(()=>{});},8000);}
 function migrateHashtags(){let ch=false;state.forEach(p=>{if(p.platform!=="Hubspot"&&(p.hashtags===undefined||p.hashtags===null)){const t=(p.caption||"").match(/#[\w]+/g);p.hashtags=t?t.join(" "):"";if(t){p.caption=(p.caption||"").replace(/#[\w]+/g,"").replace(/[ \t]+/g," ").replace(/ *\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();}ch=true;}});if(ch)save();}
-function afterLoad(){document.getElementById("gate").classList.remove("show");migrateHashtags();preloadAvatars(()=>{renderBoard();setSyncDot();startPoll();});}
+function afterLoad(){document.getElementById("gate").classList.remove("show");migrateHashtags();preloadAvatars(()=>{renderBoard();setSyncDot();startPoll();if(!localStorage.getItem("boko_user"))showNameGate();});}
 function loadFrom(sv){state=mergeServer(sv);localStorage.setItem(STORAGE,JSON.stringify(state));pushServer();afterLoad();}
 function offline(){syncOn=false;document.getElementById("offbanner").style.display="block";afterLoad();}
 function showGate(msg){const g=document.getElementById("gate");document.getElementById("gerr").textContent=msg||"";g.classList.add("show");
@@ -270,6 +277,11 @@ function detectSync(){fetch('/api/state').then(r=>{
 document.getElementById("glogo").src=LOGO_LIGHT;
 document.getElementById("gbtn").onclick=()=>{const p=document.getElementById("gpass").value.trim();if(!p){showGate("Enter the passcode");return;}tryPass(p);};
 document.getElementById("gpass").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("gbtn").click();});
+document.getElementById("glogo2").src=LOGO_LIGHT;
+function showNameGate(){const g=document.getElementById("namegate");g.classList.add("show");const i=document.getElementById("gname");i.value="";setTimeout(()=>i.focus(),60);}
+function saveName(){const n=(document.getElementById("gname").value||"").trim();if(!n){document.getElementById("gnerr").textContent="Please enter your name";return;}localStorage.setItem("boko_user",n);document.getElementById("namegate").classList.remove("show");}
+document.getElementById("gnamebtn").onclick=saveName;
+document.getElementById("gname").addEventListener("keydown",e=>{if(e.key==="Enter")saveName();});
 
 const AVATARS={};
 function preloadAvatars(cb){const urls=[...new Set(state.map(p=>p.avatar).filter(Boolean))];if(!urls.length){cb();return;}let n=0;urls.forEach(u=>{const im=new Image();im.onload=im.onerror=()=>{if(++n>=urls.length)cb();};im.src=u;AVATARS[u]=im;});}
@@ -678,7 +690,7 @@ function openEditor(id){
       <div class="comments">
         <div class="clabel">Comments</div>
         <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem"><div class="cav">${esc(initials(c.a))}</div><div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}</span><span class="cdel" data-del="${ci}">delete</span></div><div class="ctext">${esc(c.t)}</div></div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
-        <div class="cbox"><div class="cav cavme">${esc(initials(commenterName())||"+")}</div><div class="cinput"><textarea id="cnew" placeholder="Add a comment..."></textarea><div class="crow"><span class="cnotify">Maria Jose Mendieta will be notified</span><button class="btn lime" id="cbtn">Comment</button></div></div></div>
+        <div class="cbox"><div class="cav cavme">${esc(initials(commenterName())||"+")}</div><div class="cinput"><textarea id="cnew" placeholder="Add a comment..."></textarea><div class="crow" style="justify-content:flex-end"><button class="btn lime" id="cbtn">Comment</button></div></div></div>
       </div>
       <div class="mactions">
         <button class="btn lime" data-a="approve">Approve</button>
