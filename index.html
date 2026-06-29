@@ -135,6 +135,10 @@
   .vplaywrap{position:relative;width:100%;padding-top:100%;border-radius:10px;overflow:hidden;background:#000}
   .vplaywrap iframe,.vplaywrap video{position:absolute;inset:0;width:100%;height:100%;border:0}
   .vplayfile{width:100%;border-radius:10px;background:#000;display:block}
+  .vplaywrap .vposter{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .vplaywrap .vpblack{position:absolute;inset:0;background:#000}
+  .vplaywrap .bigplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(191,252,0,.96);z-index:2;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+  .vplaywrap .bigplay:after{content:"";position:absolute;left:55%;top:50%;transform:translate(-50%,-50%);border-left:22px solid #000;border-top:13px solid transparent;border-bottom:13px solid transparent}
   .vnote2{font-size:12px;color:#8a6a00;background:#fff7e3;border:1px solid #f0d488;border-radius:8px;padding:8px 10px;margin-top:8px}
   .vnote{font-size:12px;color:#5b6470;background:#f3f5f9;border:1px solid var(--line);border-radius:8px;padding:9px 11px}
   .confetti{position:fixed;inset:0;pointer-events:none;z-index:200;overflow:hidden}
@@ -564,10 +568,12 @@ function ytId(u){const m=(u||"").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v
 function vimeoId(u){const m=(u||"").match(/vimeo\.com\/(?:video\/)?(\d+)/);return m?m[1]:null;}
 function driveId(u){const m=(u||"").match(/drive\.google\.com\/file\/d\/([\w-]+)/);return m?m[1]:null;}
 function embedSrc(u){const y=ytId(u);if(y)return"https://www.youtube.com/embed/"+y;const v=vimeoId(u);if(v)return"https://player.vimeo.com/video/"+v;const d=driveId(u);if(d)return"https://drive.google.com/file/d/"+d+"/preview";return null;}
+function playEmbed(el){const src=el.getAttribute("data-embed");if(!src)return;const sep=src.indexOf("?")>=0?"&":"?";el.innerHTML=`<iframe src="${src}${sep}autoplay=1" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;el.onclick=null;el.style.cursor="default";}
 function videoPlayerHTML(p){const u=p.videoUrl||p.publishedUrl||"";
   if(isVideoFile(u))return `<video class="vplayfile" ${p.thumbnail?`poster="${esc(p.thumbnail)}"`:""} src="${esc(u)}" controls playsinline></video>`;
   const e=embedSrc(u);
-  if(e)return `<div class="vplaywrap"><iframe src="${esc(e)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
+  if(e){const poster=p.thumbnail||(ytId(u)?("https://img.youtube.com/vi/"+ytId(u)+"/hqdefault.jpg"):"");
+    return `<div class="vplaywrap" data-embed="${esc(e)}" onclick="playEmbed(this)">${poster?`<img class="vposter" src="${esc(poster)}">`:'<div class="vpblack"></div>'}<span class="bigplay"></span></div>`;}
   return videoThumbHTML(p)+(u?'<div class="vnote2">This link can&#39;t be embedded. Use a YouTube, Vimeo, Google Drive, or direct .mp4 link to play it here.</div>':'<div class="vnote2">Paste a video link below to play it here.</div>');}
 function videoThumbHTML(p){
   const u=p.videoUrl||p.publishedUrl||"";
@@ -655,6 +661,7 @@ function openEditor(id){
         <button class="btn warn" data-a="changes">Request changes</button>
         <button class="btn ghost" data-a="copy">${isEmail?'Copy email':'Copy caption'}</button>
         ${(isVid||isEmail)?'':'<button class="btn ghost" data-a="download">Download PNG</button>'}
+        ${(isVid&&p.thumbnail)?'<button class="btn ghost" data-a="thumbdl">Download thumbnail</button>':''}
         <button class="btn" data-a="delete" style="color:#c0392b;border-color:#e9b7b1;background:#fff">Delete</button>
         <button class="btn lime" data-a="save" style="margin-left:auto">Save</button>
       </div>
@@ -685,6 +692,7 @@ function openEditor(id){
   const edn=m.querySelector('[data-a="done"]');if(edn)edn.onclick=()=>{p.status="review";p.changeNote="";save();closeEditor();renderBoard();toast("Change marked done");};
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
+  const td=m.querySelector('[data-a="thumbdl"]');if(td)td.onclick=()=>downloadThumb(p);
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
   const sv=m.querySelector('[data-a="save"]');if(sv)sv.onclick=()=>{save();closeEditor();toast("Saved");};
   const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this card?")){state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
@@ -701,6 +709,11 @@ function downloadCarousel(p){const n=(p.slides&&p.slides.length)?p.slides.length
   (function nx(){if(k>=jobs.length)return;const[r,i]=jobs[k];const off=document.createElement("canvas");renderPoster(off,Object.assign({},p,{ratio:r}),i);const a=document.createElement("a");a.download="boko_"+p.id+"_"+r+"_s"+(i+1)+".png";a.href=off.toDataURL("image/png");a.click();k++;setTimeout(nx,600);})();}
 function downloadAt(p,ratio){const off=document.createElement("canvas");const pp=Object.assign({},p,{ratio:ratio});renderPoster(off,pp,0);const a=document.createElement("a");a.download="boko_"+p.id+"_"+ratio+".png";a.href=off.toDataURL("image/png");a.click();}
 function downloadBoth(p){downloadAt(p,"square");setTimeout(()=>downloadAt(p,"story"),500);}
+async function downloadThumb(p){if(!p.thumbnail){toast("No thumbnail set");return;}
+  try{const r=await fetch(p.thumbnail,{mode:"cors"});const b=await r.blob();const u=URL.createObjectURL(b);
+    const ext=(p.thumbnail.split("?")[0].match(/\.(jpg|jpeg|png|webp|gif)$/i)||[,"jpg"])[1];
+    const a=document.createElement("a");a.href=u;a.download="boko_"+p.id+"_thumbnail."+ext;a.click();setTimeout(()=>URL.revokeObjectURL(u),3000);toast("Thumbnail downloaded");}
+  catch(e){window.open(p.thumbnail,"_blank");toast("Opened thumbnail");}}
 function confetti(){const colors=["#BFFC00","#7b61ff","#1d9bf0","#ff9ad2","#000000","#ffffff"];
   const c=document.createElement("div");c.className="confetti";document.body.appendChild(c);
   for(let i=0;i<70;i++){const p=document.createElement("i");
