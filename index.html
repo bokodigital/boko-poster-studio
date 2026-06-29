@@ -83,6 +83,12 @@
   .ctime{font-weight:500;color:var(--muted);font-size:11px;margin-left:6px}
   .ctext{font-size:13px;color:var(--text);line-height:1.45;white-space:pre-wrap;word-break:break-word}
   .cdel{margin-left:8px;font-size:10px;color:#c0392b;cursor:pointer;font-weight:600}
+  .cimg{max-width:220px;max-height:200px;border-radius:8px;margin-top:6px;display:block;cursor:pointer;border:1px solid var(--line)}
+  .cprev{margin-top:6px}
+  .cprevwrap{position:relative;display:inline-block}
+  .cprevwrap img{max-height:84px;border-radius:8px;border:1px solid var(--line);display:block}
+  .cprevx{position:absolute;top:-7px;right:-7px;background:#222;color:#fff;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center;font-size:13px;cursor:pointer;user-select:none}
+  .cattach{background:#fff;border:1px solid var(--line);color:var(--text);font-size:12px;padding:6px 10px;border-radius:8px;cursor:pointer;font-weight:600}
   .cbox{display:flex;gap:8px;align-items:flex-start}
   .cinput{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff}
   .cinput textarea{width:100%;border:0;outline:0;resize:vertical;min-height:46px;font-family:inherit;font-size:13px;color:var(--text);background:transparent}
@@ -689,8 +695,8 @@ function openEditor(id){
       ${isEmail?'':`<div><label class="fl">Hashtags</label><textarea class="f" data-f="hashtags" style="min-height:52px" placeholder="#AIAutomation #ShopifyAU">${esc(p.hashtags||'')}</textarea></div>`}
       <div class="comments">
         <div class="clabel">Comments</div>
-        <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem"><div class="cav">${esc(initials(c.a))}</div><div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}</span><span class="cdel" data-del="${ci}">delete</span></div><div class="ctext">${esc(c.t)}</div></div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
-        <div class="cbox"><div class="cav cavme">${esc(initials(commenterName())||"+")}</div><div class="cinput"><textarea id="cnew" placeholder="Add a comment..."></textarea><div class="crow" style="justify-content:flex-end"><button class="btn lime" id="cbtn">Comment</button></div></div></div>
+        <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem"><div class="cav">${esc(initials(c.a))}</div><div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}</span><span class="cdel" data-del="${ci}">delete</span></div><div class="ctext">${esc(c.t)}</div>${c.img?`<img class="cimg" src="${c.img}" data-full="${c.img}" alt="attachment">`:""}</div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
+        <div class="cbox"><div class="cav cavme">${esc(initials(commenterName())||"+")}</div><div class="cinput"><textarea id="cnew" placeholder="Add a comment... (paste an image with Ctrl+V)"></textarea><div id="cprev" class="cprev"></div><div class="crow" style="justify-content:space-between"><button type="button" class="cattach" id="cattach">📎 Attach image</button><button class="btn lime" id="cbtn">Comment</button></div><input type="file" id="cfile" accept="image/*" style="display:none"></div></div>
       </div>
       <div class="mactions">
         <button class="btn lime" data-a="approve">Approve</button>
@@ -723,8 +729,16 @@ function openEditor(id){
   const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();scheduleBoard();};
   const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;save();scheduleBoard();};
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();closeEditor();renderBoard();confetti();toast("Approved");};
-  const cbtn=m.querySelector("#cbtn"),cnew=m.querySelector("#cnew");
-  if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,t:t,ts:Date.now()});save();scheduleBoard();openEditor(id);};
+  const cbtn=m.querySelector("#cbtn"),cnew=m.querySelector("#cnew"),cfile=m.querySelector("#cfile"),cattach=m.querySelector("#cattach"),cprev=m.querySelector("#cprev");
+  let pendImg=null;
+  function shrinkImg(dataUrl,cb){const im=new Image();im.onload=()=>{let w=im.width,h=im.height,mx=1000;if(w>mx||h>mx){if(w>=h){h=Math.round(h*mx/w);w=mx;}else{w=Math.round(w*mx/h);h=mx;}}const cv=document.createElement("canvas");cv.width=w;cv.height=h;cv.getContext("2d").drawImage(im,0,0,w,h);try{cb(cv.toDataURL("image/jpeg",0.82));}catch(e){cb(dataUrl);}};im.onerror=()=>cb(dataUrl);im.src=dataUrl;}
+  function setPend(dataUrl){shrinkImg(dataUrl,d=>{pendImg=d;cprev.innerHTML='<div class="cprevwrap"><img src="'+d+'"><span class="cprevx" title="Remove">\u00d7</span></div>';const x=cprev.querySelector(".cprevx");if(x)x.onclick=()=>{pendImg=null;cprev.innerHTML="";};});}
+  function readImgFile(f){if(!f||!/^image\//.test(f.type||""))return;const r=new FileReader();r.onload=()=>setPend(r.result);r.readAsDataURL(f);}
+  if(cattach)cattach.onclick=()=>cfile&&cfile.click();
+  if(cfile)cfile.onchange=()=>{readImgFile(cfile.files[0]);cfile.value="";};
+  if(cnew)cnew.addEventListener("paste",e=>{const items=(e.clipboardData&&e.clipboardData.items)||[];for(const it of items){if(it.type&&it.type.indexOf("image")===0){const f=it.getAsFile();if(f){e.preventDefault();readImgFile(f);return;}}}});
+  m.querySelectorAll(".cimg").forEach(im=>im.onclick=()=>{const w=window.open("","_blank");if(w)w.document.write('<title>Attachment</title><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+im.dataset.full+'" style="max-width:100%;max-height:100vh"></body>');});
+  if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t&&!pendImg)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,t:t,img:pendImg||"",ts:Date.now()});save();scheduleBoard();openEditor(id);};
   m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this comment?")){p.comments.splice(+b.dataset.del,1);save();scheduleBoard();openEditor(id);}});
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
