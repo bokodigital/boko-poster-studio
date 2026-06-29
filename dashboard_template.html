@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Boko Digital - Content Command Center</title>
+<link rel="icon" type="image/svg+xml" href="__FAVICON__">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -356,7 +357,7 @@ function cardEl(p){
       <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
-      ${p.changeNote?`<div class="note">✎ ${esc(p.changeNote)}</div>`:""}
+      ${p.changeNote?`<div class="note">✎ ${esc(p.changeNote)} <button class="notedone" data-a="done">✓ Done</button></div>`:""}
       <div class="cact">
         <button class="mini" data-a="open">Open</button>
         <button class="mini ok" data-a="approve">Approve</button>
@@ -370,6 +371,7 @@ function cardEl(p){
   c.querySelector('[data-a="open"]').onclick=()=>openEditor(p.id);
   c.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();renderBoard();confetti();toast("Approved");};
   c.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();renderBoard();};
+  const dn=c.querySelector('[data-a="done"]');if(dn)dn.onclick=(e)=>{e.stopPropagation();p.status="review";p.changeNote="";save();renderBoard();toast("Change marked done");};
   return c;
 }
 
@@ -380,16 +382,16 @@ function vimeoId(u){const m=(u||"").match(/vimeo\.com\/(?:video\/)?(\d+)/);retur
 function driveId(u){const m=(u||"").match(/drive\.google\.com\/file\/d\/([\w-]+)/);return m?m[1]:null;}
 function embedSrc(u){const y=ytId(u);if(y)return"https://www.youtube.com/embed/"+y;const v=vimeoId(u);if(v)return"https://player.vimeo.com/video/"+v;const d=driveId(u);if(d)return"https://drive.google.com/file/d/"+d+"/preview";return null;}
 function videoPlayerHTML(p){const u=p.videoUrl||p.publishedUrl||"";
-  if(isVideoFile(u))return `<video class="vplayfile" src="${esc(u)}" controls playsinline></video>`;
+  if(isVideoFile(u))return `<video class="vplayfile" ${p.thumbnail?`poster="${esc(p.thumbnail)}"`:""} src="${esc(u)}" controls playsinline></video>`;
   const e=embedSrc(u);
   if(e)return `<div class="vplaywrap"><iframe src="${esc(e)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
   return videoThumbHTML(p)+(u?'<div class="vnote2">This link can&#39;t be embedded. Use a YouTube, Vimeo, Google Drive, or direct .mp4 link to play it here.</div>':'<div class="vnote2">Paste a video link below to play it here.</div>');}
 function videoThumbHTML(p){
   const u=p.videoUrl||p.publishedUrl||"";
   const pub=p.publishedUrl?'<span class="vpub">&#9654; Published</span>':'';
-  if(isVideoFile(p.videoUrl)){return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span><video class="vvid" src="${esc(p.videoUrl)}" controls playsinline preload="metadata" onclick="event.stopPropagation()"></video><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;}
+  if(isVideoFile(p.videoUrl)){return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span><video class="vvid" ${p.thumbnail?`poster="${esc(p.thumbnail)}"`:""} src="${esc(p.videoUrl)}" controls playsinline preload="metadata" onclick="event.stopPropagation()"></video><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;}
   const yid=ytId(u);
-  const bg=yid?`<img class="vvid" src="https://img.youtube.com/vi/${yid}/hqdefault.jpg" alt="">`:"";
+  const bg=p.thumbnail?`<img class="vvid" src="${esc(p.thumbnail)}" alt="">`:(yid?`<img class="vvid" src="https://img.youtube.com/vi/${yid}/hqdefault.jpg" alt="">`:"");
   return `<div class="vthumb">${bg}<span class="vlabel">${esc(p.platform)} &middot; Video</span><span class="play"></span><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;
 }
 function emailThumbHTML(p){return `<div class="ethumb"><span class="elabel">Email &middot; Hubspot</span><div class="esub">${esc(fname(p.subject||p.title,p.platform))}</div>${p.preview?`<div class="eprev">${esc(p.preview)}</div>`:""}<div class="ebody">${esc(fname((p.body||p.caption||""),p.platform).slice(0,240))}</div><div class="esig">+ Maria Mendieta email signature (auto)</div></div>`;}
@@ -435,6 +437,7 @@ function openEditor(id){
         <div><label class="fl">Video link (file / source)</label><input class="f" data-f="videoUrl" value="${esc(p.videoUrl||'')}" placeholder="https:// .mp4 or Drive/YouTube"></div>
         <div><label class="fl">Published link</label><input class="f" data-f="publishedUrl" value="${esc(p.publishedUrl||'')}" placeholder="https://youtu.be/..."></div>
       </div>
+      <div><label class="fl">Thumbnail image URL</label><input class="f" data-f="thumbnail" value="${esc(p.thumbnail||'')}" placeholder="https:// .jpg / .png"></div>
       <div><label class="fl">Script / caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>
       `:`
       ${autoStory(p)?`<div><label class="fl">CTA</label><input class="f" data-f="cta" value="${esc(p.cta||'')}"></div>`:`<div class="two">
@@ -463,7 +466,7 @@ function openEditor(id){
       `}
       <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>`}
       ${isEmail?'':`<div><label class="fl">Hashtags</label><textarea class="f" data-f="hashtags" style="min-height:52px" placeholder="#AIAutomation #ShopifyAU">${esc(p.hashtags||'')}</textarea></div>`}
-      ${p.changeNote?`<div class="note">&#9998; ${esc(p.changeNote)}</div>`:""}
+      ${p.changeNote?`<div class="note">&#9998; ${esc(p.changeNote)} <button class="notedone" data-a="done">&#10003; Done</button></div>`:""}
       <div class="mactions">
         <button class="btn lime" data-a="approve">Approve</button>
         <button class="btn warn" data-a="changes">Request changes</button>
@@ -488,14 +491,15 @@ function openEditor(id){
     p.headline=p.slides[0].h;save();openEditor(id);scheduleBoard();});
   m.querySelectorAll('[data-s]').forEach(inp=>inp.oninput=()=>{p.slides[curSlide][inp.dataset.s]=inp.value;if(curSlide===0)p.headline=p.slides[0].h;save();refreshPrev();scheduleBoard();});
   m.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f;if(f==="status2"||f==="platform"||f==="date"||f==="time")return;
-    inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();if(f!=="videoUrl"&&f!=="publishedUrl")refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;scheduleBoard();};});
-  ["videoUrl","publishedUrl"].forEach(f=>{const el=m.querySelector('[data-f="'+f+'"]');if(el)el.onchange=()=>{refreshPrev();scheduleBoard();};});
+    inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();if(f!=="videoUrl"&&f!=="publishedUrl"&&f!=="thumbnail")refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;scheduleBoard();};});
+  ["videoUrl","publishedUrl","thumbnail"].forEach(f=>{const el=m.querySelector('[data-f="'+f+'"]');if(el)el.onchange=()=>{refreshPrev();scheduleBoard();};});
   m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";save();openEditor(id);scheduleBoard();});
   m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;save();counts();scheduleBoard();});
   const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();scheduleBoard();};
   const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;save();scheduleBoard();};
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();closeEditor();renderBoard();confetti();toast("Approved");};
   m.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();closeEditor();renderBoard();};
+  const edn=m.querySelector('[data-a="done"]');if(edn)edn.onclick=()=>{p.status="review";p.changeNote="";save();closeEditor();renderBoard();toast("Change marked done");};
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
@@ -510,7 +514,8 @@ document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
 function downloadPNG(p,si){const off=document.createElement("canvas");renderPoster(off,p,si||0);
   const a=document.createElement("a");a.download="boko_"+p.id+(si?("_s"+(si+1)):"")+"_"+(p.ratio||"square")+".png";a.href=off.toDataURL("image/png");a.click();}
-function downloadCarousel(p){const n=(p.slides&&p.slides.length)?p.slides.length:1;let i=0;(function nx(){if(i>=n)return;downloadPNG(p,i);i++;setTimeout(nx,600);})();}
+function downloadCarousel(p){const n=(p.slides&&p.slides.length)?p.slides.length:1;const ratios=autoStory(p)?["square","story"]:["square"];const jobs=[];ratios.forEach(r=>{for(let i=0;i<n;i++)jobs.push([r,i]);});let k=0;
+  (function nx(){if(k>=jobs.length)return;const[r,i]=jobs[k];const off=document.createElement("canvas");renderPoster(off,Object.assign({},p,{ratio:r}),i);const a=document.createElement("a");a.download="boko_"+p.id+"_"+r+"_s"+(i+1)+".png";a.href=off.toDataURL("image/png");a.click();k++;setTimeout(nx,600);})();}
 function downloadAt(p,ratio){const off=document.createElement("canvas");const pp=Object.assign({},p,{ratio:ratio});renderPoster(off,pp,0);const a=document.createElement("a");a.download="boko_"+p.id+"_"+ratio+".png";a.href=off.toDataURL("image/png");a.click();}
 function downloadBoth(p){downloadAt(p,"square");setTimeout(()=>downloadAt(p,"story"),500);}
 function confetti(){const colors=["#BFFC00","#7b61ff","#1d9bf0","#ff9ad2","#000000","#ffffff"];
@@ -535,7 +540,7 @@ function newPost(){
 function newVideo(){
   const p={id:"v"+Date.now(),type:"video",platform:"YouTube",status:"idea",title:"New video",
     template:"statement",ratio:"square",headline:"",accent:"",cta:"",eyebrow:"Boko Digital",
-    bullets:[],caption:"",pillar:"Video",date:"",videoUrl:"",publishedUrl:"",changeNote:""};
+    bullets:[],caption:"",pillar:"Video",date:"",videoUrl:"",publishedUrl:"",thumbnail:"",changeNote:""};
   state.push(p);save();renderBoard();openEditor(p.id);
 }
 document.getElementById("newBtn").onclick=newPost;
