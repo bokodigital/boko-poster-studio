@@ -95,6 +95,10 @@
   .vthumb .vvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
   .vthumb .vpub{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;background:var(--lime);color:#000;padding:4px 8px;border-radius:6px;text-decoration:none;z-index:2}
   .vthumb a.play{cursor:pointer;text-decoration:none;z-index:2}
+  .vplaywrap{position:relative;width:100%;padding-top:100%;border-radius:10px;overflow:hidden;background:#000}
+  .vplaywrap iframe,.vplaywrap video{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .vplayfile{width:100%;border-radius:10px;background:#000;display:block}
+  .vnote2{font-size:12px;color:#8a6a00;background:#fff7e3;border:1px solid #f0d488;border-radius:8px;padding:8px 10px;margin-top:8px}
   .vnote{font-size:12px;color:#5b6470;background:#f3f5f9;border:1px solid var(--line);border-radius:8px;padding:9px 11px}
   .gate{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:100}
   .gate.show{display:flex}
@@ -451,12 +455,22 @@ function cardEl(p){
 
 /* ---------- editor modal ---------- */
 function isVideoFile(u){return /\.(mp4|webm|mov|m4v|ogg)(\?|$)/i.test(u||"");}
+function ytId(u){const m=(u||"").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/))([\w-]{6,})/);return m?m[1]:null;}
+function vimeoId(u){const m=(u||"").match(/vimeo\.com\/(?:video\/)?(\d+)/);return m?m[1]:null;}
+function driveId(u){const m=(u||"").match(/drive\.google\.com\/file\/d\/([\w-]+)/);return m?m[1]:null;}
+function embedSrc(u){const y=ytId(u);if(y)return"https://www.youtube.com/embed/"+y;const v=vimeoId(u);if(v)return"https://player.vimeo.com/video/"+v;const d=driveId(u);if(d)return"https://drive.google.com/file/d/"+d+"/preview";return null;}
+function videoPlayerHTML(p){const u=p.videoUrl||p.publishedUrl||"";
+  if(isVideoFile(u))return `<video class="vplayfile" src="${esc(u)}" controls playsinline></video>`;
+  const e=embedSrc(u);
+  if(e)return `<div class="vplaywrap"><iframe src="${esc(e)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
+  return videoThumbHTML(p)+(u?'<div class="vnote2">This link can&#39;t be embedded. Use a YouTube, Vimeo, Google Drive, or direct .mp4 link to play it here.</div>':'<div class="vnote2">Paste a video link below to play it here.</div>');}
 function videoThumbHTML(p){
-  const pub=p.publishedUrl?`<a class="vpub" href="${esc(p.publishedUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">&#9654; Watch</a>`:"";
-  if(isVideoFile(p.videoUrl)){return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span><video class="vvid" src="${esc(p.videoUrl)}" controls preload="metadata" onclick="event.stopPropagation()"></video><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;}
-  const link=p.videoUrl||p.publishedUrl;
-  const play=link?`<a class="play" href="${esc(link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"></a>`:`<span class="play"></span>`;
-  return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span>${play}<span class="vtitle">${esc(p.title)}</span>${pub}</div>`;
+  const u=p.videoUrl||p.publishedUrl||"";
+  const pub=p.publishedUrl?'<span class="vpub">&#9654; Published</span>':'';
+  if(isVideoFile(p.videoUrl)){return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span><video class="vvid" src="${esc(p.videoUrl)}" controls playsinline preload="metadata" onclick="event.stopPropagation()"></video><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;}
+  const yid=ytId(u);
+  const bg=yid?`<img class="vvid" src="https://img.youtube.com/vi/${yid}/hqdefault.jpg" alt="">`:"";
+  return `<div class="vthumb">${bg}<span class="vlabel">${esc(p.platform)} &middot; Video</span><span class="play"></span><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;
 }
 function emailThumbHTML(p){return `<div class="ethumb"><span class="elabel">Email &middot; Hubspot</span><div class="esub">${esc(p.subject||p.title)}</div>${p.preview?`<div class="eprev">${esc(p.preview)}</div>`:""}<div class="ebody">${esc((p.body||p.caption||"").slice(0,240))}</div><div class="esig">+ Maria Mendieta email signature (auto)</div></div>`;}
 function copyEmail(p){const txt=(p.subject?("Subject: "+p.subject+"\n\n"):"")+(p.body||p.caption||"")+"\n\n"+EMAIL_SIG;navigator.clipboard.writeText(txt).then(()=>toast("Email + signature copied"));}
@@ -465,7 +479,7 @@ function openEditor(id){
   const isEmail=p.platform==="Hubspot";const isVid=p.type==="video"&&!isEmail;
   const m=document.getElementById("modal");
   m.innerHTML=`
-    <div class="mprev">${isEmail?emailThumbHTML(p):isVid?videoThumbHTML(p):'<canvas id="mcv"></canvas>'}</div>
+    <div class="mprev">${isEmail?emailThumbHTML(p):isVid?videoPlayerHTML(p):'<canvas id="mcv"></canvas>'}</div>
     <div class="mform">
       <div style="display:flex;align-items:center"><h3>${esc(p.title)}</h3><button class="x" data-a="close">&times;</button></div>
       ${isEmail?'':`<div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>`}
@@ -513,12 +527,13 @@ function openEditor(id){
       </div>
     </div>`;
   const cv=m.querySelector("#mcv");if(cv)renderPoster(cv,p);
-  const refreshPrev=()=>{const c2=m.querySelector("#mcv");if(c2){renderPoster(c2,p);}else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?emailThumbHTML(p):isVid?videoThumbHTML(p):"";}};
+  const refreshPrev=()=>{const c2=m.querySelector("#mcv");if(c2){renderPoster(c2,p);}else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?emailThumbHTML(p):isVid?videoPlayerHTML(p):"";}};
   const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"&&(p.platform==="Hubspot"||p.platform==="Facebook"))p.platform="YouTube";save();openEditor(id);});
   const tplseg=m.querySelector('#tplseg');if(tplseg)tplseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;save();openEditor(id);});
   const ratioseg=m.querySelector('#ratioseg');if(ratioseg)ratioseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;save();openEditor(id);});
   m.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f;if(f==="status2"||f==="platform"||f==="date"||f==="time")return;
-    inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;scheduleBoard();};});
+    inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();if(f!=="videoUrl"&&f!=="publishedUrl")refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;scheduleBoard();};});
+  ["videoUrl","publishedUrl"].forEach(f=>{const el=m.querySelector('[data-f="'+f+'"]');if(el)el.onchange=()=>{refreshPrev();scheduleBoard();};});
   m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";save();openEditor(id);scheduleBoard();});
   m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;save();counts();scheduleBoard();});
   const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();scheduleBoard();};
