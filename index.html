@@ -162,9 +162,8 @@
     <div class="seg" id="viewseg"><button data-v="board" class="on">Board</button><button data-v="calendar">Calendar</button></div>
   </div>
   <div class="rightbar">
-    <div class="filters" id="typefilters"></div>
-    <span class="fdiv"></span>
-    <div class="filters" id="filters"></div>
+    <select class="wsel" id="typeSel"></select>
+    <select class="wsel" id="platSel"></select>
     <button id="newBtn" class="newbtn">+ Post</button>
     <button id="newVid" class="newbtn">+ Video</button>
   </div>
@@ -457,12 +456,12 @@ function counts(){
   cApproved.textContent=state.filter(p=>p.status==="approved").length;
 }
 function renderFilters(){
-  const el=document.getElementById("filters");el.innerHTML="";
-  ["All",...PLATFORMS].forEach(f=>{const b=document.createElement("button");
-    b.className="chip"+(filter===f?" on":"");b.textContent=f;b.onclick=()=>{filter=f;renderBoard();};el.appendChild(b);});
-  const te=document.getElementById("typefilters");te.innerHTML="";
-  TYPE_FILTERS.forEach(([label,kind])=>{const b=document.createElement("button");
-    b.className="chip"+(typeFilter===kind?" on":"");b.textContent=label;b.onclick=()=>{typeFilter=kind;renderBoard();};te.appendChild(b);});
+  const ts=document.getElementById("typeSel");
+  if(!ts.dataset.init){ts.dataset.init="1";ts.innerHTML=TYPE_FILTERS.map(([l,k])=>`<option value="${k}">${k==="All"?"All formats":l}</option>`).join("");ts.onchange=()=>{typeFilter=ts.value;renderBoard();};}
+  ts.value=typeFilter;
+  const ps=document.getElementById("platSel");
+  if(!ps.dataset.init){ps.dataset.init="1";ps.innerHTML='<option value="All">All platforms</option>'+PLATFORMS.map(p=>`<option value="${p}">${p}</option>`).join("");ps.onchange=()=>{filter=ps.value;renderBoard();};}
+  ps.value=filter;
 }
 function platColor(p){return p==="Instagram"?"#c2186e":p==="LinkedIn"?"#2456b8":p==="Facebook"?"#2a3fa8":p==="YouTube"?"#c0202a":p==="Hubspot"?"#c2640f":"#888";}
 function renderCalendar(board){
