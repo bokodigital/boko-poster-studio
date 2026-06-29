@@ -34,7 +34,8 @@
   .calgrid .day.today{border-color:var(--lime);box-shadow:0 0 0 1px var(--lime) inset}
   .calgrid .dnum{font-size:12px;font-weight:700;color:var(--text)}
   .calgrid .day.out .dnum{color:#c0c5cf}
-  .calgrid .ev{font-size:11px;font-weight:600;color:var(--text);background:#f3f5f9;border-left:3px solid #888;border-radius:5px;padding:3px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .calgrid .ev{font-size:11px;font-weight:600;color:var(--text);background:#f3f5f9;border-left:3px solid #888;border-radius:5px;padding:3px 6px;cursor:grab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .calgrid .day.dragover{border-color:var(--lime);box-shadow:0 0 0 1px var(--lime) inset;background:#f3fbe0}
   .calgrid .ev:hover{filter:brightness(.96)}
   .calgrid .more{font-size:10px;color:var(--muted)}
   .board{display:flex;gap:14px;padding:6px 22px 30px;overflow-x:auto;align-items:flex-start;min-height:60vh}
@@ -99,6 +100,7 @@
   .slabel{font-size:12px;font-weight:700;color:var(--text);margin:0 4px}
   .badge.yt{background:#fde7e7;color:#c0202a}
   .badge.hs{background:#ffeede;color:#c2640f}
+  .badge.story{background:#e7f7ec;color:#1f8a4c}
   .ethumb{width:100%;aspect-ratio:1/1;background:#fff;display:flex;flex-direction:column;padding:14px;gap:6px;overflow:hidden;border-bottom:1px solid var(--line)}
   .ethumb .elabel{align-self:flex-start;font-size:9px;font-weight:700;background:#ffeede;color:#c2640f;padding:2px 6px;border-radius:5px;text-transform:uppercase}
   .ethumb .esub{font-size:13px;font-weight:700;color:#101316;line-height:1.3}
@@ -202,6 +204,7 @@ function fname(text,platform){const tag=FNAME_TAG[platform];return tag?(text||""
 let filter="All";let typeFilter="All";
 const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Emails","Email"]];
 function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":"Post";}
+function autoStory(p){return p.type!=="video"&&p.platform!=="Hubspot"&&(p.platform==="Instagram"||p.platform==="Facebook");}
 
 document.getElementById("logo").src=LOGO_LIGHT;
 
@@ -307,10 +310,13 @@ function renderCalendar(board){
     const ds=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
     const inMonth=(d.getMonth()===M-1);
     const cell=document.createElement("div");cell.className="day"+(inMonth?"":" out")+(ds===todayS?" today":"");
+    cell.addEventListener("dragover",ev=>{ev.preventDefault();cell.classList.add("dragover");});
+    cell.addEventListener("dragleave",()=>cell.classList.remove("dragover"));
+    cell.addEventListener("drop",ev=>{ev.preventDefault();cell.classList.remove("dragover");const id=ev.dataTransfer.getData("text/plain");const pp=state.find(x=>x.id===id);if(pp&&pp.date!==ds){pp.date=ds;save();renderBoard();toast("Moved");}});
     const num=document.createElement("div");num.className="dnum";num.textContent=d.getDate();cell.appendChild(num);
     if(inMonth){const evs=(evBy[ds]||[]).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
-      evs.slice(0,4).forEach(p=>{const e=document.createElement("div");e.className="ev";e.style.borderLeftColor=platColor(p.platform);
-        e.textContent=(p.time?p.time+" ":"")+p.title;e.title=p.title;e.onclick=()=>openEditor(p.id);cell.appendChild(e);});
+      evs.slice(0,4).forEach(p=>{const e=document.createElement("div");e.className="ev";e.style.borderLeftColor=platColor(p.platform);e.draggable=true;
+        e.textContent=(p.time?p.time+" ":"")+p.title;e.title=p.title;e.onclick=()=>openEditor(p.id);e.addEventListener("dragstart",ev=>{ev.dataTransfer.setData("text/plain",p.id);ev.dataTransfer.effectAllowed="move";ev.stopPropagation();});cell.appendChild(e);});
       if(evs.length>4){const mo=document.createElement("div");mo.className="more";mo.textContent="+"+(evs.length-4)+" more";cell.appendChild(mo);}}
     grid.appendChild(cell);
   }
@@ -341,7 +347,7 @@ function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}</div>
+      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
       ${p.changeNote?`<div class="note">✎ ${esc(p.changeNote)}</div>`:""}
@@ -429,6 +435,7 @@ function openEditor(id){
         <div><label class="fl">Format</label><div class="seg" id="ratioseg"><button data-r="square" class="${p.ratio!=='story'?'on':''}">1:1</button><button data-r="story" class="${p.ratio==='story'?'on':''}">Story</button></div></div>
         <div><label class="fl">CTA</label><input class="f" data-f="cta" value="${esc(p.cta||'')}"></div>
       </div>
+      ${autoStory(p)?`<div class="vnote">&#128241; A 9:16 <b>Story</b> version is auto-included. Toggle Format to preview it &mdash; Download exports both the 1:1 and the Story.</div>`:""}
       ${isCarousel?`
       <div class="slidenav">
         <button class="snbtn" data-sn="prev">&#9664;</button>
@@ -481,7 +488,7 @@ function openEditor(id){
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();closeEditor();renderBoard();confetti();toast("Approved");};
   m.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();closeEditor();renderBoard();};
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else navigator.clipboard.writeText(fname(p.caption||"",p.platform)).then(()=>toast("Copied"));};
-  const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else downloadPNG(p);};
+  const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
   const sv=m.querySelector('[data-a="save"]');if(sv)sv.onclick=()=>{save();closeEditor();toast("Saved");};
   const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this card?")){state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
@@ -495,6 +502,8 @@ function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").repla
 function downloadPNG(p,si){const off=document.createElement("canvas");renderPoster(off,p,si||0);
   const a=document.createElement("a");a.download="boko_"+p.id+(si?("_s"+(si+1)):"")+"_"+(p.ratio||"square")+".png";a.href=off.toDataURL("image/png");a.click();}
 function downloadCarousel(p){const n=(p.slides&&p.slides.length)?p.slides.length:1;let i=0;(function nx(){if(i>=n)return;downloadPNG(p,i);i++;setTimeout(nx,600);})();}
+function downloadAt(p,ratio){const off=document.createElement("canvas");const pp=Object.assign({},p,{ratio:ratio});renderPoster(off,pp,0);const a=document.createElement("a");a.download="boko_"+p.id+"_"+ratio+".png";a.href=off.toDataURL("image/png");a.click();}
+function downloadBoth(p){downloadAt(p,"square");setTimeout(()=>downloadAt(p,"story"),500);}
 function confetti(){const colors=["#BFFC00","#7b61ff","#1d9bf0","#ff9ad2","#000000","#ffffff"];
   const c=document.createElement("div");c.className="confetti";document.body.appendChild(c);
   for(let i=0;i<70;i++){const p=document.createElement("i");
