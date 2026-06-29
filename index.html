@@ -91,7 +91,10 @@
   .vthumb .play{width:52px;height:52px;border-radius:50%;background:var(--lime);display:flex;align-items:center;justify-content:center}
   .vthumb .play:after{content:"";border-left:17px solid #000;border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px}
   .vthumb .vlabel{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;letter-spacing:.05em;color:#fff;background:rgba(255,255,255,.14);padding:3px 7px;border-radius:6px;text-transform:uppercase}
-  .vthumb .vtitle{position:absolute;bottom:10px;left:12px;right:12px;font-size:13px;font-weight:600;color:#fff;line-height:1.25}
+  .vthumb .vtitle{position:absolute;bottom:10px;left:12px;right:12px;font-size:13px;font-weight:600;color:#fff;line-height:1.25;z-index:1}
+  .vthumb .vvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+  .vthumb .vpub{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;background:var(--lime);color:#000;padding:4px 8px;border-radius:6px;text-decoration:none;z-index:2}
+  .vthumb a.play{cursor:pointer;text-decoration:none;z-index:2}
   .vnote{font-size:12px;color:#5b6470;background:#f3f5f9;border:1px solid var(--line);border-radius:8px;padding:9px 11px}
   .gate{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:100}
   .gate.show{display:flex}
@@ -446,7 +449,14 @@ function cardEl(p){
 }
 
 /* ---------- editor modal ---------- */
-function videoThumbHTML(p){return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span><span class="play"></span><span class="vtitle">${esc(p.title)}</span></div>`;}
+function isVideoFile(u){return /\.(mp4|webm|mov|m4v|ogg)(\?|$)/i.test(u||"");}
+function videoThumbHTML(p){
+  const pub=p.publishedUrl?`<a class="vpub" href="${esc(p.publishedUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">&#9654; Watch</a>`:"";
+  if(isVideoFile(p.videoUrl)){return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span><video class="vvid" src="${esc(p.videoUrl)}" controls preload="metadata" onclick="event.stopPropagation()"></video><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;}
+  const link=p.videoUrl||p.publishedUrl;
+  const play=link?`<a class="play" href="${esc(link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"></a>`:`<span class="play"></span>`;
+  return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span>${play}<span class="vtitle">${esc(p.title)}</span>${pub}</div>`;
+}
 function emailThumbHTML(p){return `<div class="ethumb"><span class="elabel">Email &middot; Hubspot</span><div class="esub">${esc(p.subject||p.title)}</div>${p.preview?`<div class="eprev">${esc(p.preview)}</div>`:""}<div class="ebody">${esc((p.body||p.caption||"").slice(0,240))}</div><div class="esig">+ Maria Mendieta email signature (auto)</div></div>`;}
 function copyEmail(p){const txt=(p.subject?("Subject: "+p.subject+"\n\n"):"")+(p.body||p.caption||"")+"\n\n"+EMAIL_SIG;navigator.clipboard.writeText(txt).then(()=>toast("Email + signature copied"));}
 function openEditor(id){
@@ -473,7 +483,11 @@ function openEditor(id){
       <div><label class="fl">Preview text</label><input class="f" data-f="preview" value="${esc(p.preview||'')}"></div>
       <div><label class="fl">Body message</label><textarea class="f" data-f="body" style="min-height:150px">${esc(p.body||p.caption||'')}</textarea></div>
       <div class="vnote">&#9993; Maria's HTML email signature is added automatically at the end of the body when you copy the email.</div>
-      `:isVid?`<div class="vnote">&#127916; Video is uploaded manually${p.platform==="YouTube"?" to YouTube":""}. Use the fields below for the title, script and schedule; approve when the cut is ready.</div>
+      `:isVid?`<div class="vnote">&#127916; Video is uploaded manually${p.platform==="YouTube"?" to YouTube":""}. Paste a video link below to show it on the tile, and the published link once it's live.</div>
+      <div class="two">
+        <div><label class="fl">Video link (file / source)</label><input class="f" data-f="videoUrl" value="${esc(p.videoUrl||'')}" placeholder="https:// .mp4 or Drive/YouTube"></div>
+        <div><label class="fl">Published link</label><input class="f" data-f="publishedUrl" value="${esc(p.publishedUrl||'')}" placeholder="https://youtu.be/..."></div>
+      </div>
       <div><label class="fl">Script / caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>
       `:`
       <div class="two">
@@ -538,7 +552,7 @@ function newPost(){
 function newVideo(){
   const p={id:"v"+Date.now(),type:"video",platform:"YouTube",status:"idea",title:"New video",
     template:"statement",ratio:"square",headline:"",accent:"",cta:"",eyebrow:"Boko Digital",
-    bullets:[],caption:"",pillar:"Video",date:"",changeNote:""};
+    bullets:[],caption:"",pillar:"Video",date:"",videoUrl:"",publishedUrl:"",changeNote:""};
   state.push(p);save();renderBoard();openEditor(p.id);
 }
 document.getElementById("newBtn").onclick=newPost;
