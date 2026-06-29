@@ -71,6 +71,10 @@
   @media(max-width:760px){.modal{grid-template-columns:1fr}}
   .mprev{background:#eef0f5;padding:18px;display:flex;align-items:flex-start;justify-content:center;border-right:1px solid var(--line)}
   .mprev canvas{width:100%;max-width:360px;height:auto;border-radius:10px;box-shadow:0 10px 34px rgba(16,19,22,.2)}
+  .dualprev{display:flex;gap:12px;width:100%;align-items:flex-start}
+  .pvcol{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .pvlab{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase}
+  .pvcol canvas{width:100%;max-width:none;height:auto;border-radius:8px;box-shadow:0 8px 24px rgba(16,19,22,.18)}
   .mform{padding:18px;display:flex;flex-direction:column;gap:11px}
   .mform h3{margin:0;font-size:15px}
   label.fl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px}
@@ -219,7 +223,8 @@ function setSyncDot(){const d=document.getElementById("syncdot");if(d)d.classNam
 function startPoll(){if(!syncOn||_poll)return;_poll=setInterval(()=>{if(document.getElementById('overlay').classList.contains('show'))return;
   fetch('/api/state',{headers:{'x-board-pass':PASS}}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.state){const m=mergeServer(d.state);
     if(JSON.stringify(m)!==JSON.stringify(state)){state=m;localStorage.setItem(STORAGE,JSON.stringify(state));renderBoard();}}}).catch(()=>{});},8000);}
-function afterLoad(){document.getElementById("gate").classList.remove("show");preloadAvatars(()=>{renderBoard();setSyncDot();startPoll();});}
+function migrateHashtags(){let ch=false;state.forEach(p=>{if(p.platform!=="Hubspot"&&(p.hashtags===undefined||p.hashtags===null)){const t=(p.caption||"").match(/#[\w]+/g);p.hashtags=t?t.join(" "):"";if(t){p.caption=(p.caption||"").replace(/#[\w]+/g,"").replace(/[ \t]+/g," ").replace(/ *\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();}ch=true;}});if(ch)save();}
+function afterLoad(){document.getElementById("gate").classList.remove("show");migrateHashtags();preloadAvatars(()=>{renderBoard();setSyncDot();startPoll();});}
 function loadFrom(sv){state=mergeServer(sv);localStorage.setItem(STORAGE,JSON.stringify(state));pushServer();afterLoad();}
 function offline(){syncOn=false;document.getElementById("offbanner").style.display="block";afterLoad();}
 function showGate(msg){const g=document.getElementById("gate");document.getElementById("gerr").textContent=msg||"";g.classList.add("show");
@@ -264,19 +269,20 @@ function monthLabel(m){const[y,mm]=m.split("-");return MONTHS[+mm-1]+" "+y;}
 function defaultMonth(){const c={};state.forEach(p=>{if(p.date)c[ym(p.date)]=(c[ym(p.date)]||0)+1;});let best="",n=-1;for(const k in c)if(c[k]>n){n=c[k];best=k;}return best||new Date().toISOString().slice(0,7);}
 function shiftMonth(delta){const[y,m]=curMonth.split("-").map(Number);const d=new Date(y,m-1+delta,1);curMonth=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");curWeek=null;renderBoard();}
 function dstr(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
-function monthWeeks(){const [Y,M]=curMonth.split("-").map(Number);const first=new Date(Y,M-1,1);
-  const off=(first.getDay()+6)%7;let mon=new Date(Y,M-1,1-off);const last=new Date(Y,M,0);const out=[];let n=1;
-  while(mon<=last){const sun=new Date(mon);sun.setDate(mon.getDate()+6);out.push({key:isoWeek(dstr(mon)),n:n,mon:new Date(mon),sun:new Date(sun)});mon=new Date(mon);mon.setDate(mon.getDate()+7);n++;}
+function monthWeeks(){const [Y,M]=curMonth.split("-").map(Number);const last=new Date(Y,M,0).getDate();
+  const out=[];let n=1,day=1;
+  while(day<=last){const sd=new Date(Y,M-1,day);const dow=(sd.getDay()+6)%7;let endDay=day+(6-dow);if(endDay>last)endDay=last;
+    const ed=new Date(Y,M-1,endDay);out.push({n:n,start:sd,end:ed,key:dstr(sd)+".."+dstr(ed)});day=endDay+1;n++;}
   return out;}
 function renderWeekSel(){const sel=document.getElementById("weekSel");const ws=monthWeeks();
   sel.innerHTML='<option value="">All weeks</option>'+ws.map(w=>{
-    const a=w.mon.getDate()+" "+MONTHS[w.mon.getMonth()].slice(0,3),b=w.sun.getDate()+" "+MONTHS[w.sun.getMonth()].slice(0,3);
+    const a=w.start.getDate()+" "+MONTHS[w.start.getMonth()].slice(0,3),b=w.end.getDate()+" "+MONTHS[w.end.getMonth()].slice(0,3);
     return `<option value="${w.key}" ${curWeek===w.key?"selected":""}>Week ${w.n} (${a} - ${b})</option>`;}).join("");
   sel.onchange=()=>{curWeek=sel.value||null;renderBoard();};}
 function visible(){return state.filter(p=>{
   if(filter!=="All"&&p.platform!==filter)return false;
   if(typeFilter!=="All"&&kindOf(p)!==typeFilter)return false;
-  if(curWeek)return isoWeek(p.date)===curWeek;
+  if(curWeek){const r=curWeek.split("..");return p.date&&p.date>=r[0]&&p.date<=r[1];}
   if(!p.date)return true;
   return ym(p.date)===curMonth;});}
 function counts(){
@@ -405,7 +411,7 @@ function openEditor(id){
   if(isCarousel){if(!Array.isArray(p.slides)||!p.slides.length)p.slides=[{h:p.headline||"",b:(p.caption||"").split("\n")[0]||""}];curSlide=Math.max(0,Math.min(curSlide,p.slides.length-1));}
   const m=document.getElementById("modal");
   m.innerHTML=`
-    <div class="mprev">${isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):'<canvas id="mcv"></canvas>'}</div>
+    <div class="mprev">${isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):(autoStory(p)?'<div class="dualprev"><div class="pvcol"><span class="pvlab">Feed 1:1</span><canvas id="mcv"></canvas></div><div class="pvcol"><span class="pvlab">Story 9:16</span><canvas id="mcvS"></canvas></div></div>':'<canvas id="mcv"></canvas>')}</div>
     <div class="mform">
       <div style="display:flex;align-items:center"><h3>${esc(p.title)}</h3><button class="x" data-a="close">&times;</button></div>
       ${isEmail?'':`<div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>`}
@@ -431,11 +437,11 @@ function openEditor(id){
       </div>
       <div><label class="fl">Script / caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>
       `:`
-      <div class="two">
+      ${autoStory(p)?`<div><label class="fl">CTA</label><input class="f" data-f="cta" value="${esc(p.cta||'')}"></div>`:`<div class="two">
         <div><label class="fl">Format</label><div class="seg" id="ratioseg"><button data-r="square" class="${p.ratio!=='story'?'on':''}">1:1</button><button data-r="story" class="${p.ratio==='story'?'on':''}">Story</button></div></div>
         <div><label class="fl">CTA</label><input class="f" data-f="cta" value="${esc(p.cta||'')}"></div>
-      </div>
-      ${autoStory(p)?`<div class="vnote">&#128241; A 9:16 <b>Story</b> version is auto-included. Toggle Format to preview it &mdash; Download exports both the 1:1 and the Story.</div>`:""}
+      </div>`}
+      ${autoStory(p)?`<div class="vnote">&#128241; Both <b>Feed 1:1</b> and <b>Story 9:16</b> are shown above and auto-included &mdash; Download exports both.</div>`:""}
       ${isCarousel?`
       <div class="slidenav">
         <button class="snbtn" data-sn="prev">&#9664;</button>
@@ -456,6 +462,7 @@ function openEditor(id){
       <div><label class="fl">Bullets (comma)</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>
       `}
       <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>`}
+      ${isEmail?'':`<div><label class="fl">Hashtags</label><textarea class="f" data-f="hashtags" style="min-height:52px" placeholder="#AIAutomation #ShopifyAU">${esc(p.hashtags||'')}</textarea></div>`}
       ${p.changeNote?`<div class="note">&#9998; ${esc(p.changeNote)}</div>`:""}
       <div class="mactions">
         <button class="btn lime" data-a="approve">Approve</button>
@@ -466,8 +473,10 @@ function openEditor(id){
         <button class="btn lime" data-a="save" style="margin-left:auto">Save</button>
       </div>
     </div>`;
-  const cv=m.querySelector("#mcv");if(cv)renderPoster(cv,p,isCarousel?curSlide:0);
-  const refreshPrev=()=>{const c2=m.querySelector("#mcv");if(c2){renderPoster(c2,p,isCarousel?curSlide:0);}else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):"";}};
+  const refreshPrev=()=>{const cv=m.querySelector("#mcv");
+    if(cv){if(autoStory(p)){renderPoster(cv,Object.assign({},p,{ratio:"square"}),isCarousel?curSlide:0);const sC=m.querySelector("#mcvS");if(sC)renderPoster(sC,Object.assign({},p,{ratio:"story"}),isCarousel?curSlide:0);}else renderPoster(cv,p,isCarousel?curSlide:0);}
+    else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):"";}};
+  refreshPrev();
   const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"&&(p.platform==="Hubspot"||p.platform==="Facebook"))p.platform="YouTube";save();openEditor(id);});
   const tplseg=m.querySelector('#tplseg');if(tplseg)tplseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;save();openEditor(id);});
   const ratioseg=m.querySelector('#ratioseg');if(ratioseg)ratioseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;save();openEditor(id);});
@@ -477,7 +486,7 @@ function openEditor(id){
     else if(a==="add"){p.slides.splice(curSlide+1,0,{h:"",b:""});curSlide++;}
     else if(a==="del"&&N>1){p.slides.splice(curSlide,1);curSlide=Math.min(curSlide,p.slides.length-1);}
     p.headline=p.slides[0].h;save();openEditor(id);scheduleBoard();});
-  m.querySelectorAll('[data-s]').forEach(inp=>inp.oninput=()=>{p.slides[curSlide][inp.dataset.s]=inp.value;if(curSlide===0)p.headline=p.slides[0].h;save();const c2=m.querySelector("#mcv");if(c2)renderPoster(c2,p,curSlide);scheduleBoard();});
+  m.querySelectorAll('[data-s]').forEach(inp=>inp.oninput=()=>{p.slides[curSlide][inp.dataset.s]=inp.value;if(curSlide===0)p.headline=p.slides[0].h;save();refreshPrev();scheduleBoard();});
   m.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f;if(f==="status2"||f==="platform"||f==="date"||f==="time")return;
     inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();if(f!=="videoUrl"&&f!=="publishedUrl")refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;scheduleBoard();};});
   ["videoUrl","publishedUrl"].forEach(f=>{const el=m.querySelector('[data-f="'+f+'"]');if(el)el.onchange=()=>{refreshPrev();scheduleBoard();};});
@@ -487,14 +496,14 @@ function openEditor(id){
   const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;save();scheduleBoard();};
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();closeEditor();renderBoard();confetti();toast("Approved");};
   m.querySelector('[data-a="changes"]').onclick=()=>{const n=prompt("What needs to change?",p.changeNote||"");if(n===null)return;p.status="drafting";p.changeNote=n;save();closeEditor();renderBoard();};
-  m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else navigator.clipboard.writeText(fname(p.caption||"",p.platform)).then(()=>toast("Copied"));};
+  m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
   const sv=m.querySelector('[data-a="save"]');if(sv)sv.onclick=()=>{save();closeEditor();toast("Saved");};
   const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this card?")){state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
   document.getElementById("overlay").classList.add("show");
 }
-function closeEditor(){document.getElementById("overlay").classList.remove("show");renderBoard();}
+function closeEditor(){const m=document.getElementById("modal");if(m){m.querySelectorAll("video").forEach(v=>{try{v.pause();}catch(e){}});m.innerHTML="";}document.getElementById("overlay").classList.remove("show");renderBoard();}
 function renderBoardThumb(id){/* board re-renders on close; cheap no-op live */}
 document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeEditor();});
 

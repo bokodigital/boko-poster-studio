@@ -61,6 +61,15 @@ POSTS = [
 import json as _json
 POSTS += _json.load(open(BASE / "macroplan.json", encoding="utf-8"))
 EMAILSIG = _json.dumps((BASE / "emailsig.html").read_text().strip())
+# extract hashtags from non-email captions
+for _c in POSTS:
+    if _c.get("platform")=="Hubspot" or "hashtags" in _c: continue
+    _cap=_c.get("caption","") or ""
+    _tags=re.findall(r"#\w+",_cap)
+    _c["hashtags"]=" ".join(_tags)
+    if _tags:
+        _cap=re.sub(r"#\w+","",_cap); _cap=re.sub(r"[ \t]+\n","\n",_cap); _cap=re.sub(r"\n{3,}","\n\n",_cap).strip()
+        _c["caption"]=_cap
 HTML = (BASE / "dashboard_template.html").read_text()
 out = (HTML.replace("__ENGINE__", ENGINE)
            .replace("__LOGO__", LOGO).replace("__LOGOLIGHT__", LOGOLIGHT).replace("__KWHITE__", KWHITE)
