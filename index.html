@@ -65,7 +65,11 @@
   .mini{font-family:inherit;font-size:11px;font-weight:600;border-radius:7px;padding:6px 9px;cursor:pointer;border:1px solid var(--line);background:#f3f5f9;color:var(--text)}
   .mini.ok{background:var(--lime);color:#000;border-color:var(--lime)}
   .mini.warn{color:#9a6a00;border-color:#f0d488;background:#fff7e3}
-  .note{font-size:11px;color:#8a6a00;background:#fff7e3;border:1px solid #f0d488;border-radius:7px;padding:6px 8px}
+  .note{font-size:11px;color:#8a6a00;background:#fff7e3;border:1px solid #f0d488;border-radius:7px;padding:6px 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .note span{flex:1;min-width:120px}
+  .notedone{flex:0 0 auto;font-family:inherit;font-size:11px;font-weight:800;border:0;background:var(--lime);color:#000;border-radius:999px;padding:5px 14px;cursor:pointer;box-shadow:0 1px 6px rgba(191,252,0,.55);letter-spacing:.02em}
+  .notedone:hover{filter:brightness(1.06);transform:translateY(-1px)}
+  .notedone:active{transform:translateY(0)}
   .overlay{position:fixed;inset:0;background:rgba(16,19,22,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
   .overlay.show{display:flex}
   .modal{background:#fff;border:1px solid var(--line);border-radius:16px;width:min(900px,96vw);max-height:92vh;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:0;box-shadow:0 20px 60px rgba(16,19,22,.25)}
@@ -544,7 +548,7 @@ function cardEl(p){
       <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
-      ${p.changeNote?`<div class="note">✎ ${esc(p.changeNote)} <button class="notedone" data-a="done">✓ Done</button></div>`:""}
+      ${p.changeNote?`<div class="note"><span>✎ ${esc(p.changeNote)}</span><button class="notedone" data-a="done">✓ Done</button></div>`:""}
       <div class="cact">
         <button class="mini" data-a="open">Open</button>
         <button class="mini ok" data-a="approve">Approve</button>
@@ -656,7 +660,7 @@ function openEditor(id){
       `}
       <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>`}
       ${isEmail?'':`<div><label class="fl">Hashtags</label><textarea class="f" data-f="hashtags" style="min-height:52px" placeholder="#AIAutomation #ShopifyAU">${esc(p.hashtags||'')}</textarea></div>`}
-      ${p.changeNote?`<div class="note">&#9998; ${esc(p.changeNote)} <button class="notedone" data-a="done">&#10003; Done</button></div>`:""}
+      ${p.changeNote?`<div class="note"><span>&#9998; ${esc(p.changeNote)}</span><button class="notedone" data-a="done">&#10003; Done</button></div>`:""}
       <div class="mactions">
         <button class="btn lime" data-a="approve">Approve</button>
         <button class="btn warn" data-a="changes">Request changes</button>
