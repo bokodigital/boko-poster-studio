@@ -384,20 +384,21 @@ function isVideoFile(u){return /\.(mp4|webm|mov|m4v|ogg)(\?|$)/i.test(u||"");}
 function ytId(u){const m=(u||"").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/))([\w-]{6,})/);return m?m[1]:null;}
 function vimeoId(u){const m=(u||"").match(/vimeo\.com\/(?:video\/)?(\d+)/);return m?m[1]:null;}
 function driveId(u){const m=(u||"").match(/drive\.google\.com\/file\/d\/([\w-]+)/);return m?m[1]:null;}
+function imgSrc(u){if(!u)return"";const d=driveId(u);if(d)return"https://drive.google.com/thumbnail?id="+d+"&sz=w1000";return u;}
 function embedSrc(u){const y=ytId(u);if(y)return"https://www.youtube.com/embed/"+y;const v=vimeoId(u);if(v)return"https://player.vimeo.com/video/"+v;const d=driveId(u);if(d)return"https://drive.google.com/file/d/"+d+"/preview";return null;}
 function playEmbed(el){const src=el.getAttribute("data-embed");if(!src)return;const sep=src.indexOf("?")>=0?"&":"?";el.innerHTML=`<iframe src="${src}${sep}autoplay=1" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;el.onclick=null;el.style.cursor="default";}
 function videoPlayerHTML(p){const u=p.videoUrl||p.publishedUrl||"";
-  if(isVideoFile(u))return `<video class="vplayfile" ${p.thumbnail?`poster="${esc(p.thumbnail)}"`:""} src="${esc(u)}" controls playsinline></video>`;
+  if(isVideoFile(u))return `<video class="vplayfile" ${p.thumbnail?`poster="${esc(imgSrc(p.thumbnail))}"`:""} src="${esc(u)}" controls playsinline></video>`;
   const e=embedSrc(u);
-  if(e){const poster=p.thumbnail||(ytId(u)?("https://img.youtube.com/vi/"+ytId(u)+"/hqdefault.jpg"):"");
+  if(e){const poster=imgSrc(p.thumbnail)||(ytId(u)?("https://img.youtube.com/vi/"+ytId(u)+"/hqdefault.jpg"):"");
     return `<div class="vplaywrap" data-embed="${esc(e)}" onclick="playEmbed(this)">${poster?`<img class="vposter" src="${esc(poster)}">`:'<div class="vpblack"></div>'}<span class="bigplay"></span></div>`;}
   return videoThumbHTML(p)+(u?'<div class="vnote2">This link can&#39;t be embedded. Use a YouTube, Vimeo, Google Drive, or direct .mp4 link to play it here.</div>':'<div class="vnote2">Paste a video link below to play it here.</div>');}
 function videoThumbHTML(p){
   const u=p.videoUrl||p.publishedUrl||"";
   const pub=p.publishedUrl?'<span class="vpub">&#9654; Published</span>':'';
-  if(isVideoFile(p.videoUrl)){return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span><video class="vvid" ${p.thumbnail?`poster="${esc(p.thumbnail)}"`:""} src="${esc(p.videoUrl)}" controls playsinline preload="metadata" onclick="event.stopPropagation()"></video><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;}
+  if(isVideoFile(p.videoUrl)){return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span><video class="vvid" ${p.thumbnail?`poster="${esc(imgSrc(p.thumbnail))}"`:""} src="${esc(p.videoUrl)}" controls playsinline preload="metadata" onclick="event.stopPropagation()"></video><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;}
   const yid=ytId(u);
-  const bg=p.thumbnail?`<img class="vvid" src="${esc(p.thumbnail)}" alt="">`:(yid?`<img class="vvid" src="https://img.youtube.com/vi/${yid}/hqdefault.jpg" alt="">`:"");
+  const bg=p.thumbnail?`<img class="vvid" src="${esc(imgSrc(p.thumbnail))}" alt="">`:(yid?`<img class="vvid" src="https://img.youtube.com/vi/${yid}/hqdefault.jpg" alt="">`:"");
   return `<div class="vthumb">${bg}<span class="vlabel">${esc(p.platform)} &middot; Video</span><span class="play"></span><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;
 }
 function emailThumbHTML(p){return `<div class="ethumb"><span class="elabel">Email &middot; Hubspot</span><div class="esub">${esc(fname(p.subject||p.title,p.platform))}</div>${p.preview?`<div class="eprev">${esc(p.preview)}</div>`:""}<div class="ebody">${esc(fname((p.body||p.caption||""),p.platform).slice(0,240))}</div><div class="esig">+ Maria Mendieta email signature (auto)</div></div>`;}
