@@ -25,6 +25,18 @@
   .chip.on{background:var(--lime);color:#000;border-color:var(--lime)}
   .newbtn{font-family:inherit;font-weight:700;font-size:12px;border:1px solid var(--lime);background:var(--lime);color:#000;padding:7px 14px;border-radius:999px;cursor:pointer}
   .newbtn:hover{filter:brightness(.96)}
+  .cal{width:100%}
+  .calhead{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px}
+  .calhead div{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;padding-left:4px}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .calgrid .day{background:#fff;border:1px solid var(--line);border-radius:10px;min-height:118px;padding:6px;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+  .calgrid .day.out{background:#f2f3f6}
+  .calgrid .day.today{border-color:var(--lime);box-shadow:0 0 0 1px var(--lime) inset}
+  .calgrid .dnum{font-size:12px;font-weight:700;color:var(--text)}
+  .calgrid .day.out .dnum{color:#c0c5cf}
+  .calgrid .ev{font-size:11px;font-weight:600;color:var(--text);background:#f3f5f9;border-left:3px solid #888;border-radius:5px;padding:3px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .calgrid .ev:hover{filter:brightness(.96)}
+  .calgrid .more{font-size:10px;color:var(--muted)}
   .board{display:flex;gap:14px;padding:6px 22px 30px;overflow-x:auto;align-items:flex-start;min-height:60vh}
   .col{flex:0 0 300px;background:#eef0f5;border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;max-height:82vh}
   .col.drag{border-color:var(--lime);box-shadow:0 0 0 2px var(--lime) inset}
@@ -147,6 +159,7 @@
     <h1 id="monthLabel">Month</h1>
     <button class="navbtn" id="nextM">&#9654;</button>
     <select class="wsel" id="weekSel"></select>
+    <div class="seg" id="viewseg"><button data-v="board" class="on">Board</button><button data-v="calendar">Calendar</button></div>
   </div>
   <div class="rightbar">
     <div class="filters" id="typefilters"></div>
@@ -236,7 +249,7 @@ function todayStr(){return new Date().toISOString().slice(0,10);}
 function fmtDate(d){if(!d)return "";const dt=new Date(d+"T00:00:00");if(isNaN(dt))return d;return WK[dt.getDay()]+" "+dt.getDate()+" "+MON[dt.getMonth()];}
 function isOverdue(p){return p.date && p.date<todayStr() && p.status!=="published";}
 function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":p==="YouTube"?"yt":p==="Hubspot"?"hs":"fb";}
-let curMonth="",curWeek=null,_brd=null,curSlide=0,_openId=null;
+let curMonth="",curWeek=null,_brd=null,curSlide=0,_openId=null,view="board";
 function scheduleBoard(){clearTimeout(_brd);_brd=setTimeout(()=>{if(document.getElementById("overlay").classList.contains("show"))renderBoard();},450);}
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
 function ym(d){return (d||"").slice(0,7);}
@@ -268,11 +281,39 @@ function renderFilters(){
   TYPE_FILTERS.forEach(([label,kind])=>{const b=document.createElement("button");
     b.className="chip"+(typeFilter===kind?" on":"");b.textContent=label;b.onclick=()=>{typeFilter=kind;renderBoard();};te.appendChild(b);});
 }
+function platColor(p){return p==="Instagram"?"#c2186e":p==="LinkedIn"?"#2456b8":p==="Facebook"?"#2a3fa8":p==="YouTube"?"#c0202a":p==="Hubspot"?"#c2640f":"#888";}
+function renderCalendar(board){
+  const cal=document.createElement("div");cal.className="cal";
+  const head=document.createElement("div");head.className="calhead";
+  ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(d=>{const e=document.createElement("div");e.textContent=d;head.appendChild(e);});
+  cal.appendChild(head);
+  const grid=document.createElement("div");grid.className="calgrid";
+  const [Y,M]=curMonth.split("-").map(Number);
+  const first=new Date(Y,M-1,1);const startOffset=(first.getDay()+6)%7;
+  const daysInMonth=new Date(Y,M,0).getDate();const start=new Date(Y,M-1,1-startOffset);
+  const totalCells=Math.ceil((startOffset+daysInMonth)/7)*7;
+  const evBy={};visible().forEach(p=>{if(p.date&&ym(p.date)===curMonth){(evBy[p.date]=evBy[p.date]||[]).push(p);}});
+  const todayS=todayStr();
+  for(let i=0;i<totalCells;i++){
+    const d=new Date(start);d.setDate(start.getDate()+i);
+    const ds=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    const inMonth=(d.getMonth()===M-1);
+    const cell=document.createElement("div");cell.className="day"+(inMonth?"":" out")+(ds===todayS?" today":"");
+    const num=document.createElement("div");num.className="dnum";num.textContent=d.getDate();cell.appendChild(num);
+    if(inMonth){const evs=(evBy[ds]||[]).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+      evs.slice(0,4).forEach(p=>{const e=document.createElement("div");e.className="ev";e.style.borderLeftColor=platColor(p.platform);
+        e.textContent=(p.time?p.time+" ":"")+p.title;e.title=p.title;e.onclick=()=>openEditor(p.id);cell.appendChild(e);});
+      if(evs.length>4){const mo=document.createElement("div");mo.className="more";mo.textContent="+"+(evs.length-4)+" more";cell.appendChild(mo);}}
+    grid.appendChild(cell);
+  }
+  cal.appendChild(grid);board.appendChild(cal);
+}
 function renderBoard(){
   if(!curMonth)curMonth=defaultMonth();
   document.getElementById("monthLabel").textContent=monthLabel(curMonth);
   renderWeekSel();renderFilters();counts();
   const board=document.getElementById("board");board.innerHTML="";
+  if(view==="calendar"){renderCalendar(board);return;}
   STATUSES.forEach(st=>{
     const col=document.createElement("div");col.className="col";col.dataset.status=st.id;
     const items=visible().filter(p=>p.status===st.id);
@@ -468,6 +509,7 @@ document.getElementById("newBtn").onclick=newPost;
 document.getElementById("newVid").onclick=newVideo;
 document.getElementById("prevM").onclick=()=>shiftMonth(-1);
 document.getElementById("nextM").onclick=()=>shiftMonth(1);
+document.querySelectorAll("#viewseg button").forEach(b=>b.onclick=()=>{view=b.dataset.v;document.querySelectorAll("#viewseg button").forEach(x=>x.classList.toggle("on",x.dataset.v===view));renderBoard();});
 function boot(){detectSync();}
 if(document.fonts&&document.fonts.load){
   Promise.all([document.fonts.load("700 80px Poppins"),document.fonts.load("800 80px Poppins"),document.fonts.load("500 40px Poppins"),document.fonts.load("400 40px Poppins")])
