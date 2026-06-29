@@ -79,6 +79,7 @@
   .navbtn:hover{background:#eef0f5}
   .wsel{font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:8px;padding:6px 8px;cursor:pointer}
   .rightbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .fdiv{width:1px;height:20px;background:var(--line)}
   .badge.yt{background:#fde7e7;color:#c0202a}
   .badge.hs{background:#ffeede;color:#c2640f}
   .ethumb{width:100%;aspect-ratio:1/1;background:#fff;display:flex;flex-direction:column;padding:14px;gap:6px;overflow:hidden;border-bottom:1px solid var(--line)}
@@ -131,6 +132,8 @@
     <select class="wsel" id="weekSel"></select>
   </div>
   <div class="rightbar">
+    <div class="filters" id="typefilters"></div>
+    <span class="fdiv"></span>
     <div class="filters" id="filters"></div>
     <button id="newBtn" class="newbtn">+ Post</button>
     <button id="newVid" class="newbtn">+ Video</button>
@@ -162,7 +165,9 @@ const KASPECT=1.046;
 const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"review",label:"Needs review"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
 const PLATFORMS=["Instagram","LinkedIn","Facebook","YouTube","Hubspot"];
 const EMAIL_SIG="<table cellspacing=\"0\" cellpadding=\"0\"><tbody><tr>\n<td style=\"width:120px; text-align: center;\"><a href=\"https://boko.com.au/\">\n<img src=\"https://boko.com.au/wp-content/uploads/2024/05/WhatsApp-Image-2024-01-19-at-10.17.06-AM-1024x1024-2.jpg\" style=\"width: 140px;border-radius: 50%;margin-right: 15px; border: 3px solid #8484fa;\">\n<img src=\"https://boko.com.au/wp-content/uploads/2026/02/signlogo.png\" style=\"width: 70px;margin-top: 0px;\"></a></td>\n<td style=\"width:240px;\"><div><span style=\"display: inline-block;font-size: 15px;font-family: Helvetica;line-height: 16px;\"><strong style=\"font-weight:600;font-size: 16px; line-height: 30px;font-family: Helvetica; color:#000\">Maria Mendieta</strong>\n<br><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">Digital Strategist | Founder</span>\n<br><a href=\"tel:+61413615016\" style=\"color:#000;\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">+61 413 615 016</span></a>\n<br><a href=\"https://boko.com.au/\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">www.boko.com.au</span></a><br><a href=\"https://boko.com.au/the-lead-generation-discovery-call/\" style=\"color:#000;\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica; color:#000;\">Book a free consultation</span></a><br></div><div style=\"margin-top:15px;\"><span><a href=\"https://www.facebook.com/bokodigitalsolutions/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/9034971_logo_facebook_icon.png\" style=\"width:25px;\"></a></span>&nbsp;&nbsp;<span><a href=\"https://www.instagram.com/boko.digital.solutions/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/1161954_instagram_icon.png\" style=\"width:25px;\"></a></span>&nbsp;&nbsp;<span><a href=\"https://www.linkedin.com/in/maria-jose-mendieta-mayorga/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/287697_linkedin_icon.png\" style=\"width:23px;\"></a></span>&nbsp;&nbsp;&nbsp;<span><a href=\"https://www.tiktok.com/@bokodigital\"><img src=\"https://boko.com.au/wp-content/uploads/2024/05/7693325_tiktok_social-media_logo_apps_icon.png\" style=\"width:23px;\"></a>&nbsp;&nbsp;&nbsp;</span><span><a href=\"https://maps.app.goo.gl/wC7cMc5uBCfkgh1j8\"><img src=\"https://boko.com.au/wp-content/uploads/2024/12/map-black.png\" style=\"width:23px;\"></a></div></td>\n</tr></tbody></table>";
-let filter="All";
+let filter="All";let typeFilter="All";
+const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Emails","Email"]];
+function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":"Post";}
 
 document.getElementById("logo").src=LOGO_LIGHT;
 
@@ -396,6 +401,7 @@ function renderWeekSel(){const sel=document.getElementById("weekSel");const ws=w
   sel.onchange=()=>{curWeek=sel.value||null;renderBoard();};}
 function visible(){return state.filter(p=>{
   if(filter!=="All"&&p.platform!==filter)return false;
+  if(typeFilter!=="All"&&kindOf(p)!==typeFilter)return false;
   if(curWeek)return isoWeek(p.date)===curWeek;
   if(!p.date)return true;
   return ym(p.date)===curMonth;});}
@@ -408,6 +414,9 @@ function renderFilters(){
   const el=document.getElementById("filters");el.innerHTML="";
   ["All",...PLATFORMS].forEach(f=>{const b=document.createElement("button");
     b.className="chip"+(filter===f?" on":"");b.textContent=f;b.onclick=()=>{filter=f;renderBoard();};el.appendChild(b);});
+  const te=document.getElementById("typefilters");te.innerHTML="";
+  TYPE_FILTERS.forEach(([label,kind])=>{const b=document.createElement("button");
+    b.className="chip"+(typeFilter===kind?" on":"");b.textContent=label;b.onclick=()=>{typeFilter=kind;renderBoard();};te.appendChild(b);});
 }
 function renderBoard(){
   if(!curMonth)curMonth=defaultMonth();
