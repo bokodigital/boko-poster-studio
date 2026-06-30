@@ -152,6 +152,11 @@
   .gmail .gm-prev{font-size:12px;color:#5f6368;padding:8px 16px 0}
   .gmail .gm-body{padding:14px 16px 18px;font-size:14px;line-height:1.6;color:#202124}
   .gmail .gm-body p{margin:0 0 10px}
+  .gmail .gm-body strong{font-weight:700}
+  .ebtoolbar{display:flex;align-items:center;gap:8px;margin:0 0 5px}
+  .ebbold{font-weight:800;font-size:13px;width:30px;height:26px;border:1px solid var(--line);background:#fff;border-radius:7px;cursor:pointer;line-height:1}
+  .ebbold:hover{background:#f3f3f3}
+  .ebhint{font-size:11px;color:var(--muted)}
   .gmail .gm-sig{margin-top:16px}
   .gmail .gm-sig img{max-width:100%}
   .vthumb{position:relative;width:100%;aspect-ratio:1/1;background:#0c0e10;display:flex;align-items:center;justify-content:center}
@@ -441,17 +446,31 @@ function videoThumbHTML(p){
   const bg=p.thumbnail?`<img class="vvid" src="${esc(imgSrc(p.thumbnail))}" alt="">`:(yid?`<img class="vvid" src="https://img.youtube.com/vi/${yid}/hqdefault.jpg" alt="">`:"");
   return `<div class="vthumb">${bg}<span class="vlabel">${esc(p.platform)} &middot; Video</span><span class="play"></span><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;
 }
-function emailThumbHTML(p){return `<div class="ethumb"><span class="elabel">Email &middot; Hubspot</span><div class="esub">${esc(fname(p.subject||p.title,p.platform))}</div>${p.preview?`<div class="eprev">${esc(p.preview)}</div>`:""}<div class="ebody">${esc(fname((p.body||p.caption||""),p.platform).slice(0,240))}</div><div class="esig">+ Maria Mendieta email signature (auto)</div></div>`;}
+function emailThumbHTML(p){return `<div class="ethumb"><span class="elabel">Email &middot; Hubspot</span><div class="esub">${esc(fname(p.subject||p.title,p.platform))}</div>${p.preview?`<div class="eprev">${esc(p.preview)}</div>`:""}<div class="ebody">${mdBold(fname((p.body||p.caption||""),p.platform).slice(0,240))}</div><div class="esig">+ Maria Mendieta email signature (auto)</div></div>`;}
 function gmailPreviewHTML(p){
   const subj=esc(fname(p.subject||p.title||"(no subject)",p.platform));
   const prev=esc(p.preview||"");
-  const body=fname(p.body||p.caption||"",p.platform).split("\n").map(l=>l.trim()?("<p>"+esc(l)+"</p>"):"<br>").join("");
+  const body=fname(p.body||p.caption||"",p.platform).split("\n").map(l=>l.trim()?("<p>"+mdBold(l)+"</p>"):"<br>").join("");
   return `<div class="gmail"><div class="gm-subj">${subj}</div>
     <div class="gm-row"><div class="gm-av">M</div><div><div class="gm-name">Maria Mendieta <span class="gm-em">&lt;maria@boko.com.au&gt;</span></div><div class="gm-to">to me</div></div></div>
     ${prev?`<div class="gm-prev">${prev}</div>`:""}
     <div class="gm-body">${body}<div class="gm-sig">${EMAIL_SIG}</div></div></div>`;
 }
-function copyEmail(p){const subj=fname(p.subject,p.platform);const body=fname(p.body||p.caption||"",p.platform);const txt=(subj?("Subject: "+subj+"\n\n"):"")+body+"\n\n"+EMAIL_SIG;navigator.clipboard.writeText(txt).then(()=>toast("Email + signature copied"));}
+function copyEmail(p){
+  const subj=fname(p.subject,p.platform);
+  const rawBody=fname(p.body||p.caption||"",p.platform);
+  const sigText=EMAIL_SIG.replace(/<br\s*\/?>/gi,"\n").replace(/<[^>]+>/g,"").replace(/&nbsp;/g," ").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+  const plain=(subj?("Subject: "+subj+"\n\n"):"")+rawBody.replace(/\*\*([^*]+?)\*\*/g,"$1")+"\n\n"+sigText;
+  const html=(subj?("<p><strong>Subject:</strong> "+esc(subj)+"</p>"):"")+emailBodyHTML(p)+EMAIL_SIG;
+  try{
+    if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
+      const item=new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([plain],{type:"text/plain"})});
+      navigator.clipboard.write([item]).then(()=>toast("Email + signature copied (formatting kept)")).catch(()=>navigator.clipboard.writeText(plain).then(()=>toast("Email + signature copied")));
+      return;
+    }
+  }catch(e){}
+  navigator.clipboard.writeText(plain).then(()=>toast("Email + signature copied"));
+}
 function openEditor(id){
   const p=state.find(x=>x.id===id);if(!p)return;
   if(_openId!==id){curSlide=0;_openId=id;}
@@ -477,7 +496,7 @@ function openEditor(id){
       ${isEmail?`
       <div><label class="fl">Subject line</label><input class="f" data-f="subject" value="${esc(p.subject||p.title||'')}"></div>
       <div><label class="fl">Preview text</label><input class="f" data-f="preview" value="${esc(p.preview||'')}"></div>
-      <div><label class="fl">Body message</label><textarea class="f" data-f="body" style="min-height:150px">${esc(p.body||p.caption||'')}</textarea></div>
+      <div><label class="fl">Body message</label><div class="ebtoolbar"><button type="button" class="ebbold" id="bbold" title="Bold selected text">B</button><span class="ebhint">Select text then click <b>B</b> &middot; <b>**double asterisks**</b> = bold</span></div><textarea class="f" data-f="body" id="bodyfld" style="min-height:150px">${esc(p.body||p.caption||'')}</textarea></div>
       <div class="vnote">&#9993; Maria's HTML email signature is added automatically at the end of the body when you copy the email.</div>
       `:isVid?`<div class="vnote">&#127916; Video is uploaded manually${p.platform==="YouTube"?" to YouTube":""}. Paste a video link below to show it on the tile, and the published link once it's live.</div>
       <div class="two">
@@ -544,6 +563,11 @@ function openEditor(id){
   m.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f;if(f==="status2"||f==="platform"||f==="date"||f==="time")return;
     inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();if(f!=="videoUrl"&&f!=="publishedUrl"&&f!=="thumbnail")refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;scheduleBoard();};});
   ["videoUrl","publishedUrl","thumbnail"].forEach(f=>{const el=m.querySelector('[data-f="'+f+'"]');if(el)el.onchange=()=>{refreshPrev();scheduleBoard();};});
+  const bbold=m.querySelector("#bbold"),bodyfld=m.querySelector("#bodyfld");
+  if(bbold&&bodyfld)bbold.onclick=()=>{const s2=bodyfld.selectionStart,e2=bodyfld.selectionEnd,v=bodyfld.value;
+    if(e2>s2){bodyfld.value=v.slice(0,s2)+"**"+v.slice(s2,e2)+"**"+v.slice(e2);bodyfld.dispatchEvent(new Event("input"));bodyfld.focus();const np=e2+4;bodyfld.setSelectionRange(np,np);}
+    else{bodyfld.value=v.slice(0,s2)+"**bold**"+v.slice(s2);bodyfld.dispatchEvent(new Event("input"));bodyfld.focus();bodyfld.setSelectionRange(s2+2,s2+6);}};
+
   m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";save();openEditor(id);scheduleBoard();});
   m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;save();counts();scheduleBoard();});
   const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();scheduleBoard();};
@@ -576,6 +600,8 @@ function commenterName(){return localStorage.getItem("boko_user")||"";}
 function initials(n){const x=(n||"").trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();return x||"?";}
 function timeAgo(ts){if(!ts)return"";const s=Math.floor((Date.now()-ts)/1000);if(s<60)return"just now";const m=Math.floor(s/60);if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";return Math.floor(h/24)+"d ago";}
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
+function mdBold(s){return esc(s).replace(/\*\*([^*]+?)\*\*/g,"<strong>$1</strong>");}
+function emailBodyHTML(p){return fname(p.body||p.caption||"",p.platform).split("\n").map(l=>l.trim()?('<p style="margin:0 0 10px">'+mdBold(l)+"</p>"):"<br>").join("");}
 function downloadPNG(p,si){const off=document.createElement("canvas");renderPoster(off,p,si||0);
   const a=document.createElement("a");a.download="boko_"+p.id+(si?("_s"+(si+1)):"")+"_"+(p.ratio||"square")+".png";a.href=off.toDataURL("image/png");a.click();}
 function downloadCarousel(p){const n=(p.slides&&p.slides.length)?p.slides.length:1;const ratios=autoStory(p)?["square","story"]:["square"];const jobs=[];ratios.forEach(r=>{for(let i=0;i<n;i++)jobs.push([r,i]);});let k=0;
