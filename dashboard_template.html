@@ -443,8 +443,8 @@ function cardEl(p){
   c.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",p.id);c.classList.add("dragging");});
   c.addEventListener("dragend",()=>c.classList.remove("dragging"));
   c.addEventListener("click",e=>{if(e.target.closest("[data-a]"))return;openEditor(p.id);});
-  c.querySelector('[data-a="open"]').onclick=()=>openEditor(p.id);
-  c.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";save();renderBoard();confetti();toast("Approved");};
+  {const op=c.querySelector('[data-a="open"]');if(op)op.onclick=()=>openEditor(p.id);}
+  {const ap=c.querySelector('[data-a="approve"]');if(ap)ap.onclick=()=>{p.status="approved";p.changeNote="";save();renderBoard();confetti();toast("Approved");};}
   {const pb=c.querySelector('[data-a="publish"]');if(pb)pb.onclick=(e)=>{e.stopPropagation();pubOpen(p);const t=todayStr();if(p.date&&p.date<=t){p.status="published";save();renderBoard();toast("Published — moved to Published");}else{p.status="scheduled";save();renderBoard();toast("Scheduled — moved to Scheduled");}};}
   {const mp=c.querySelector('[data-a="markpub"]');if(mp)mp.onclick=(e)=>{e.stopPropagation();p.status="published";save();renderBoard();toast("Moved to Published");};}
   return c;
