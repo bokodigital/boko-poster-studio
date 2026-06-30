@@ -176,7 +176,9 @@
   .gmail .gm-body{padding:14px 16px 18px;font-size:14px;line-height:1.6;color:#202124}
   .gmail .gm-body p{margin:0 0 10px}
   .gmail .gm-body strong{font-weight:700}
-  .ebtoolbar{display:flex;align-items:center;gap:8px;margin:0 0 5px}
+  .ebtoolbar{display:flex;align-items:center;gap:6px;margin:0 0 5px;flex-wrap:wrap}
+  .ebbold.ebu{text-decoration:underline}
+  .ebbold.ebl{width:auto;padding:4px 10px;font-weight:700}
   .ebbold{font-weight:800;font-size:13px;width:30px;height:26px;border:1px solid var(--line);background:#fff;border-radius:7px;cursor:pointer;line-height:1}
   .ebbold:hover{background:#f3f3f3}
   .ebhint{font-size:11px;color:var(--muted)}
@@ -486,7 +488,7 @@ function copyEmail(p){
   const subj=fname(p.subject,p.platform);
   const rawBody=fname(p.body||p.caption||"",p.platform);
   const sigText=EMAIL_SIG.replace(/<br\s*\/?>/gi,"\n").replace(/<[^>]+>/g,"").replace(/&nbsp;/g," ").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
-  const plain=(subj?("Subject: "+subj+"\n\n"):"")+rawBody.replace(/\*\*([^*]+?)\*\*/g,"$1")+"\n\n"+sigText;
+  const plain=(subj?("Subject: "+subj+"\n\n"):"")+rawBody.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,"$1 ($2)").replace(/\*\*([^*]+?)\*\*/g,"$1").replace(/__([^_]+?)__/g,"$1")+"\n\n"+sigText;
   const html=(subj?("<p><strong>Subject:</strong> "+esc(subj)+"</p>"):"")+emailBodyHTML(p)+EMAIL_SIG;
   try{
     if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
@@ -522,7 +524,7 @@ function openEditor(id){
       ${isEmail?`
       <div><label class="fl">Subject line</label><input class="f" data-f="subject" value="${esc(p.subject||p.title||'')}"></div>
       <div><label class="fl">Preview text</label><input class="f" data-f="preview" value="${esc(p.preview||'')}"></div>
-      <div><label class="fl">Body message</label><div class="ebtoolbar"><button type="button" class="ebbold" id="bbold" title="Bold selected text">B</button><span class="ebhint">Select text then click <b>B</b> &middot; <b>**double asterisks**</b> = bold</span></div><textarea class="f" data-f="body" id="bodyfld" style="min-height:150px">${esc(p.body||p.caption||'')}</textarea></div>
+      <div><label class="fl">Body message</label><div class="ebtoolbar"><button type="button" class="ebbold" id="bbold" title="Bold (Ctrl+B)">B</button><button type="button" class="ebbold ebu" id="bul" title="Underline (Ctrl+U)">U</button><button type="button" class="ebbold ebl" id="blink" title="Insert link (Ctrl+K)">🔗 Link</button><span class="ebhint">Select text, then use the buttons or <b>Ctrl+B</b> / <b>Ctrl+U</b> / <b>Ctrl+K</b></span></div><textarea class="f" data-f="body" id="bodyfld" style="min-height:150px">${esc(p.body||p.caption||'')}</textarea></div>
       <div class="vnote">&#9993; Maria's HTML email signature is added automatically at the end of the body when you copy the email.</div>
       `:isVid?`<div class="vnote">&#127916; Video is uploaded manually${p.platform==="YouTube"?" to YouTube":""}. Paste a video link below to show it on the tile, and the published link once it's live.</div>
       <div class="two">
@@ -589,10 +591,18 @@ function openEditor(id){
   m.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f;if(f==="status2"||f==="platform"||f==="date"||f==="time")return;
     inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();if(f!=="videoUrl"&&f!=="publishedUrl"&&f!=="thumbnail")refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;scheduleBoard();};});
   ["videoUrl","publishedUrl","thumbnail"].forEach(f=>{const el=m.querySelector('[data-f="'+f+'"]');if(el)el.onchange=()=>{refreshPrev();scheduleBoard();};});
-  const bbold=m.querySelector("#bbold"),bodyfld=m.querySelector("#bodyfld");
-  if(bbold&&bodyfld)bbold.onclick=()=>{const s2=bodyfld.selectionStart,e2=bodyfld.selectionEnd,v=bodyfld.value;
-    if(e2>s2){bodyfld.value=v.slice(0,s2)+"**"+v.slice(s2,e2)+"**"+v.slice(e2);bodyfld.dispatchEvent(new Event("input"));bodyfld.focus();const np=e2+4;bodyfld.setSelectionRange(np,np);}
-    else{bodyfld.value=v.slice(0,s2)+"**bold**"+v.slice(s2);bodyfld.dispatchEvent(new Event("input"));bodyfld.focus();bodyfld.setSelectionRange(s2+2,s2+6);}};
+  const bodyfld=m.querySelector("#bodyfld");
+  function efWrap(pre,post,ph){if(!bodyfld)return;const s2=bodyfld.selectionStart,e2=bodyfld.selectionEnd,v=bodyfld.value;
+    if(e2>s2){bodyfld.value=v.slice(0,s2)+pre+v.slice(s2,e2)+post+v.slice(e2);bodyfld.dispatchEvent(new Event("input"));bodyfld.focus();const np=e2+pre.length+post.length;bodyfld.setSelectionRange(np,np);}
+    else{const ins=pre+ph+post;bodyfld.value=v.slice(0,s2)+ins+v.slice(s2);bodyfld.dispatchEvent(new Event("input"));bodyfld.focus();bodyfld.setSelectionRange(s2+pre.length,s2+pre.length+ph.length);}}
+  function efLink(){if(!bodyfld)return;const s2=bodyfld.selectionStart,e2=bodyfld.selectionEnd,v=bodyfld.value;const sel=v.slice(s2,e2);
+    let url=(prompt("Link URL:","https://")||"").trim();if(!url)return;if(!/^[a-z]+:|^\//i.test(url))url="https://"+url;
+    const text=sel||((prompt("Link text:","")||"").trim())||url;const ins="["+text+"]("+url+")";
+    bodyfld.value=v.slice(0,s2)+ins+v.slice(e2);bodyfld.dispatchEvent(new Event("input"));bodyfld.focus();const np=s2+ins.length;bodyfld.setSelectionRange(np,np);}
+  {const b1=m.querySelector("#bbold");if(b1)b1.onclick=()=>efWrap("**","**","bold");}
+  {const b2=m.querySelector("#bul");if(b2)b2.onclick=()=>efWrap("__","__","underline");}
+  {const b3=m.querySelector("#blink");if(b3)b3.onclick=efLink;}
+  if(bodyfld)bodyfld.addEventListener("keydown",e=>{if(!(e.ctrlKey||e.metaKey))return;const k=(e.key||"").toLowerCase();if(k==="b"){e.preventDefault();efWrap("**","**","bold");}else if(k==="u"){e.preventDefault();efWrap("__","__","underline");}else if(k==="k"){e.preventDefault();efLink();}});
 
   m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";save();openEditor(id);scheduleBoard();});
   m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;save();counts();scheduleBoard();});
@@ -636,7 +646,7 @@ function commenterName(){return localStorage.getItem("boko_user")||"";}
 function initials(n){const x=(n||"").trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();return x||"?";}
 function timeAgo(ts){if(!ts)return"";const s=Math.floor((Date.now()-ts)/1000);if(s<60)return"just now";const m=Math.floor(s/60);if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";return Math.floor(h/24)+"d ago";}
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
-function mdBold(s){return esc(s).replace(/\*\*([^*]+?)\*\*/g,"<strong>$1</strong>");}
+function mdBold(s){let h=esc(s);h=h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');h=h.replace(/\*\*([^*]+?)\*\*/g,"<strong>$1</strong>");h=h.replace(/__([^_]+?)__/g,"<u>$1</u>");return h;}
 function emailBodyHTML(p){return fname(p.body||p.caption||"",p.platform).split("\n").map(l=>l.trim()?('<p style="margin:0 0 10px">'+mdBold(l)+"</p>"):"<br>").join("");}
 function downloadPNG(p,si){const off=document.createElement("canvas");renderPoster(off,p,si||0);
   const a=document.createElement("a");a.download="boko_"+p.id+(si?("_s"+(si+1)):"")+"_"+(p.ratio||"square")+".png";a.href=off.toDataURL("image/png");a.click();}
