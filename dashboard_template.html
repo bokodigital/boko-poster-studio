@@ -236,7 +236,6 @@
   <div class="rightbar">
     <select class="wsel" id="typeSel"></select>
     <select class="wsel" id="platSel"></select>
-    <button id="pubBtn" class="newbtn pub">↑ Publish / Schedule</button>
     <button id="genBtn" class="newbtn gen">✨ Generate</button>
     <button id="newBtn" class="newbtn">+ Post</button>
     <button id="newVid" class="newbtn">+ Video</button>
@@ -260,12 +259,7 @@
 </div></div>
 <div class="offbanner" id="offbanner">Working offline on this device — cloud sync not set up yet.</div>
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
-<div class="povl" id="povl"><div class="pmodal">
-  <div class="phead"><div class="ptitle">↑ Publish / Schedule — approved content</div><button class="pclose" id="pclose">×</button></div>
-  <div class="pbar"><label class="fl">Show</label><select class="wsel" id="pubType"></select><span class="pcount" id="pubCount"></span></div>
-  <div class="plist" id="pubList"></div>
-  <div class="pfoot">Routing follows PUBLISHING.md. “Open &amp; copy” opens the destination account, copies the caption/email, and downloads the image — you confirm the schedule in-platform. Use “Mark scheduled” once done.</div>
-</div></div>
+
 
 <script>
 const LOGO_URL="__LOGO__";
@@ -634,28 +628,9 @@ const PUBDEST={
   YouTube:{account:"Boko Digital Solutions channel",tool:"YouTube Studio",url:"https://studio.youtube.com/"},
   Hubspot:{account:"Boko Digital account",tool:"HubSpot email",url:"https://app.hubspot.com/email"}
 };
-let pubFilter="All";
-function pubItems(){return state.filter(p=>p.status==="approved"&&(pubFilter==="All"||kindOf(p)===pubFilter));}
 function pubCopy(p){if(p.platform==="Hubspot"){copyEmail(p);}else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Caption copied")).catch(()=>{});}}
 function pubDownload(p){if(p.platform==="Hubspot")return;if(p.type==="video"){if(p.thumbnail)downloadThumb(p);return;}if(p.template==="carousel"){downloadCarousel(p);return;}if(autoStory(p)){downloadBoth(p);return;}downloadPNG(p);}
 function pubOpen(p){const d=PUBDEST[p.platform];if(d&&d.url)window.open(d.url,"_blank","noopener");pubCopy(p);setTimeout(()=>pubDownload(p),120);toast("Opened "+(d?d.tool:"platform")+" — paste & schedule");}
-function pubMark(p){p.status="scheduled";save();renderPubList();renderBoard();toast("Marked scheduled");}
-function renderPubList(){
-  const list=document.getElementById("pubList");const items=pubItems();
-  document.getElementById("pubCount").textContent=items.length+" approved "+(pubFilter==="All"?"item":pubFilter.toLowerCase())+(items.length===1?"":"s");
-  if(!items.length){list.innerHTML='<div class="pempty">No approved '+(pubFilter==="All"?"items":pubFilter.toLowerCase()+"s")+' yet. Approve content first, then publish.</div>';return;}
-  list.innerHTML=items.map(p=>{const d=PUBDEST[p.platform]||{account:"—"};const when=(fmtDate(p.date)||"No date")+(p.time?(" "+p.time):"");
-    return '<div class="prow"><div class="pmeta"><div class="pname">'+esc(p.title||"(untitled)")+'</div>'
-      +'<div class="psub"><span class="badge '+platClass(p.platform)+'">'+esc(p.platform)+'</span><span class="pdest">→ '+esc(d.account)+'</span><span>· '+esc(kindOf(p))+'</span><span>· '+esc(when)+'</span></div></div>'
-      +'<div class="pacts"><button class="popen" data-po="'+p.id+'">Open &amp; copy</button><button data-ps="'+p.id+'">Mark scheduled</button></div></div>';}).join("");
-  list.querySelectorAll("[data-po]").forEach(b=>b.onclick=()=>{const p=state.find(x=>x.id===b.dataset.po);if(p)pubOpen(p);});
-  list.querySelectorAll("[data-ps]").forEach(b=>b.onclick=()=>{const p=state.find(x=>x.id===b.dataset.ps);if(p)pubMark(p);});
-}
-function openPublish(){const sel=document.getElementById("pubType");if(sel&&!sel.options.length){sel.innerHTML=TYPE_FILTERS.map(t=>'<option value="'+t[1]+'">'+t[0]+'</option>').join("");sel.onchange=()=>{pubFilter=sel.value;renderPubList();};}renderPubList();document.getElementById("povl").classList.add("show");}
-function closePublish(){document.getElementById("povl").classList.remove("show");}
-document.getElementById("pubBtn").onclick=openPublish;
-document.getElementById("pclose").onclick=closePublish;
-document.getElementById("povl").addEventListener("click",e=>{if(e.target.id==="povl")closePublish();});
 
 function commenterName(){return localStorage.getItem("boko_user")||"";}
 function initials(n){const x=(n||"").trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();return x||"?";}
