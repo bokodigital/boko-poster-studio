@@ -26,6 +26,7 @@
   .chip.on{background:var(--lime);color:#000;border-color:var(--lime)}
   .newbtn{font-family:inherit;font-weight:700;font-size:12px;border:1px solid var(--lime);background:var(--lime);color:#000;padding:7px 14px;border-radius:999px;cursor:pointer}
   .newbtn:hover{filter:brightness(.96)}
+  .newbtn.gen{background:#000;color:var(--lime);border-color:#000}
   .cal{width:100%}
   .calhead{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px}
   .calhead div{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;padding-left:4px}
@@ -207,6 +208,7 @@
   <div class="rightbar">
     <select class="wsel" id="typeSel"></select>
     <select class="wsel" id="platSel"></select>
+    <button id="genBtn" class="newbtn gen">✨ Generate</button>
     <button id="newBtn" class="newbtn">+ Post</button>
     <button id="newVid" class="newbtn">+ Video</button>
   </div>
@@ -235,6 +237,7 @@ const LOGO_URL="__LOGO__";
 const LOGO_LIGHT="__LOGOLIGHT__";
 const K_WHITE="__KWHITE__";const K_BLACK="__KBLACK__";const K_LIME="__KLIME__";
 const POSTS=__POSTS__;
+const REFPOOL=__REFPOOL__;
 const WEEK_KEY="__WEEK_KEY__";
 const STORAGE="boko_board_"+WEEK_KEY;
 const C={lime:"#BFFC00",black:"#000000",white:"#FFFFFF"};
@@ -255,11 +258,11 @@ document.getElementById("logo").src=LOGO_LIGHT;
 
 let state=POSTS.map(p=>({...p}));
 try{const saved=JSON.parse(localStorage.getItem(STORAGE)||"null");
-  if(saved&&Array.isArray(saved)){state=state.map(p=>{const s=saved.find(x=>x.id===p.id);return s?{...p,...s}:p;});}}catch(e){}
+  if(saved&&Array.isArray(saved)){state=saved.map(p=>({...p}));}}catch(e){}
 let syncOn=false,PASS="",_pushT=null,_poll=null;
 function save(){localStorage.setItem(STORAGE,JSON.stringify(state));if(syncOn){clearTimeout(_pushT);_pushT=setTimeout(pushServer,600);}}
 function pushServer(){if(!syncOn)return;fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json','x-board-pass':PASS},body:JSON.stringify({state})}).catch(()=>{});}
-function mergeServer(sv){let st=Array.isArray(sv)?sv.map(p=>({...p})):[];POSTS.forEach(seed=>{if(!st.find(p=>p.id===seed.id))st.push({...seed});});return st;}
+function mergeServer(sv){return Array.isArray(sv)?sv.map(p=>({...p})):[];}
 function setSyncDot(){const d=document.getElementById("syncdot");if(d)d.className="syncdot"+(syncOn?" on":"");}
 function startPoll(){if(!syncOn||_poll)return;_poll=setInterval(()=>{if(document.getElementById('overlay').classList.contains('show'))return;
   fetch('/api/state',{headers:{'x-board-pass':PASS}}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.state){const m=mergeServer(d.state);
@@ -609,6 +612,22 @@ function newVideo(){
     bullets:[],caption:"",pillar:"Video",date:"",videoUrl:"",publishedUrl:"",thumbnail:"",changeNote:""};
   state.push(p);save();renderBoard();openEditor(p.id);
 }
+function genPosts(){
+  if(!REFPOOL||!REFPOOL.length){toast("No reference posts available");return;}
+  let n=parseInt(prompt("How many posts to generate from the automation references?","3"),10);
+  if(!n||n<1)return;n=Math.min(n,REFPOOL.length);
+  const pool=REFPOOL.slice();
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=pool[i];pool[i]=pool[j];pool[j]=t;}
+  const m=curMonth||new Date().toISOString().slice(0,7);const[Y,M]=m.split("-").map(Number);const last=new Date(Y,M,0).getDate();
+  pool.slice(0,n).forEach((src,idx)=>{
+    const p=JSON.parse(JSON.stringify(src));
+    p.id="g"+Date.now().toString(36)+idx;p.status="idea";p.comments=[];p.changeNote="";
+    p.date=m+"-"+String(1+Math.floor(Math.random()*last)).padStart(2,"0");
+    state.push(p);
+  });
+  curWeek=null;save();renderBoard();toast(n+" post"+(n>1?"s":"")+" generated");
+}
+document.getElementById("genBtn").onclick=genPosts;
 document.getElementById("newBtn").onclick=newPost;
 document.getElementById("newVid").onclick=newVideo;
 document.getElementById("prevM").onclick=()=>shiftMonth(-1);
