@@ -122,7 +122,7 @@
   .crow .btn{padding:6px 16px;font-size:12px}
   .overlay{position:fixed;inset:0;background:rgba(16,19,22,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
   .overlay.show{display:flex}
-  .modal{background:#fff;border:1px solid var(--line);border-radius:16px;width:min(900px,96vw);max-height:92vh;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:0;box-shadow:0 20px 60px rgba(16,19,22,.25)}
+  .modal{background:#fff;border:1px solid var(--line);border-radius:16px;width:min(1160px,96vw);max-height:92vh;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:0;box-shadow:0 20px 60px rgba(16,19,22,.25)}
   @media(max-width:760px){.modal{grid-template-columns:1fr}}
   .mprev{background:#eef0f5;padding:18px;display:flex;align-items:flex-start;justify-content:center;border-right:1px solid var(--line)}
   .mprev canvas{width:100%;max-width:360px;height:auto;border-radius:10px;box-shadow:0 10px 34px rgba(16,19,22,.2)}
@@ -302,7 +302,7 @@ function startPoll(){if(!syncOn||_poll)return;_poll=setInterval(()=>{if(document
   fetch('/api/state',{headers:{'x-board-pass':PASS}}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.state){const m=mergeServer(d.state);
     if(JSON.stringify(m)!==JSON.stringify(state)){state=m;localStorage.setItem(STORAGE,JSON.stringify(state));renderBoard();}}}).catch(()=>{});},8000);}
 function migrateHashtags(){let ch=false;state.forEach(p=>{if(p.platform!=="Hubspot"&&(p.hashtags===undefined||p.hashtags===null)){const t=(p.caption||"").match(/#[\w]+/g);p.hashtags=t?t.join(" "):"";if(t){p.caption=(p.caption||"").replace(/#[\w]+/g,"").replace(/[ \t]+/g," ").replace(/ *\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();}ch=true;}});if(ch)save();}
-function afterLoad(){document.getElementById("gate").classList.remove("show");migrateHashtags();preloadAvatars(()=>{renderBoard();setSyncDot();startPoll();if(!localStorage.getItem("boko_user"))showNameGate();});}
+function afterLoad(){document.getElementById("gate").classList.remove("show");migrateHashtags();preloadAvatars(()=>{renderBoard();setSyncDot();startPoll();if(!localStorage.getItem("boko_user"))showNameGate();try{const _cid=new URLSearchParams(location.search).get("card");if(_cid&&state.find(p=>p.id===_cid))openEditor(_cid);}catch(e){}});}
 function loadFrom(sv){state=mergeServer(sv);localStorage.setItem(STORAGE,JSON.stringify(state));pushServer();afterLoad();}
 function offline(){syncOn=false;document.getElementById("offbanner").style.display="block";afterLoad();}
 function showGate(msg){const g=document.getElementById("gate");document.getElementById("gerr").textContent=msg||"";g.classList.add("show");
@@ -782,6 +782,7 @@ function openEditor(id){
         <button class="btn ghost" data-a="copy">${isEmail?'Copy email':'Copy caption'}</button>
         ${(isVid||isEmail)?'':'<button class="btn ghost" data-a="download">Download PNG</button>'}
         ${(isVid&&p.thumbnail)?'<button class="btn ghost" data-a="thumbdl">Download thumbnail</button>':''}
+        <button class="btn ghost" data-a="share">🔗 Share</button>
         <button class="btn" data-a="delete" style="color:#c0392b;border-color:#e9b7b1;background:#fff">Delete</button>
         <button class="btn lime" data-a="save" style="margin-left:auto">Save</button>
       </div>
@@ -837,6 +838,7 @@ function openEditor(id){
   const td=m.querySelector('[data-a="thumbdl"]');if(td)td.onclick=()=>downloadThumb(p);
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
   const sv=m.querySelector('[data-a="save"]');if(sv)sv.onclick=()=>{save();closeEditor();toast("Saved");};
+  const sh=m.querySelector('[data-a="share"]');if(sh)sh.onclick=()=>{const url=location.origin+location.pathname+"?card="+encodeURIComponent(id);navigator.clipboard.writeText(url).then(()=>toast("Share link copied \u2014 opens this card")).catch(()=>prompt("Copy this share link:",url));};
   const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this card?")){state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
   document.getElementById("overlay").classList.add("show");
 }
