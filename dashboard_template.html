@@ -295,7 +295,7 @@ const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","gri
 const DIMS={square:[1080,1080],story:[1080,1920]};
 const KASPECT=1.046;
 const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"rework",label:"Needs Rework"},{id:"review",label:"For Approval"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
-const PLATFORMS=["Instagram","LinkedIn","Facebook","YouTube","Hubspot"];
+const PLATFORMS=["Instagram","LinkedIn","Facebook","YouTube","YouTube Shorts","Hubspot"];
 const EMAIL_SIG=__EMAILSIG__;
 const FNAME_TAG={Hubspot:"{{ contact.firstname }}"};
 function fname(text,platform){const tag=FNAME_TAG[platform];return tag?(text||"").replace(/\[\s*first[\s_]*name\s*\]/gi,tag):(text||"");}
@@ -364,7 +364,7 @@ const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","De
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function fmtDate(d){if(!d)return "";const dt=new Date(d+"T00:00:00");if(isNaN(dt))return d;return WK[dt.getDay()]+" "+dt.getDate()+" "+MON[dt.getMonth()];}
 function isOverdue(p){return p.date && p.date<todayStr() && p.status!=="published";}
-function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":p==="YouTube"?"yt":p==="Hubspot"?"hs":"fb";}
+function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":(p==="YouTube"||p==="YouTube Shorts")?"yt":p==="Hubspot"?"hs":"fb";}
 let curMonth="",curWeek=null,_brd=null,curSlide=0,_openId=null,view="board";
 function scheduleBoard(){clearTimeout(_brd);_brd=setTimeout(()=>{if(document.getElementById("overlay").classList.contains("show"))renderBoard();},450);}
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -407,7 +407,7 @@ function renderFilters(){
   if(!ps.dataset.init){ps.dataset.init="1";ps.innerHTML='<option value="All">All platforms</option>'+PLATFORMS.map(p=>`<option value="${p}">${p}</option>`).join("");ps.onchange=()=>{filter=ps.value;renderBoard();};}
   ps.value=filter;
 }
-function platColor(p){return p==="Instagram"?"#c2186e":p==="LinkedIn"?"#2456b8":p==="Facebook"?"#2a3fa8":p==="YouTube"?"#c0202a":p==="Hubspot"?"#c2640f":"#888";}
+function platColor(p){return p==="Instagram"?"#c2186e":p==="LinkedIn"?"#2456b8":p==="Facebook"?"#2a3fa8":(p==="YouTube"||p==="YouTube Shorts")?"#c0202a":p==="Hubspot"?"#c2640f":"#888";}
 function renderCalendar(board){
   const cal=document.createElement("div");cal.className="cal";
   const head=document.createElement("div");head.className="calhead";
@@ -537,7 +537,7 @@ function copyEmail(p){
 function openEditor(id){
   const p=state.find(x=>x.id===id);if(!p)return;
   if(_openId!==id){curSlide=0;_openId=id;}
-  if(p.platform==="YouTube")p.type="video";
+  if(p.platform==="YouTube"||p.platform==="YouTube Shorts")p.type="video";
   const isEmail=p.platform==="Hubspot";const isVid=p.type==="video"&&!isEmail;
   const isCarousel=(!isVid&&!isEmail&&p.template==="carousel");
   if(isCarousel){if(!Array.isArray(p.slides)||!p.slides.length)p.slides=[{h:p.headline||"",b:(p.caption||"").split("\n")[0]||""}];curSlide=Math.max(0,Math.min(curSlide,p.slides.length-1));}
@@ -548,7 +548,7 @@ function openEditor(id){
     <div class="mprev">${isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):(autoStory(p)?'<div class="dualprev"><div class="pvcol"><span class="pvlab">Feed 1:1</span><canvas id="mcv"></canvas></div><div class="pvcol"><span class="pvlab">Story 9:16</span><canvas id="mcvS"></canvas></div></div>':'<canvas id="mcv"></canvas>')}</div>
     <div class="mform">
       <div style="display:flex;align-items:center"><h3>${esc(p.title)}</h3><button class="x" data-a="close">&times;</button></div>
-      ${(isEmail||p.platform==="YouTube")?'':`<div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>`}
+      ${(isEmail||p.platform==="YouTube"||p.platform==="YouTube Shorts")?'':`<div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>`}
       ${(isVid||isEmail)?'':`<div class="seg" id="tplseg">${TEMPLATES.map(t=>`<button data-t="${t}" class="${p.template===t?'on':''}">${t}</button>`).join("")}</div>`}
       <div class="two">
         <div><label class="fl">Status</label><select class="f" data-f="status2">${STATUSES.map(sx=>`<option value="${sx.id}" ${p.status===sx.id?'selected':''}>${sx.label}</option>`).join("")}</select></div>
@@ -564,7 +564,7 @@ function openEditor(id){
       <div><label class="fl">Preview text</label><input class="f" data-f="preview" value="${esc(p.preview||'')}"></div>
       <div><label class="fl">Body message</label><div class="ebtoolbar"><button type="button" class="ebbold" id="bbold" title="Bold (Ctrl+B)">B</button><button type="button" class="ebbold ebu" id="bul" title="Underline (Ctrl+U)">U</button><button type="button" class="ebbold ebl" id="blink" title="Insert link (Ctrl+K)">🔗 Link</button><span class="ebhint">Select text, then use the buttons or <b>Ctrl+B</b> / <b>Ctrl+U</b> / <b>Ctrl+K</b></span></div><textarea class="f" data-f="body" id="bodyfld" style="min-height:150px">${esc(p.body||p.caption||'')}</textarea></div>
       <div class="vnote">&#9993; Maria's HTML email signature is added automatically at the end of the body when you copy the email.</div>
-      `:isVid?`<div class="vnote">&#127916; Video is uploaded manually${p.platform==="YouTube"?" to YouTube":""}. Paste a video link below to show it on the tile, and the published link once it's live.</div>
+      `:isVid?`<div class="vnote">&#127916; Video is uploaded manually${(p.platform==="YouTube"||p.platform==="YouTube Shorts")?" to YouTube":""}. Paste a video link below to show it on the tile, and the published link once it's live.</div>
       <div class="two">
         <div><label class="fl">Video link (file / source)</label><input class="f" data-f="videoUrl" value="${esc(p.videoUrl||'')}" placeholder="https:// .mp4 or Drive/YouTube"></div>
         <div><label class="fl">Published link</label><input class="f" data-f="publishedUrl" value="${esc(p.publishedUrl||'')}" placeholder="https://youtu.be/..."></div>
@@ -648,7 +648,7 @@ function openEditor(id){
   {const b3=m.querySelector("#blink");if(b3)b3.onclick=efLink;}
   if(bodyfld)bodyfld.addEventListener("keydown",e=>{if(!(e.ctrlKey||e.metaKey))return;const k=(e.key||"").toLowerCase();if(k==="b"){e.preventDefault();efWrap("**","**","bold");}else if(k==="u"){e.preventDefault();efWrap("__","__","underline");}else if(k==="k"){e.preventDefault();efLink();}});
 
-  m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";if(p.platform==="YouTube")p.type="video";save();openEditor(id);scheduleBoard();});
+  m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";if(p.platform==="YouTube"||p.platform==="YouTube Shorts")p.type="video";save();openEditor(id);scheduleBoard();});
   m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;const _lbl=(STATUSES.find(x=>x.id===sel.value)||{}).label||sel.value;logAct(p,"moved to "+_lbl);if(sel.value==="approved"){askNotify();notifyApproved(p);}save();counts();scheduleBoard();});
   const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();scheduleBoard();};
   const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;save();scheduleBoard();};
@@ -684,6 +684,7 @@ const PUBDEST={
   Facebook:{account:"Boko Digital Solutions page",tool:"Meta Business Suite",url:"https://business.facebook.com/latest/composer"},
   LinkedIn:{account:"Maria Jose Mendieta (profile)",tool:"LinkedIn",url:"https://www.linkedin.com/feed/?shareActive=true"},
   YouTube:{account:"Boko Digital Solutions channel",tool:"YouTube Studio",url:"https://studio.youtube.com/"},
+  "YouTube Shorts":{account:"Boko Digital Solutions channel",tool:"YouTube Studio (Shorts)",url:"https://studio.youtube.com/"},
   Hubspot:{account:"Boko Digital account",tool:"HubSpot email",url:"https://app.hubspot.com/email"}
 };
 function pubCopy(p){if(p.platform==="Hubspot"){copyEmail(p);}else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Caption copied")).catch(()=>{});}}
