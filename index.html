@@ -413,10 +413,10 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
   else if(tpl==="cta"){const fs=W*0.072,lh=fs*1.12;ctx.font="700 "+fs+"px Poppins";
     const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);
     const endY=drawAccentLines(ctx,lines,p.accent,margin,H*0.26,lh,base,C.lime,"left",W);
-    const bh=W*0.115,by=H-margin-bh-W*0.06;
+    const bh=W*0.085,by=H-margin-bh-W*0.06;
     if((p.subhead||"").trim()){drawSub(ctx,p.subhead,margin,endY+W*0.03,W-2*margin,by-(endY+W*0.03)-W*0.04,"left",W,base);}
-    const btnText=(p.cta||"LEARN MORE").toUpperCase();ctx.font="700 "+(W*0.040)+"px Poppins";ctx.textBaseline="middle";
-    const tw=ctx.measureText(btnText).width;const padX=W*0.05;const bw=tw+padX*2;const bx=margin;const r=bh/2;
+    const btnText=(p.cta||"LEARN MORE").toUpperCase();ctx.font="700 "+(W*0.030)+"px Poppins";ctx.textBaseline="middle";
+    const tw=ctx.measureText(btnText).width;const padX=W*0.038;const bw=tw+padX*2;const bx=margin;const r=bh/2;
     ctx.fillStyle=C.lime;ctx.beginPath();ctx.moveTo(bx+r,by);ctx.arcTo(bx+bw,by,bx+bw,by+bh,r);ctx.arcTo(bx+bw,by+bh,bx,by+bh,r);
     ctx.arcTo(bx,by+bh,bx,by,r);ctx.arcTo(bx,by,bx+bw,by,r);ctx.closePath();ctx.fill();
     ctx.fillStyle=C.black;ctx.textAlign="left";ctx.fillText(btnText,bx+padX,by+bh/2);ctx.textBaseline="top";footer(ctx,W,H,margin,base);}
