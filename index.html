@@ -29,6 +29,8 @@
   .newbtn.gen{background:#000;color:var(--lime);border-color:#000}
   .newbtn.pub{background:#101316;color:var(--lime);border-color:#101316}
   .newbtn.ghostbtn{background:#fff;color:var(--text);border-color:var(--line)}
+  .searchbox{font-family:inherit;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:7px 14px;min-width:190px;background:#fff;color:var(--text)}
+  .searchbox:focus{outline:none;border-color:var(--lime)}
   .povl{position:fixed;inset:0;background:rgba(16,19,22,.45);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
   .povl.show{display:flex}
   .pmodal{background:#fff;border:1px solid var(--line);border-radius:16px;width:min(720px,96vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(16,19,22,.25)}
@@ -248,6 +250,7 @@
     <div class="seg" id="viewseg"><button data-v="board" class="on">Board</button><button data-v="calendar">Calendar</button></div>
   </div>
   <div class="rightbar">
+    <input id="searchBox" class="searchbox" type="search" placeholder="🔍 Search cards...">
     <select class="wsel" id="typeSel"></select>
     <select class="wsel" id="platSel"></select>
     <button id="genBtn" class="newbtn gen">✨ Generate</button>
@@ -295,7 +298,7 @@ const PLATFORMS=["Instagram","LinkedIn","Facebook","YouTube","Hubspot"];
 const EMAIL_SIG="<table cellspacing=\"0\" cellpadding=\"0\"><tbody><tr>\n<td style=\"width:120px; text-align: center;\"><a href=\"https://boko.com.au/\">\n<img src=\"https://boko.com.au/wp-content/uploads/2024/05/WhatsApp-Image-2024-01-19-at-10.17.06-AM-1024x1024-2.jpg\" style=\"width: 140px;border-radius: 50%;margin-right: 15px; border: 3px solid #8484fa;\">\n<img src=\"https://boko.com.au/wp-content/uploads/2026/02/signlogo.png\" style=\"width: 70px;margin-top: 0px;\"></a></td>\n<td style=\"width:240px;\"><div><span style=\"display: inline-block;font-size: 15px;font-family: Helvetica;line-height: 16px;\"><strong style=\"font-weight:600;font-size: 16px; line-height: 30px;font-family: Helvetica; color:#000\">Maria Mendieta</strong>\n<br><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">Digital Strategist | Founder</span>\n<br><a href=\"tel:+61413615016\" style=\"color:#000;\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">+61 413 615 016</span></a>\n<br><a href=\"https://boko.com.au/\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">www.boko.com.au</span></a><br><a href=\"https://boko.com.au/the-lead-generation-discovery-call/\" style=\"color:#000;\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica; color:#000;\">Book a free consultation</span></a><br></div><div style=\"margin-top:15px;\"><span><a href=\"https://www.facebook.com/bokodigitalsolutions/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/9034971_logo_facebook_icon.png\" style=\"width:25px;\"></a></span>&nbsp;&nbsp;<span><a href=\"https://www.instagram.com/boko.digital.solutions/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/1161954_instagram_icon.png\" style=\"width:25px;\"></a></span>&nbsp;&nbsp;<span><a href=\"https://www.linkedin.com/in/maria-jose-mendieta-mayorga/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/287697_linkedin_icon.png\" style=\"width:23px;\"></a></span>&nbsp;&nbsp;&nbsp;<span><a href=\"https://www.tiktok.com/@bokodigital\"><img src=\"https://boko.com.au/wp-content/uploads/2024/05/7693325_tiktok_social-media_logo_apps_icon.png\" style=\"width:23px;\"></a>&nbsp;&nbsp;&nbsp;</span><span><a href=\"https://maps.app.goo.gl/wC7cMc5uBCfkgh1j8\"><img src=\"https://boko.com.au/wp-content/uploads/2024/12/map-black.png\" style=\"width:23px;\"></a></div></td>\n</tr></tbody></table>";
 const FNAME_TAG={Hubspot:"{{ contact.firstname }}"};
 function fname(text,platform){const tag=FNAME_TAG[platform];return tag?(text||"").replace(/\[\s*first[\s_]*name\s*\]/gi,tag):(text||"");}
-let filter="All";let typeFilter="All";
+let filter="All";let typeFilter="All";let searchQ="";
 const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Infographics","Infographic"],["Emails","Email"]];
 function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":p.template==="infographic"?"Infographic":"Post";}
 function autoStory(p){return p.type!=="video"&&p.platform!=="Hubspot"&&(p.platform==="Instagram"||p.platform==="Facebook");}
@@ -628,7 +631,10 @@ function renderWeekSel(){const sel=document.getElementById("weekSel");const ws=m
     const a=w.start.getDate()+" "+MONTHS[w.start.getMonth()].slice(0,3),b=w.end.getDate()+" "+MONTHS[w.end.getMonth()].slice(0,3);
     return `<option value="${w.key}" ${curWeek===w.key?"selected":""}>Week ${w.n} (${a} - ${b})</option>`;}).join("");
   sel.onchange=()=>{curWeek=sel.value||null;renderBoard();};}
+function matchesSearch(p){if(!searchQ)return true;const q=searchQ;const hay=[p.title,p.headline,p.subhead,p.caption,p.eyebrow,p.pillar,p.platform,p.cta,p.hashtags,(p.bullets||[]).join(" "),(p.slides||[]).map(s=>((s.h||"")+" "+(s.b||""))).join(" ")].join(" ").toLowerCase();return hay.indexOf(q)>=0;}
 function visible(){return state.filter(p=>{
+  if(!matchesSearch(p))return false;
+  if(searchQ)return true;
   if(filter!=="All"&&p.platform!==filter)return false;
   if(typeFilter!=="All"&&kindOf(p)!==typeFilter)return false;
   if(curWeek){const r=curWeek.split("..");return p.date&&p.date>=r[0]&&p.date<=r[1];}
@@ -997,6 +1003,7 @@ document.getElementById("newBtn").onclick=newPost;
 document.getElementById("newVid").onclick=newVideo;
 document.getElementById("newInfo").onclick=newInfographic;
 document.getElementById("nameBtn").onclick=showNameGate;
+{const sb=document.getElementById("searchBox");if(sb)sb.addEventListener("input",()=>{searchQ=(sb.value||"").trim().toLowerCase();renderBoard();});}
 document.getElementById("prevM").onclick=()=>shiftMonth(-1);
 document.getElementById("nextM").onclick=()=>shiftMonth(1);
 document.querySelectorAll("#viewseg button").forEach(b=>b.onclick=()=>{view=b.dataset.v;document.querySelectorAll("#viewseg button").forEach(x=>x.classList.toggle("on",x.dataset.v===view));renderBoard();});
