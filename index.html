@@ -517,34 +517,48 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
       for(const l of wrapLines(ctx,para,W-2*margin)){ctx.fillStyle=C.white;ctx.fillText(l,margin,y);y+=blh;}y+=blh*0.4;}
   }
   else if(tpl==="infographic"){ctx.textAlign="left";ctx.textBaseline="top";
-    const raw=(p.bullets&&p.bullets.length?p.bullets:["Repeated questions: You answer the same things daily","Manual data entry: You copy between tools by hand","Slow reporting: Reports eat your afternoon"]).slice(0,5);
-    const items=raw.map(b=>{const m=String(b).split(/\s*[:\u2014\-]\s+/);return m.length>1?{t:m[0],d:m.slice(1).join(" - ")}:{t:String(b),d:""};});
-    let y=margin+W*0.11/KASPECT+W*0.045;
-    if(p.eyebrow){ctx.fillStyle=C.lime;ctx.font="600 "+(W*0.030)+"px Poppins";ctx.fillText((p.eyebrow||"").toUpperCase(),margin,y);y+=W*0.030*1.3+W*0.010;}
-    const hfs=W*0.055,hlh=hfs*1.12;ctx.font="700 "+hfs+"px Poppins";ctx.fillStyle=base;
-    const hlines=wrapLines(ctx,(p.headline||"").toUpperCase(),W-2*margin);
-    y=drawAccentLines(ctx,hlines,p.accent,margin,y,hlh,base,C.lime,"left",W);
-    y+=W*0.018;ctx.strokeStyle=C.lime;ctx.lineWidth=W*0.010;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(margin,y);ctx.lineTo(margin+W*0.14,y);ctx.stroke();
-    y+=W*0.05;
-    const n=items.length,areaTop=y,areaBottom=H-margin*1.5,rowH=(areaBottom-areaTop)/n;
-    const cr=Math.min(W*0.046,rowH*0.26),nodeX=margin+cr;
-    const pillX=margin+cr*2+W*0.035,availW=W-pillX-margin;
-    const lfs=W*0.033,dfs=W*0.027;
+    const raw=(p.bullets&&p.bullets.length?p.bullets:["CBD: 61% increase in freelance work","Biohacking: 71% increase in freelancers hired","Astrology: 127% more design requests","Vegan foods: 20% more plant-based brands"]).slice(0,5);
+    const items=raw.map(b=>{const m=String(b).split(/\s*[:—\-]\s+/);return m.length>1?{t:m[0],d:m.slice(1).join(" - ")}:{t:String(b),d:""};});
+    const n=items.length;
+    // ---- HUB (white circle w/ lime depth crescent, black title, lime accent pill) ----
+    const hx=W*0.275,hy=H*0.5,hR=W*0.205;
+    ctx.beginPath();ctx.arc(hx+W*0.022,hy,hR,0,Math.PI*2);ctx.fillStyle=C.lime;ctx.fill();
+    ctx.beginPath();ctx.arc(hx,hy,hR,0,Math.PI*2);ctx.fillStyle=C.white;ctx.fill();
+    (function(){const acc=(p.accent||"").trim().toUpperCase();const maxW=hR*1.55;let tfs=W*0.052;let lines;
+      for(;;){ctx.font="700 "+tfs+"px Poppins";lines=wrapLines(ctx,(p.headline||"").toUpperCase(),maxW);if(lines.length*tfs*1.16<=hR*1.5||tfs<=W*0.028)break;tfs*=0.93;}
+      const lh=tfs*1.16,blockH=lines.length*lh;let ty=hy-blockH/2;
+      for(const ln of lines){const lw=ctx.measureText(ln).width;const hasAcc=acc&&ln.indexOf(acc)>=0;
+        if(hasAcc){const ph=tfs*1.24,pw=lw+tfs*0.5,px=hx-pw/2,py=ty-tfs*0.1,pr=ph/2;
+          ctx.fillStyle=C.black;ctx.beginPath();ctx.moveTo(px+pr,py);ctx.arcTo(px+pw,py,px+pw,py+ph,pr);ctx.arcTo(px+pw,py+ph,px,py+ph,pr);ctx.arcTo(px,py+ph,px,py,pr);ctx.arcTo(px,py,px+pw,py,pr);ctx.closePath();ctx.fill();
+          ctx.fillStyle=C.lime;ctx.fillText(ln,hx-lw/2,ty);}
+        else{ctx.fillStyle=C.black;ctx.fillText(ln,hx-lw/2,ty);}
+        ty+=lh;}
+    })();
+    // ---- NODES (right) + connectors ----
+    const nodeX=W*0.60,nodeR=W*0.052,areaTop=H*0.13,areaBot=H*0.9,step=(areaBot-areaTop)/n;
+    const pillX=nodeX+nodeR+W*0.02,availW=W-pillX-margin;
     ctx.lineCap="round";ctx.lineJoin="round";
-    for(let i=0;i<n;i++){const rowTop=areaTop+rowH*i;const cy=rowTop+cr+W*0.008;
-      if(i<n-1){ctx.strokeStyle=C.lime;ctx.lineWidth=W*0.005;ctx.beginPath();ctx.moveTo(nodeX,cy+cr);ctx.lineTo(nodeX,areaTop+rowH*(i+1)+cr+W*0.008-cr);ctx.stroke();}
-      ctx.beginPath();ctx.arc(nodeX,cy,cr,0,Math.PI*2);ctx.fillStyle=C.lime;ctx.fill();
-      ctx.fillStyle=C.black;ctx.font="800 "+(cr*0.95)+"px Poppins";ctx.textAlign="center";ctx.textBaseline="middle";
-      ctx.fillText(String(i+1),nodeX,cy+cr*0.03);ctx.textAlign="left";ctx.textBaseline="top";
-      ctx.font="700 "+lfs+"px Poppins";const lab=(items[i].t||"").toUpperCase();
-      const labLines=wrapLines(ctx,lab,availW-W*0.06);let maxLW=0;for(const l of labLines){maxLW=Math.max(maxLW,ctx.measureText(l).width);}
-      const pillW=Math.min(availW,maxLW+W*0.05),pillH=labLines.length*lfs*1.14+W*0.020,pillY=cy-cr,pr=pillH/2;
-      ctx.strokeStyle=C.lime;ctx.lineWidth=W*0.005;
-      ctx.beginPath();ctx.moveTo(pillX+pr,pillY);ctx.arcTo(pillX+pillW,pillY,pillX+pillW,pillY+pillH,pr);ctx.arcTo(pillX+pillW,pillY+pillH,pillX,pillY+pillH,pr);ctx.arcTo(pillX,pillY+pillH,pillX,pillY,pr);ctx.arcTo(pillX,pillY,pillX+pillW,pillY,pr);ctx.closePath();ctx.stroke();
-      ctx.fillStyle=C.lime;let ly=pillY+W*0.010;for(const l of labLines){ctx.fillText(l,pillX+W*0.025,ly);ly+=lfs*1.14;}
-      if(items[i].d){ctx.font="400 "+dfs+"px Poppins";ctx.fillStyle=base;const dmax=n>=4?1:2;const dl=wrapLines(ctx,items[i].d,availW).slice(0,dmax);let dy=pillY+pillH+W*0.013;for(const l of dl){ctx.fillText(l,pillX,dy);dy+=dfs*1.3;}}
+    for(let i=0;i<n;i++){const cy=areaTop+step*i+step/2;
+      // connector: curve from hub edge toward node
+      const ang=Math.atan2(cy-hy,nodeX-hx);const ax=hx+Math.cos(ang)*hR,ay=hy+Math.sin(ang)*hR;
+      ctx.strokeStyle=C.white;ctx.lineWidth=W*0.004;ctx.beginPath();ctx.moveTo(ax,ay);ctx.quadraticCurveTo((ax+nodeX-nodeR)/2,cy,nodeX-nodeR,cy);ctx.stroke();
+      ctx.fillStyle=C.lime;ctx.beginPath();ctx.arc((ax+nodeX-nodeR)/2,(ay+cy)/2,W*0.009,0,Math.PI*2);ctx.fill();
+      // node circle
+      ctx.beginPath();ctx.arc(nodeX,cy,nodeR,0,Math.PI*2);ctx.fillStyle=C.lime;ctx.fill();
+      ctx.fillStyle=C.black;ctx.font="800 "+(nodeR*0.95)+"px Poppins";ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText(String(i+1),nodeX,cy+nodeR*0.03);ctx.textAlign="left";ctx.textBaseline="top";
+      // label pill (lime fill, black text)
+      ctx.font="700 "+(W*0.034)+"px Poppins";const lab=(items[i].t||"").toUpperCase();
+      const labLines=wrapLines(ctx,lab,availW-W*0.05);let maxLW=0;for(const l of labLines)maxLW=Math.max(maxLW,ctx.measureText(l).width);
+      const pw=Math.min(availW,maxLW+W*0.05),ph=labLines.length*W*0.034*1.14+W*0.020,py=cy-ph/2,pr=ph/2;
+      ctx.fillStyle=C.lime;ctx.beginPath();ctx.moveTo(pillX+pr,py);ctx.arcTo(pillX+pw,py,pillX+pw,py+ph,pr);ctx.arcTo(pillX+pw,py+ph,pillX,py+ph,pr);ctx.arcTo(pillX,py+ph,pillX,py,pr);ctx.arcTo(pillX,py,pillX+pw,py,pr);ctx.closePath();ctx.fill();
+      ctx.fillStyle=C.black;let ly=py+W*0.010;for(const l of labLines){ctx.fillText(l,pillX+W*0.025,ly);ly+=W*0.034*1.14;}
+      // description under pill (white)
+      if(items[i].d){ctx.font="400 "+(W*0.026)+"px Poppins";ctx.fillStyle=C.white;const dl=wrapLines(ctx,items[i].d,availW).slice(0,2);let dy=py+ph+W*0.010;for(const l of dl){ctx.fillText(l,pillX,dy);dy+=W*0.026*1.28;}}
     }
-    footer(ctx,W,H,margin,base);
+    // eyebrow top-left (over black, small)
+    if(p.eyebrow){ctx.fillStyle=C.lime;ctx.font="600 "+(W*0.026)+"px Poppins";ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText((p.eyebrow||"").toUpperCase(),margin,margin+W*0.11/KASPECT+W*0.02);}
+    footer(ctx,W,H,margin,C.white);
   }
   else if(tpl==="carousel"){
     const sl=(Array.isArray(p.slides)&&p.slides.length)?p.slides:[{h:p.headline||"",b:((p.caption||"").split("\n")[0]||"")}];
@@ -555,9 +569,9 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     ctx.fillStyle="#8a8f98";ctx.font="600 "+(W*0.028)+"px Poppins";ctx.textAlign="right";ctx.textBaseline="middle";
     ctx.fillText((idx+1)+" / "+n,W-margin,dy);ctx.textAlign="left";ctx.textBaseline="top";
     if(idx===0){
-      const fs=W*0.076,lh=fs*1.1;ctx.font="700 "+fs+"px Poppins";
-      const lines=wrapLines(ctx,(cur.h||"").toUpperCase(),W-2*margin);
-      drawAccentLines(ctx,lines,p.accent,margin,H*0.30,lh,base,C.lime,"left",W);
+      let fs=W*0.076,lines;const topY=H*0.28,maxBot=H*0.70;
+      for(;;){ctx.font="700 "+fs+"px Poppins";lines=wrapLines(ctx,(cur.h||"").toUpperCase(),W-2*margin);if(topY+lines.length*fs*1.1<=maxBot||fs<=W*0.042)break;fs*=0.93;}
+      const lh=fs*1.1;drawAccentLines(ctx,lines,p.accent,margin,topY,lh,base,C.lime,"left",W);
       ctx.fillStyle=C.lime;ctx.font="700 "+(W*0.030)+"px Poppins";ctx.textBaseline="middle";
       ctx.fillText("SWIPE",margin,H*0.74);
       const sw=ctx.measureText("SWIPE").width,ax=margin+sw+W*0.03,ay=H*0.74;
@@ -565,8 +579,9 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
       ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax+W*0.055,ay);ctx.moveTo(ax+W*0.036,ay-W*0.018);ctx.lineTo(ax+W*0.055,ay);ctx.lineTo(ax+W*0.036,ay+W*0.018);ctx.stroke();
       ctx.textBaseline="top";
     } else {
-      const hfs=W*0.056,hlh=hfs*1.12;ctx.font="700 "+hfs+"px Poppins";ctx.fillStyle=base;ctx.textBaseline="top";
-      let y=H*0.20;for(const l of wrapLines(ctx,(cur.h||"").toUpperCase(),W-2*margin)){ctx.fillText(l,margin,y);y+=hlh;}
+      let hfs=W*0.056,hlines;for(;;){ctx.font="700 "+hfs+"px Poppins";hlines=wrapLines(ctx,(cur.h||"").toUpperCase(),W-2*margin);if(hlines.length<=3||hfs<=W*0.038)break;hfs*=0.93;}
+      const hlh=hfs*1.12;ctx.fillStyle=base;ctx.textBaseline="top";
+      let y=H*0.20;for(const l of hlines){ctx.fillText(l,margin,y);y+=hlh;}
       if(cur.h)y+=W*0.03;
       const bfs=W*0.036,blh=bfs*1.45;ctx.font="400 "+bfs+"px Poppins";ctx.fillStyle=base;
       for(const para of (cur.b||"").split("\n")){if(!para.trim()){y+=blh*0.5;continue;}for(const l of wrapLines(ctx,para,W-2*margin)){ctx.fillText(l,margin,y);y+=blh;}y+=blh*0.3;}
@@ -794,7 +809,7 @@ function openEditor(id){
       <div><label class="fl">Slide ${curSlide+1} body text</label><textarea class="f" data-s="b" style="min-height:90px">${esc((p.slides[curSlide]||{}).b||'')}</textarea></div>
       <div><label class="fl">Accent word (cover)</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
       `:`
-      <div><label class="fl">Headline / message</label><input class="f" data-f="headline" value="${esc(p.headline)}"></div>
+      <div><label class="fl">Headline / message${p.template==="statement"?" (heading)":""}</label><input class="f" data-f="headline" value="${esc(p.headline)}" style="${p.template==="statement"?'font-weight:700;font-size:15px':''}"></div>
       <div><label class="fl">Subheadline (small body text)</label><textarea class="f" data-f="subhead" style="min-height:56px" placeholder="Optional supporting line — auto-sized to fit the design">${esc(p.subhead||'')}</textarea></div>
       <div class="two">
         <div><label class="fl">Accent word / number</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>

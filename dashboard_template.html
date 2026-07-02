@@ -562,7 +562,7 @@ function openEditor(id){
       <div><label class="fl">Slide ${curSlide+1} body text</label><textarea class="f" data-s="b" style="min-height:90px">${esc((p.slides[curSlide]||{}).b||'')}</textarea></div>
       <div><label class="fl">Accent word (cover)</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
       `:`
-      <div><label class="fl">Headline / message</label><input class="f" data-f="headline" value="${esc(p.headline)}"></div>
+      <div><label class="fl">Headline / message${p.template==="statement"?" (heading)":""}</label><input class="f" data-f="headline" value="${esc(p.headline)}" style="${p.template==="statement"?'font-weight:700;font-size:15px':''}"></div>
       <div><label class="fl">Subheadline (small body text)</label><textarea class="f" data-f="subhead" style="min-height:56px" placeholder="Optional supporting line — auto-sized to fit the design">${esc(p.subhead||'')}</textarea></div>
       <div class="two">
         <div><label class="fl">Accent word / number</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
