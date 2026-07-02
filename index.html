@@ -703,13 +703,19 @@ function renderBoard(){
     col.addEventListener("dragover",e=>{e.preventDefault();col.classList.add("drag");});
     col.addEventListener("dragleave",()=>col.classList.remove("drag"));
     col.addEventListener("drop",e=>{e.preventDefault();col.classList.remove("drag");
-      const id=e.dataTransfer.getData("text/plain");const p=state.find(x=>x.id===id);
-      if(p&&p.status!==st.id){p.status=st.id;logAct(p,"moved to "+st.label);if(st.id==="approved"){askNotify();notifyApproved(p);}state=state.filter(x=>x.id!==id);state.unshift(p);save();renderBoard();}});
+      const id=e.dataTransfer.getData("text/plain");const dragged=state.find(x=>x.id===id);if(!dragged)return;
+      if(dragged.status!==st.id){dragged.status=st.id;logAct(dragged,"moved to "+st.label);if(st.id==="approved"){askNotify();notifyApproved(dragged);}}
+      const cardsEl=col.querySelector(".cards");const afterEl=getDragAfterElement(cardsEl,e.clientY);
+      state=state.filter(x=>x.id!==id);
+      if(afterEl&&afterEl.dataset.id){const bi=state.findIndex(x=>x.id===afterEl.dataset.id);if(bi>=0)state.splice(bi,0,dragged);else state.push(dragged);}
+      else{let lastIdx=-1;for(let i=0;i<state.length;i++){if(state[i].status===st.id)lastIdx=i;}if(lastIdx>=0)state.splice(lastIdx+1,0,dragged);else state.push(dragged);}
+      save();renderBoard();});
     board.appendChild(col);
   });
 }
+function getDragAfterElement(container,y){const els=[...container.querySelectorAll(".card:not(.dragging)")];let closest={offset:-Infinity,el:null};for(const el of els){const box=el.getBoundingClientRect();const offset=y-box.top-box.height/2;if(offset<0&&offset>closest.offset){closest={offset:offset,el:el};}}return closest.el;}
 function cardEl(p){
-  const c=document.createElement("div");c.className="card";c.draggable=true;
+  const c=document.createElement("div");c.className="card";c.draggable=true;c.dataset.id=p.id;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
       <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":p.template==="infographic"?"INFOGRAPHIC":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
