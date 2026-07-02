@@ -381,6 +381,7 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);const hH=lines.length*lh;
     ctx.font="400 "+(W*0.033)+"px Poppins";const si=subFit(ctx,p.subhead,W-2*margin,H*0.24,W*0.033,W*0.019);
     const gap=si?W*0.04:0;const yStart=(H-(hH+gap+(si?si.h:0)))/2;
+    ctx.font="700 "+fs+"px Poppins";
     drawAccentLines(ctx,lines,p.accent,margin,yStart,lh,base,C.lime,"center",W);
     if(si){let sy=yStart+hH+gap;ctx.font="400 "+si.fs+"px Poppins";ctx.fillStyle=base;ctx.textBaseline="top";for(const l of si.lines){const tw=ctx.measureText(l).width;ctx.fillText(l,W/2-tw/2,sy);sy+=si.lh;}}
     footer(ctx,W,H,margin,base);}
@@ -415,7 +416,7 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);const hH=lines.length*lh;
     ctx.font="400 "+(W*0.032)+"px Poppins";const si=subFit(ctx,p.subhead,W-2*margin,H*0.2,W*0.032,W*0.019);
     const gap=si?W*0.035:0;const yStart=(H-(hH+gap+(si?si.h:0)))/2;
-    ctx.fillStyle=C.black;ctx.textAlign="left";ctx.textBaseline="top";let y=yStart;
+    ctx.fillStyle=C.black;ctx.textAlign="left";ctx.textBaseline="top";let y=yStart;ctx.font="700 "+fs+"px Poppins";
     for(const l of lines){ctx.fillText(l,margin,y);y+=lh;}
     if(si){let sy=yStart+hH+gap;ctx.font="400 "+si.fs+"px Poppins";ctx.fillStyle=C.black;for(const l of si.lines){ctx.fillText(l,margin,sy);sy+=si.lh;}}
     const a=W*0.10,ax=W-margin-a,ay=H-margin-a;ctx.strokeStyle=C.black;ctx.lineWidth=W*0.012;ctx.lineCap="round";ctx.lineJoin="round";
