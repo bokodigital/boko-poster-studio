@@ -434,8 +434,6 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     ctx.fillStyle=C.black;ctx.textAlign="left";ctx.textBaseline="top";let y=yStart;ctx.font="700 "+fs+"px Poppins";
     for(const l of lines){ctx.fillText(l,margin,y);y+=lh;}
     if(si){let sy=yStart+hH+gap;ctx.font="400 "+si.fs+"px Poppins";ctx.fillStyle=C.black;for(const l of si.lines){ctx.fillText(l,margin,sy);sy+=si.lh;}}
-    const a=W*0.10,ax=W-margin-a,ay=H-margin-a;ctx.strokeStyle=C.black;ctx.lineWidth=W*0.012;ctx.lineCap="round";ctx.lineJoin="round";
-    ctx.beginPath();ctx.moveTo(ax,ay+a);ctx.lineTo(ax+a,ay);ctx.moveTo(ax+a*0.25,ay);ctx.lineTo(ax+a,ay);ctx.lineTo(ax+a,ay+a*0.75);ctx.stroke();
     footer(ctx,W,H,margin,C.black);}
   else if(tpl==="checklist"){const fs=W*0.062,lh=fs*1.12;ctx.font="700 "+fs+"px Poppins";
     const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);let y=margin+W*0.11/KASPECT+W*0.055;
