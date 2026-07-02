@@ -28,6 +28,7 @@
   .newbtn:hover{filter:brightness(.96)}
   .newbtn.gen{background:#000;color:var(--lime);border-color:#000}
   .newbtn.pub{background:#101316;color:var(--lime);border-color:#101316}
+  .newbtn.ghostbtn{background:#fff;color:var(--text);border-color:var(--line)}
   .povl{position:fixed;inset:0;background:rgba(16,19,22,.45);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
   .povl.show{display:flex}
   .pmodal{background:#fff;border:1px solid var(--line);border-radius:16px;width:min(720px,96vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(16,19,22,.25)}
@@ -240,7 +241,9 @@
     <select class="wsel" id="platSel"></select>
     <button id="genBtn" class="newbtn gen">✨ Generate</button>
     <button id="newBtn" class="newbtn">+ Post</button>
+    <button id="newInfo" class="newbtn">+ Infographic</button>
     <button id="newVid" class="newbtn">+ Video</button>
+    <button id="nameBtn" class="newbtn ghostbtn" title="Change your name">👤 Name</button>
   </div>
 </div>
 <div class="board" id="board"></div>
@@ -272,7 +275,7 @@ const REFPOOL=__REFPOOL__;
 const WEEK_KEY="__WEEK_KEY__";
 const STORAGE="boko_board_"+WEEK_KEY;
 const C={lime:"#BFFC00",black:"#000000",white:"#FFFFFF"};
-const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","grid","index","split","founder","carousel"];
+const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","grid","index","split","founder","carousel","infographic"];
 const DIMS={square:[1080,1080],story:[1080,1920]};
 const KASPECT=1.046;
 const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"review",label:"Needs review"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
@@ -281,8 +284,8 @@ const EMAIL_SIG=__EMAILSIG__;
 const FNAME_TAG={Hubspot:"{{ contact.firstname }}"};
 function fname(text,platform){const tag=FNAME_TAG[platform];return tag?(text||"").replace(/\[\s*first[\s_]*name\s*\]/gi,tag):(text||"");}
 let filter="All";let typeFilter="All";
-const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Emails","Email"]];
-function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":"Post";}
+const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Infographics","Infographic"],["Emails","Email"]];
+function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":p.template==="infographic"?"Infographic":"Post";}
 function autoStory(p){return p.type!=="video"&&p.platform!=="Hubspot"&&(p.platform==="Instagram"||p.platform==="Facebook");}
 
 document.getElementById("logo").src=LOGO_LIGHT;
@@ -318,10 +321,11 @@ document.getElementById("glogo").src=LOGO_LIGHT;
 document.getElementById("gbtn").onclick=()=>{const p=document.getElementById("gpass").value.trim();if(!p){showGate("Enter the passcode");return;}tryPass(p);};
 document.getElementById("gpass").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("gbtn").click();});
 document.getElementById("glogo2").src=LOGO_LIGHT;
-function showNameGate(){const g=document.getElementById("namegate");g.classList.add("show");const i=document.getElementById("gname");i.value="";setTimeout(()=>i.focus(),60);}
+function showNameGate(){const g=document.getElementById("namegate");g.classList.add("show");const i=document.getElementById("gname");i.value=localStorage.getItem("boko_user")||"";setTimeout(()=>{i.focus();i.select();},60);}
 function saveName(){const n=(document.getElementById("gname").value||"").trim();if(!n){document.getElementById("gnerr").textContent="Please enter your name";return;}localStorage.setItem("boko_user",n);document.getElementById("namegate").classList.remove("show");}
 document.getElementById("gnamebtn").onclick=saveName;
 document.getElementById("gname").addEventListener("keydown",e=>{if(e.key==="Enter")saveName();});
+document.getElementById("namegate").addEventListener("click",e=>{if(e.target.id==="namegate"&&localStorage.getItem("boko_user"))document.getElementById("namegate").classList.remove("show");});
 
 const AVATARS={};
 function preloadAvatars(cb){const urls=[...new Set(state.map(p=>p.avatar).filter(Boolean))];if(!urls.length){cb();return;}let n=0;urls.forEach(u=>{const im=new Image();im.onload=im.onerror=()=>{if(++n>=urls.length)cb();};im.src=u;AVATARS[u]=im;});}
@@ -425,7 +429,7 @@ function renderBoard(){
     col.addEventListener("dragleave",()=>col.classList.remove("drag"));
     col.addEventListener("drop",e=>{e.preventDefault();col.classList.remove("drag");
       const id=e.dataTransfer.getData("text/plain");const p=state.find(x=>x.id===id);
-      if(p&&p.status!==st.id){p.status=st.id;save();renderBoard();}});
+      if(p&&p.status!==st.id){p.status=st.id;state=state.filter(x=>x.id!==id);state.unshift(p);save();renderBoard();}});
     board.appendChild(col);
   });
 }
@@ -433,7 +437,7 @@ function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
+      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":p.template==="infographic"?"INFOGRAPHIC":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
       <div class="cact">
@@ -684,6 +688,13 @@ function newVideo(){
     bullets:[],caption:"",pillar:"Video",date:"",videoUrl:"",publishedUrl:"",thumbnail:"",changeNote:""};
   state.push(p);save();renderBoard();openEditor(p.id);
 }
+function newInfographic(){
+  const p={id:"i"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New infographic",
+    template:"infographic",ratio:"square",headline:"YOUR INFOGRAPHIC TITLE",accent:"",cta:"LEARN MORE",
+    eyebrow:"BOKO DIGITAL",bullets:["First key point","Second key point","Third key point"],
+    caption:"",pillar:"Infographic",date:"",comments:[]};
+  state.push(p);save();renderBoard();openEditor(p.id);
+}
 function genPosts(){
   if(!REFPOOL||!REFPOOL.length){toast("No reference posts available");return;}
   let n=parseInt(prompt("How many posts to generate from the automation references?","3"),10);
@@ -702,6 +713,8 @@ function genPosts(){
 document.getElementById("genBtn").onclick=genPosts;
 document.getElementById("newBtn").onclick=newPost;
 document.getElementById("newVid").onclick=newVideo;
+document.getElementById("newInfo").onclick=newInfographic;
+document.getElementById("nameBtn").onclick=showNameGate;
 document.getElementById("prevM").onclick=()=>shiftMonth(-1);
 document.getElementById("nextM").onclick=()=>shiftMonth(1);
 document.querySelectorAll("#viewseg button").forEach(b=>b.onclick=()=>{view=b.dataset.v;document.querySelectorAll("#viewseg button").forEach(x=>x.classList.toggle("on",x.dataset.v===view));renderBoard();});

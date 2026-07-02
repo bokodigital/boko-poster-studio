@@ -28,6 +28,7 @@
   .newbtn:hover{filter:brightness(.96)}
   .newbtn.gen{background:#000;color:var(--lime);border-color:#000}
   .newbtn.pub{background:#101316;color:var(--lime);border-color:#101316}
+  .newbtn.ghostbtn{background:#fff;color:var(--text);border-color:var(--line)}
   .povl{position:fixed;inset:0;background:rgba(16,19,22,.45);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
   .povl.show{display:flex}
   .pmodal{background:#fff;border:1px solid var(--line);border-radius:16px;width:min(720px,96vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(16,19,22,.25)}
@@ -240,7 +241,9 @@
     <select class="wsel" id="platSel"></select>
     <button id="genBtn" class="newbtn gen">✨ Generate</button>
     <button id="newBtn" class="newbtn">+ Post</button>
+    <button id="newInfo" class="newbtn">+ Infographic</button>
     <button id="newVid" class="newbtn">+ Video</button>
+    <button id="nameBtn" class="newbtn ghostbtn" title="Change your name">👤 Name</button>
   </div>
 </div>
 <div class="board" id="board"></div>
@@ -272,7 +275,7 @@ const REFPOOL=[{"id": "p1", "date": "2026-06-30", "type": "post", "platform": "I
 const WEEK_KEY="2026-W27";
 const STORAGE="boko_board_"+WEEK_KEY;
 const C={lime:"#BFFC00",black:"#000000",white:"#FFFFFF"};
-const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","grid","index","split","founder","carousel"];
+const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","grid","index","split","founder","carousel","infographic"];
 const DIMS={square:[1080,1080],story:[1080,1920]};
 const KASPECT=1.046;
 const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"review",label:"Needs review"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
@@ -281,8 +284,8 @@ const EMAIL_SIG="<table cellspacing=\"0\" cellpadding=\"0\"><tbody><tr>\n<td sty
 const FNAME_TAG={Hubspot:"{{ contact.firstname }}"};
 function fname(text,platform){const tag=FNAME_TAG[platform];return tag?(text||"").replace(/\[\s*first[\s_]*name\s*\]/gi,tag):(text||"");}
 let filter="All";let typeFilter="All";
-const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Emails","Email"]];
-function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":"Post";}
+const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Infographics","Infographic"],["Emails","Email"]];
+function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":p.template==="infographic"?"Infographic":"Post";}
 function autoStory(p){return p.type!=="video"&&p.platform!=="Hubspot"&&(p.platform==="Instagram"||p.platform==="Facebook");}
 
 document.getElementById("logo").src=LOGO_LIGHT;
@@ -318,10 +321,11 @@ document.getElementById("glogo").src=LOGO_LIGHT;
 document.getElementById("gbtn").onclick=()=>{const p=document.getElementById("gpass").value.trim();if(!p){showGate("Enter the passcode");return;}tryPass(p);};
 document.getElementById("gpass").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("gbtn").click();});
 document.getElementById("glogo2").src=LOGO_LIGHT;
-function showNameGate(){const g=document.getElementById("namegate");g.classList.add("show");const i=document.getElementById("gname");i.value="";setTimeout(()=>i.focus(),60);}
+function showNameGate(){const g=document.getElementById("namegate");g.classList.add("show");const i=document.getElementById("gname");i.value=localStorage.getItem("boko_user")||"";setTimeout(()=>{i.focus();i.select();},60);}
 function saveName(){const n=(document.getElementById("gname").value||"").trim();if(!n){document.getElementById("gnerr").textContent="Please enter your name";return;}localStorage.setItem("boko_user",n);document.getElementById("namegate").classList.remove("show");}
 document.getElementById("gnamebtn").onclick=saveName;
 document.getElementById("gname").addEventListener("keydown",e=>{if(e.key==="Enter")saveName();});
+document.getElementById("namegate").addEventListener("click",e=>{if(e.target.id==="namegate"&&localStorage.getItem("boko_user"))document.getElementById("namegate").classList.remove("show");});
 
 const AVATARS={};
 function preloadAvatars(cb){const urls=[...new Set(state.map(p=>p.avatar).filter(Boolean))];if(!urls.length){cb();return;}let n=0;urls.forEach(u=>{const im=new Image();im.onload=im.onerror=()=>{if(++n>=urls.length)cb();};im.src=u;AVATARS[u]=im;});}
@@ -358,7 +362,7 @@ function drawAccentLines(ctx,lines,accent,x,yStart,lh,baseColor,accentColor,alig
       cx+=ctx.measureText(word).width;}
     y+=lh;}return y;}
 
-function renderPoster(canvas,p,slideIdx){const[W,H]=DIMS[p.ratio||"square"];canvas.width=W;canvas.height=H;
+function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_ratio==="story"){const[SW,SH]=DIMS.story;canvas.width=SW;canvas.height=SH;const sctx=canvas.getContext("2d");const _lime=p.template==="lime";sctx.fillStyle=_lime?C.lime:C.black;sctx.fillRect(0,0,SW,SH);const _off=document.createElement("canvas");renderPoster(_off,Object.assign({},p,{ratio:"square"}),slideIdx);sctx.drawImage(_off,0,Math.round((SH-SW)/2),SW,SW);return;}const[W,H]=DIMS[_ratio];canvas.width=W;canvas.height=H;
   const ctx=canvas.getContext("2d");const margin=W*0.085;const tpl=p.template;
   const isLime=tpl==="lime";const bg=isLime?C.lime:C.black;const base=isLime?C.black:C.white;
   ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.textBaseline="top";
@@ -403,11 +407,14 @@ function renderPoster(canvas,p,slideIdx){const[W,H]=DIMS[p.ratio||"square"];canv
     y=drawAccentLines(ctx,lines,p.accent,margin,y,lh,base,C.lime,"left",W);y+=W*0.04;
     const items=(p.bullets&&p.bullets.length?p.bullets:["Strategy","Design","Development","Marketing"]).slice(0,4);
     const ifs=W*0.040;ctx.font="500 "+ifs+"px Poppins";const r=W*0.026;
-    for(const it of items){const cy=y+ifs/2;
+    const itX=margin+r*2+W*0.03,itAvail=W-itX-margin,ilh=ifs*1.18;
+    for(const it of items){ctx.font="500 "+ifs+"px Poppins";const wl=wrapLines(ctx,it,itAvail).slice(0,2);
+      const blockH=Math.max(ifs*1.9,wl.length*ilh+ifs*0.55);const cy=y+ifs/2;
       ctx.beginPath();ctx.arc(margin+r,cy,r,0,Math.PI*2);ctx.fillStyle=C.lime;ctx.fill();
       ctx.strokeStyle=C.black;ctx.lineWidth=W*0.008;ctx.lineCap="round";ctx.lineJoin="round";
       ctx.beginPath();ctx.moveTo(margin+r-r*0.45,cy);ctx.lineTo(margin+r-r*0.1,cy+r*0.4);ctx.lineTo(margin+r+r*0.5,cy-r*0.45);ctx.stroke();
-      ctx.fillStyle=base;ctx.textBaseline="top";ctx.fillText(it,margin+r*2+W*0.03,y+ifs*0.12);y+=ifs*1.9;}
+      ctx.fillStyle=base;ctx.textBaseline="top";let ty=y+ifs*0.12;for(const l of wl){ctx.fillText(l,itX,ty);ty+=ilh;}
+      y+=blockH;}
     footer(ctx,W,H,margin,base);}
   else if(tpl==="quote"){ctx.fillStyle=C.lime;ctx.textAlign="left";ctx.textBaseline="top";
     ctx.font="800 "+(W*0.20)+"px Poppins";ctx.fillText("“",margin,H*0.40-W*0.135);
@@ -486,6 +493,28 @@ function renderPoster(canvas,p,slideIdx){const[W,H]=DIMS[p.ratio||"square"];canv
     const paras=(p.caption||"").split("\n");
     for(const para of paras){if(para.trim()===""){y+=blh*0.55;continue;}
       for(const l of wrapLines(ctx,para,W-2*margin)){ctx.fillStyle=C.white;ctx.fillText(l,margin,y);y+=blh;}y+=blh*0.4;}
+  }
+  else if(tpl==="infographic"){ctx.textAlign="left";ctx.textBaseline="top";
+    const items=(p.bullets&&p.bullets.length?p.bullets:["First key point","Second key point","Third key point"]).slice(0,5);
+    let y=margin+W*0.11/KASPECT+W*0.05;
+    if(p.eyebrow){ctx.fillStyle=C.lime;ctx.font="600 "+(W*0.030)+"px Poppins";ctx.fillText((p.eyebrow||"").toUpperCase(),margin,y);y+=W*0.030*1.3+W*0.012;}
+    const hfs=W*0.056,hlh=hfs*1.12;ctx.font="700 "+hfs+"px Poppins";ctx.fillStyle=base;
+    const hlines=wrapLines(ctx,(p.headline||"").toUpperCase(),W-2*margin);
+    y=drawAccentLines(ctx,hlines,p.accent,margin,y,hlh,base,C.lime,"left",W);
+    y+=W*0.02;ctx.strokeStyle=C.lime;ctx.lineWidth=W*0.010;ctx.beginPath();ctx.moveTo(margin,y);ctx.lineTo(margin+W*0.14,y);ctx.stroke();
+    y+=W*0.05;
+    const n=items.length,areaTop=y,areaBottom=H-margin*1.7,rowH=(areaBottom-areaTop)/n;
+    const cr=Math.min(W*0.052,rowH*0.36),nodeX=margin+cr,textX=margin+cr*2+W*0.045,availW=W-textX-margin;
+    ctx.lineCap="round";ctx.lineJoin="round";
+    for(let i=0;i<n;i++){const cy=areaTop+rowH*i+rowH/2;
+      if(i<n-1){ctx.strokeStyle="#3a3f46";ctx.lineWidth=W*0.006;ctx.beginPath();ctx.moveTo(nodeX,cy+cr);ctx.lineTo(nodeX,areaTop+rowH*(i+1)+rowH/2-cr);ctx.stroke();}
+      ctx.beginPath();ctx.arc(nodeX,cy,cr,0,Math.PI*2);ctx.fillStyle=C.lime;ctx.fill();
+      ctx.fillStyle=C.black;ctx.font="800 "+(cr*0.98)+"px Poppins";ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText(String(i+1),nodeX,cy+cr*0.03);ctx.textAlign="left";ctx.textBaseline="top";
+      ctx.fillStyle=base;ctx.font="600 "+(W*0.038)+"px Poppins";const wl=wrapLines(ctx,items[i],availW).slice(0,2);
+      const tlh=W*0.038*1.16;let ty=cy-(wl.length*tlh)/2;
+      for(const l of wl){ctx.fillText(l,textX,ty);ty+=tlh;}}
+    footer(ctx,W,H,margin,base);
   }
   else if(tpl==="carousel"){
     const sl=(Array.isArray(p.slides)&&p.slides.length)?p.slides:[{h:p.headline||"",b:((p.caption||"").split("\n")[0]||"")}];
@@ -608,7 +637,7 @@ function renderBoard(){
     col.addEventListener("dragleave",()=>col.classList.remove("drag"));
     col.addEventListener("drop",e=>{e.preventDefault();col.classList.remove("drag");
       const id=e.dataTransfer.getData("text/plain");const p=state.find(x=>x.id===id);
-      if(p&&p.status!==st.id){p.status=st.id;save();renderBoard();}});
+      if(p&&p.status!==st.id){p.status=st.id;state=state.filter(x=>x.id!==id);state.unshift(p);save();renderBoard();}});
     board.appendChild(col);
   });
 }
@@ -616,7 +645,7 @@ function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
+      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":p.template==="infographic"?"INFOGRAPHIC":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
       <div class="cact">
@@ -867,6 +896,13 @@ function newVideo(){
     bullets:[],caption:"",pillar:"Video",date:"",videoUrl:"",publishedUrl:"",thumbnail:"",changeNote:""};
   state.push(p);save();renderBoard();openEditor(p.id);
 }
+function newInfographic(){
+  const p={id:"i"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New infographic",
+    template:"infographic",ratio:"square",headline:"YOUR INFOGRAPHIC TITLE",accent:"",cta:"LEARN MORE",
+    eyebrow:"BOKO DIGITAL",bullets:["First key point","Second key point","Third key point"],
+    caption:"",pillar:"Infographic",date:"",comments:[]};
+  state.push(p);save();renderBoard();openEditor(p.id);
+}
 function genPosts(){
   if(!REFPOOL||!REFPOOL.length){toast("No reference posts available");return;}
   let n=parseInt(prompt("How many posts to generate from the automation references?","3"),10);
@@ -885,6 +921,8 @@ function genPosts(){
 document.getElementById("genBtn").onclick=genPosts;
 document.getElementById("newBtn").onclick=newPost;
 document.getElementById("newVid").onclick=newVideo;
+document.getElementById("newInfo").onclick=newInfographic;
+document.getElementById("nameBtn").onclick=showNameGate;
 document.getElementById("prevM").onclick=()=>shiftMonth(-1);
 document.getElementById("nextM").onclick=()=>shiftMonth(1);
 document.querySelectorAll("#viewseg button").forEach(b=>b.onclick=()=>{view=b.dataset.v;document.querySelectorAll("#viewseg button").forEach(x=>x.classList.toggle("on",x.dataset.v===view));renderBoard();});
