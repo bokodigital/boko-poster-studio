@@ -109,12 +109,12 @@ function drawCTApill(ctx,W,H,margin,p,dark){const txt=(p.cta||"").trim().toUpper
   ctx.arcTo(bx,by+bh,bx,by,r);ctx.arcTo(bx,by,bx+bw,by,r);ctx.closePath();ctx.fill();
   ctx.fillStyle=dark?C.black:C.lime;ctx.fillText(txt,bx+padX,by+bh/2);ctx.textBaseline="top";}
 function drawAccentLines(ctx,lines,accent,x,yStart,lh,baseColor,accentColor,align,W){ctx.textBaseline="top";
-  const acc=(accent||"").trim().toUpperCase().replace(/[^A-Z0-9.]/g,"");let y=yStart;
+  const accToks=(accent||"").toUpperCase().split(/\s+/).map(t=>t.replace(/[^A-Z0-9.]/g,"")).filter(Boolean);let y=yStart;
   for(const ln of lines){const words=ln.split(" ");const totalW=ctx.measureText(ln).width;
     let cx=align==="center"?(W/2-totalW/2):x;ctx.textAlign="left";
     for(let i=0;i<words.length;i++){const w=words[i];const word=i<words.length-1?w+" ":w;
       const clean=w.replace(/[^A-Za-z0-9.]/g,"").toUpperCase();
-      ctx.fillStyle=(acc&&clean===acc)?accentColor:baseColor;ctx.fillText(word,cx,y);
+      ctx.fillStyle=(accToks.length&&accToks.indexOf(clean)>=0)?accentColor:baseColor;ctx.fillText(word,cx,y);
       cx+=ctx.measureText(word).width;}
     y+=lh;}return y;}
 
@@ -127,13 +127,13 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
   // K mark top-left (split & lime handle their own marks)
   if(tpl!=="split"&&tpl!=="statement"&&tpl!=="stat"&&tpl!=="founder"){kMark(ctx,W,margin,!isLime);}
 
-  if(tpl==="statement"){kMark(ctx,W,margin,true,true);const fs=W*0.072,lh=fs*1.12;ctx.font="700 "+fs+"px Poppins";
+  if(tpl==="statement"){kMark(ctx,W,margin,true);const fs=W*0.072,lh=fs*1.12;ctx.font="700 "+fs+"px Poppins";
     const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);const hH=lines.length*lh;
     ctx.font="400 "+(W*0.033)+"px Poppins";const si=subFit(ctx,p.subhead,W-2*margin,H*0.24,W*0.033,W*0.019);
     const gap=si?W*0.04:0;const yStart=(H-(hH+gap+(si?si.h:0)))/2;
     ctx.font="700 "+fs+"px Poppins";
-    drawAccentLines(ctx,lines,p.accent,margin,yStart,lh,base,C.lime,"center",W);
-    if(si){let sy=yStart+hH+gap;ctx.font="400 "+si.fs+"px Poppins";ctx.fillStyle=base;ctx.textBaseline="top";for(const l of si.lines){const tw=ctx.measureText(l).width;ctx.fillText(l,W/2-tw/2,sy);sy+=si.lh;}}
+    drawAccentLines(ctx,lines,p.accent,margin,yStart,lh,base,C.lime,"left",W);
+    if(si){let sy=yStart+hH+gap;ctx.font="400 "+si.fs+"px Poppins";ctx.fillStyle=base;ctx.textBaseline="top";for(const l of si.lines){ctx.fillText(l,margin,sy);sy+=si.lh;}}
     footer(ctx,W,H,margin,base);}
   else if(tpl==="stat"){kMark(ctx,W,margin,true,true);ctx.textAlign="center";ctx.fillStyle=base;ctx.textBaseline="top";
     ctx.font="600 "+(W*0.034)+"px Poppins";ctx.fillText((p.eyebrow||"").toUpperCase(),W/2,H*0.30);
@@ -159,7 +159,7 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     ctx.font="700 "+(W*0.040)+"px Poppins";ctx.fillText("Boko Digital",margin,y);
     ctx.fillStyle=C.lime;ctx.font="500 "+(W*0.030)+"px Poppins";ctx.fillText("@bokodigital",margin,y+W*0.050);
     ctx.fillStyle=base;const fs=W*0.052,lh=fs*1.28;ctx.font="500 "+fs+"px Poppins";
-    const lines=wrapLines(ctx,p.headline,W-2*margin);let by=H*0.40;for(const l of lines){ctx.fillText(l,margin,by);by+=lh;}
+    const lines=wrapLines(ctx,p.headline,W-2*margin);let by=drawAccentLines(ctx,lines,p.accent,margin,H*0.40,lh,base,C.lime,"left",W);
     if((p.subhead||"").trim()){drawSub(ctx,p.subhead,margin,by+W*0.03,W-2*margin,H-margin*1.6-(by+W*0.03),"left",W,base);}
     footer(ctx,W,H,margin,base);}
   else if(tpl==="lime"){const fs=W*0.082,lh=fs*1.1;ctx.font="700 "+fs+"px Poppins";
@@ -189,8 +189,7 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
   else if(tpl==="quote"){ctx.fillStyle=C.lime;ctx.textAlign="left";ctx.textBaseline="top";
     ctx.font="800 "+(W*0.20)+"px Poppins";ctx.fillText("“",margin,H*0.40-W*0.135);
     const fs=W*0.060,lh=fs*1.26;ctx.font="600 "+fs+"px Poppins";ctx.fillStyle=base;
-    const lines=wrapLines(ctx,p.headline,W-2*margin);let y=H*0.40;
-    for(const l of lines){ctx.fillText(l,margin,y);y+=lh;}
+    const lines=wrapLines(ctx,p.headline,W-2*margin);let y=drawAccentLines(ctx,lines,p.accent,margin,H*0.40,lh,base,C.lime,"left",W);
     y+=W*0.02;ctx.fillStyle=C.lime;ctx.font="700 "+(W*0.034)+"px Poppins";ctx.fillText("— Boko Digital",margin,y);y+=W*0.034*1.4;
     if((p.subhead||"").trim()){drawSub(ctx,p.subhead,margin,y+W*0.02,W-2*margin,H-margin*1.6-(y+W*0.02),"left",W,base);}
     footer(ctx,W,H,margin,base);}
@@ -315,7 +314,7 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     const sl=(Array.isArray(p.slides)&&p.slides.length)?p.slides:[{h:p.headline||"",b:((p.caption||"").split("\n")[0]||"")}];
     const idx=Math.max(0,Math.min(slideIdx||0,sl.length-1));const cur=sl[idx],n=sl.length;
     kMark(ctx,W,margin,true);
-    const dr=W*0.012,gap=W*0.045,dy=H*0.905;let dx=margin+dr;
+    const dr=W*0.012,gap=W*0.045,dy=H*0.865;let dx=margin+dr;
     for(let i=0;i<n;i++){ctx.beginPath();ctx.arc(dx,dy,dr,0,Math.PI*2);ctx.fillStyle=i===idx?C.lime:"#3a3f46";ctx.fill();dx+=gap;}
     ctx.fillStyle="#8a8f98";ctx.font="600 "+(W*0.028)+"px Poppins";ctx.textAlign="right";ctx.textBaseline="middle";
     ctx.fillText((idx+1)+" / "+n,W-margin,dy);ctx.textAlign="left";ctx.textBaseline="top";

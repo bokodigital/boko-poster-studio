@@ -117,6 +117,7 @@
   .cauthor{font-size:12px;font-weight:700;color:var(--text)}
   .ctime{font-weight:500;color:var(--muted);font-size:11px;margin-left:6px}
   .ctext{font-size:13px;color:var(--text);line-height:1.45;white-space:pre-wrap;word-break:break-word}
+  .ctext a{color:#2456b8;text-decoration:underline;word-break:break-all}
   .cdel{margin-left:8px;font-size:10px;color:#c0392b;cursor:pointer;font-weight:600}
   .cimg{max-width:220px;max-height:200px;border-radius:8px;margin-top:6px;display:block;cursor:pointer;border:1px solid var(--line)}
   .cprev{margin-top:6px}
@@ -370,12 +371,12 @@ function drawCTApill(ctx,W,H,margin,p,dark){const txt=(p.cta||"").trim().toUpper
   ctx.arcTo(bx,by+bh,bx,by,r);ctx.arcTo(bx,by,bx+bw,by,r);ctx.closePath();ctx.fill();
   ctx.fillStyle=dark?C.black:C.lime;ctx.fillText(txt,bx+padX,by+bh/2);ctx.textBaseline="top";}
 function drawAccentLines(ctx,lines,accent,x,yStart,lh,baseColor,accentColor,align,W){ctx.textBaseline="top";
-  const acc=(accent||"").trim().toUpperCase().replace(/[^A-Z0-9.]/g,"");let y=yStart;
+  const accToks=(accent||"").toUpperCase().split(/\s+/).map(t=>t.replace(/[^A-Z0-9.]/g,"")).filter(Boolean);let y=yStart;
   for(const ln of lines){const words=ln.split(" ");const totalW=ctx.measureText(ln).width;
     let cx=align==="center"?(W/2-totalW/2):x;ctx.textAlign="left";
     for(let i=0;i<words.length;i++){const w=words[i];const word=i<words.length-1?w+" ":w;
       const clean=w.replace(/[^A-Za-z0-9.]/g,"").toUpperCase();
-      ctx.fillStyle=(acc&&clean===acc)?accentColor:baseColor;ctx.fillText(word,cx,y);
+      ctx.fillStyle=(accToks.length&&accToks.indexOf(clean)>=0)?accentColor:baseColor;ctx.fillText(word,cx,y);
       cx+=ctx.measureText(word).width;}
     y+=lh;}return y;}
 
@@ -388,13 +389,13 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
   // K mark top-left (split & lime handle their own marks)
   if(tpl!=="split"&&tpl!=="statement"&&tpl!=="stat"&&tpl!=="founder"){kMark(ctx,W,margin,!isLime);}
 
-  if(tpl==="statement"){kMark(ctx,W,margin,true,true);const fs=W*0.072,lh=fs*1.12;ctx.font="700 "+fs+"px Poppins";
+  if(tpl==="statement"){kMark(ctx,W,margin,true);const fs=W*0.072,lh=fs*1.12;ctx.font="700 "+fs+"px Poppins";
     const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);const hH=lines.length*lh;
     ctx.font="400 "+(W*0.033)+"px Poppins";const si=subFit(ctx,p.subhead,W-2*margin,H*0.24,W*0.033,W*0.019);
     const gap=si?W*0.04:0;const yStart=(H-(hH+gap+(si?si.h:0)))/2;
     ctx.font="700 "+fs+"px Poppins";
-    drawAccentLines(ctx,lines,p.accent,margin,yStart,lh,base,C.lime,"center",W);
-    if(si){let sy=yStart+hH+gap;ctx.font="400 "+si.fs+"px Poppins";ctx.fillStyle=base;ctx.textBaseline="top";for(const l of si.lines){const tw=ctx.measureText(l).width;ctx.fillText(l,W/2-tw/2,sy);sy+=si.lh;}}
+    drawAccentLines(ctx,lines,p.accent,margin,yStart,lh,base,C.lime,"left",W);
+    if(si){let sy=yStart+hH+gap;ctx.font="400 "+si.fs+"px Poppins";ctx.fillStyle=base;ctx.textBaseline="top";for(const l of si.lines){ctx.fillText(l,margin,sy);sy+=si.lh;}}
     footer(ctx,W,H,margin,base);}
   else if(tpl==="stat"){kMark(ctx,W,margin,true,true);ctx.textAlign="center";ctx.fillStyle=base;ctx.textBaseline="top";
     ctx.font="600 "+(W*0.034)+"px Poppins";ctx.fillText((p.eyebrow||"").toUpperCase(),W/2,H*0.30);
@@ -420,7 +421,7 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     ctx.font="700 "+(W*0.040)+"px Poppins";ctx.fillText("Boko Digital",margin,y);
     ctx.fillStyle=C.lime;ctx.font="500 "+(W*0.030)+"px Poppins";ctx.fillText("@bokodigital",margin,y+W*0.050);
     ctx.fillStyle=base;const fs=W*0.052,lh=fs*1.28;ctx.font="500 "+fs+"px Poppins";
-    const lines=wrapLines(ctx,p.headline,W-2*margin);let by=H*0.40;for(const l of lines){ctx.fillText(l,margin,by);by+=lh;}
+    const lines=wrapLines(ctx,p.headline,W-2*margin);let by=drawAccentLines(ctx,lines,p.accent,margin,H*0.40,lh,base,C.lime,"left",W);
     if((p.subhead||"").trim()){drawSub(ctx,p.subhead,margin,by+W*0.03,W-2*margin,H-margin*1.6-(by+W*0.03),"left",W,base);}
     footer(ctx,W,H,margin,base);}
   else if(tpl==="lime"){const fs=W*0.082,lh=fs*1.1;ctx.font="700 "+fs+"px Poppins";
@@ -450,8 +451,7 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
   else if(tpl==="quote"){ctx.fillStyle=C.lime;ctx.textAlign="left";ctx.textBaseline="top";
     ctx.font="800 "+(W*0.20)+"px Poppins";ctx.fillText("“",margin,H*0.40-W*0.135);
     const fs=W*0.060,lh=fs*1.26;ctx.font="600 "+fs+"px Poppins";ctx.fillStyle=base;
-    const lines=wrapLines(ctx,p.headline,W-2*margin);let y=H*0.40;
-    for(const l of lines){ctx.fillText(l,margin,y);y+=lh;}
+    const lines=wrapLines(ctx,p.headline,W-2*margin);let y=drawAccentLines(ctx,lines,p.accent,margin,H*0.40,lh,base,C.lime,"left",W);
     y+=W*0.02;ctx.fillStyle=C.lime;ctx.font="700 "+(W*0.034)+"px Poppins";ctx.fillText("— Boko Digital",margin,y);y+=W*0.034*1.4;
     if((p.subhead||"").trim()){drawSub(ctx,p.subhead,margin,y+W*0.02,W-2*margin,H-margin*1.6-(y+W*0.02),"left",W,base);}
     footer(ctx,W,H,margin,base);}
@@ -576,7 +576,7 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     const sl=(Array.isArray(p.slides)&&p.slides.length)?p.slides:[{h:p.headline||"",b:((p.caption||"").split("\n")[0]||"")}];
     const idx=Math.max(0,Math.min(slideIdx||0,sl.length-1));const cur=sl[idx],n=sl.length;
     kMark(ctx,W,margin,true);
-    const dr=W*0.012,gap=W*0.045,dy=H*0.905;let dx=margin+dr;
+    const dr=W*0.012,gap=W*0.045,dy=H*0.865;let dx=margin+dr;
     for(let i=0;i<n;i++){ctx.beginPath();ctx.arc(dx,dy,dr,0,Math.PI*2);ctx.fillStyle=i===idx?C.lime:"#3a3f46";ctx.fill();dx+=gap;}
     ctx.fillStyle="#8a8f98";ctx.font="600 "+(W*0.028)+"px Poppins";ctx.textAlign="right";ctx.textBaseline="middle";
     ctx.fillText((idx+1)+" / "+n,W-margin,dy);ctx.textAlign="left";ctx.textBaseline="top";
@@ -821,7 +821,7 @@ function openEditor(id){
       <div><label class="fl">Slide ${curSlide+1} body text</label><textarea class="f" data-s="b" style="min-height:90px">${esc((p.slides[curSlide]||{}).b||'')}</textarea></div>
       <div><label class="fl">Accent word (cover)</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
       `:`
-      <div><label class="fl">Headline / message${p.template==="statement"?" (heading)":""}</label><input class="f" data-f="headline" value="${esc(p.headline)}" style="${p.template==="statement"?'font-weight:700;font-size:15px':''}"></div>
+      <div><label class="fl">Headline / message</label><input class="f" data-f="headline" value="${esc(p.headline)}"></div>
       <div><label class="fl">Subheadline (small body text)</label><textarea class="f" data-f="subhead" style="min-height:56px" placeholder="Optional supporting line — auto-sized to fit the design">${esc(p.subhead||'')}</textarea></div>
       <div class="two">
         <div><label class="fl">Accent word / number</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
@@ -837,8 +837,8 @@ function openEditor(id){
       </div>
       <div class="comments">
         <div class="clabel">Comments</div>
-        <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem">${avEl("cav",c.a,c.av)}<div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}</span><span class="cdel" data-del="${ci}">delete</span></div><div class="ctext">${esc(c.t)}</div>${c.img?`<img class="cimg" src="${c.img}" data-full="${c.img}" alt="attachment">`:""}</div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
-        <div class="cbox">${avEl("cav cavme",commenterName()||"+",commenterAvatar())}<div class="cinput"><textarea id="cnew" placeholder="Add a comment... (paste an image with Ctrl+V)"></textarea><div id="cprev" class="cprev"></div><div class="crow" style="justify-content:space-between"><button type="button" class="cattach" id="cattach">📎 Attach image</button><button class="btn lime" id="cbtn">Comment</button></div><input type="file" id="cfile" accept="image/*" style="display:none"></div></div>
+        <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem">${avEl("cav",c.a,c.av)}<div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}</span><span class="cdel" data-del="${ci}">delete</span></div><div class="ctext">${linkify(c.t)}</div>${c.img?`<img class="cimg" src="${c.img}" data-full="${c.img}" alt="attachment">`:""}</div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
+        <div class="cbox">${avEl("cav cavme",commenterName()||"+",commenterAvatar())}<div class="cinput"><textarea id="cnew" placeholder="Add a comment... (paste an image with Ctrl+V)">${esc(localStorage.getItem("boko_cdraft_"+p.id)||"")}</textarea><div id="cprev" class="cprev"></div><div class="crow" style="justify-content:space-between"><button type="button" class="cattach" id="cattach">📎 Attach image</button><button class="btn lime" id="cbtn">Comment</button></div><input type="file" id="cfile" accept="image/*" style="display:none"></div></div>
       </div>
       <div class="mactions">
         <button class="btn lime" data-a="approve">Approve</button>
@@ -886,6 +886,7 @@ function openEditor(id){
   const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;save();scheduleBoard();};
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";logAct(p,"approved");askNotify();notifyApproved(p);save();closeEditor();renderBoard();confetti();toast("Approved");};
   const cbtn=m.querySelector("#cbtn"),cnew=m.querySelector("#cnew"),cfile=m.querySelector("#cfile"),cattach=m.querySelector("#cattach"),cprev=m.querySelector("#cprev");
+  if(cnew)cnew.addEventListener("input",()=>{const v=cnew.value;if(v.trim())localStorage.setItem("boko_cdraft_"+id,v);else localStorage.removeItem("boko_cdraft_"+id);});
   let pendImg=null;
   function shrinkImg(dataUrl,cb){const im=new Image();im.onload=()=>{let w=im.width,h=im.height,mx=1000;if(w>mx||h>mx){if(w>=h){h=Math.round(h*mx/w);w=mx;}else{w=Math.round(w*mx/h);h=mx;}}const cv=document.createElement("canvas");cv.width=w;cv.height=h;cv.getContext("2d").drawImage(im,0,0,w,h);try{cb(cv.toDataURL("image/jpeg",0.82));}catch(e){cb(dataUrl);}};im.onerror=()=>cb(dataUrl);im.src=dataUrl;}
   function setPend(dataUrl){shrinkImg(dataUrl,d=>{pendImg=d;cprev.innerHTML='<div class="cprevwrap"><img src="'+d+'"><span class="cprevx" title="Remove">\u00d7</span></div>';const x=cprev.querySelector(".cprevx");if(x)x.onclick=()=>{pendImg=null;cprev.innerHTML="";};});}
@@ -894,7 +895,7 @@ function openEditor(id){
   if(cfile)cfile.onchange=()=>{readImgFile(cfile.files[0]);cfile.value="";};
   if(cnew)cnew.addEventListener("paste",e=>{const items=(e.clipboardData&&e.clipboardData.items)||[];for(const it of items){if(it.type&&it.type.indexOf("image")===0){const f=it.getAsFile();if(f){e.preventDefault();readImgFile(f);return;}}}});
   m.querySelectorAll(".cimg").forEach(im=>im.onclick=()=>{const w=window.open("","_blank");if(w)w.document.write('<title>Attachment</title><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+im.dataset.full+'" style="max-width:100%;max-height:100vh"></body>');});
-  if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t&&!pendImg)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,av:commenterAvatar(),t:t,img:pendImg||"",ts:Date.now()});logAct(p,"commented");askNotify();save();scheduleBoard();openEditor(id);};
+  if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t&&!pendImg)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,av:commenterAvatar(),t:t,img:pendImg||"",ts:Date.now()});localStorage.removeItem("boko_cdraft_"+id);logAct(p,"commented");askNotify();save();scheduleBoard();openEditor(id);};
   m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this comment?")){p.comments.splice(+b.dataset.del,1);save();scheduleBoard();openEditor(id);}});
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
@@ -930,6 +931,7 @@ function notifyApproved(p){try{if(window.Notification&&Notification.permission==
 function logAct(p,act){p.log=p.log||[];p.log.push({a:(commenterName()||"Someone"),av:commenterAvatar(),act:act,ts:Date.now()});if(p.log.length>60)p.log=p.log.slice(-60);}
 function notifyComment(p,c){try{if(window.Notification&&Notification.permission==="granted"){const nn=new Notification("\uD83D\uDCAC "+(c.a||"Someone")+" commented",{body:(p.title||"Card")+": "+((c.t||"").slice(0,90)||"(image)"),icon:K_LIME,tag:"boko-cmt-"+p.id+"-"+c.ts});setTimeout(()=>{try{nn.close();}catch(e){}},8000);}}catch(e){}}
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
+function linkify(t){let h=esc(t);h=h.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');h=h.replace(/(^|[\s(])(www\.[^\s<]+)/g,'$1<a href="http://$2" target="_blank" rel="noopener">$2</a>');return h;}
 function mdBold(s){let h=esc(s);h=h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');h=h.replace(/\*\*([^*]+?)\*\*/g,"<strong>$1</strong>");h=h.replace(/__([^_]+?)__/g,"<u>$1</u>");return h;}
 function emailBodyHTML(p){return fname(p.body||p.caption||"",p.platform).split("\n").map(l=>l.trim()?('<p style="margin:0 0 10px">'+mdBold(l)+"</p>"):"<br>").join("");}
 function downloadPNG(p,si){const off=document.createElement("canvas");renderPoster(off,p,si||0);
