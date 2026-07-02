@@ -696,7 +696,7 @@ let toastT;function toast(msg){let t=document.getElementById("__t");
 
 function newPost(){
   const p={id:"u"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New post",
-    template:"statement",ratio:"square",headline:"YOUR HEADLINE HERE",accent:"",cta:"DM US",
+    template:"statement",ratio:"square",headline:"Your Heading",accent:"",cta:"DM US",
     eyebrow:"BOKO DIGITAL",bullets:["Point one","Point two","Point three"],caption:"",pillar:"Draft",date:"",changeNote:"",creator:commenterName(),comments:[],log:[]};
   state.push(p);save();renderBoard();openEditor(p.id);
 }
@@ -708,7 +708,7 @@ function newVideo(){
 }
 function newInfographic(){
   const p={id:"i"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New infographic",
-    template:"infographic",ratio:"square",headline:"YOUR INFOGRAPHIC TITLE",accent:"",cta:"LEARN MORE",
+    template:"infographic",ratio:"square",headline:"Your Heading Title",accent:"",cta:"LEARN MORE",
     eyebrow:"BOKO DIGITAL",bullets:["First key point","Second key point","Third key point"],
     caption:"",pillar:"Infographic",date:"",comments:[],creator:commenterName(),log:[]};
   state.push(p);save();renderBoard();openEditor(p.id);
