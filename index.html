@@ -109,6 +109,10 @@
   .citem{display:flex;gap:8px}
   .cav{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:#e9d5ff;color:#7b3fbf;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
   .cavme{background:#f7c9e6;color:#b4267f}
+  .hasimg{background-size:cover !important;background-position:center !important;color:transparent !important}
+  .napic{display:flex;align-items:center;gap:10px;margin:4px 0 2px}
+  .napicprev{width:44px;height:44px;border-radius:50%;background:#101316;color:var(--lime);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;background-size:cover;background-position:center;flex:0 0 auto}
+  .napicrm{font-size:11px;color:#c0392b;cursor:pointer;font-weight:600}
   .cmeta{flex:1;min-width:0}
   .cauthor{font-size:12px;font-weight:700;color:var(--text)}
   .ctime{font-weight:500;color:var(--muted);font-size:11px;margin-left:6px}
@@ -265,6 +269,7 @@
   <img id="glogo2" alt="Boko Digital">
   <h3>Welcome! What's your name?</h3>
   <input id="gname" type="text" placeholder="Your name" autocomplete="name">
+  <div class="napic"><div class="napicprev" id="napicprev">?</div><button type="button" class="cattach" id="napicbtn">Upload photo (optional)</button><span class="napicrm" id="napicrm" style="display:none">remove</span><input type="file" id="napicfile" accept="image/*" style="display:none"></div>
   <div class="gerr" id="gnerr"></div>
   <button class="btn lime" id="gnamebtn">Continue</button>
 </div></div>
@@ -327,8 +332,14 @@ document.getElementById("glogo").src=LOGO_LIGHT;
 document.getElementById("gbtn").onclick=()=>{const p=document.getElementById("gpass").value.trim();if(!p){showGate("Enter the passcode");return;}tryPass(p);};
 document.getElementById("gpass").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("gbtn").click();});
 document.getElementById("glogo2").src=LOGO_LIGHT;
-function showNameGate(){const g=document.getElementById("namegate");g.classList.add("show");const i=document.getElementById("gname");i.value=localStorage.getItem("boko_user")||"";setTimeout(()=>{i.focus();i.select();},60);}
-function saveName(){const n=(document.getElementById("gname").value||"").trim();if(!n){document.getElementById("gnerr").textContent="Please enter your name";return;}localStorage.setItem("boko_user",n);document.getElementById("namegate").classList.remove("show");askNotify();}
+let _napicPending=null;
+function _napicRender(av){const pv=document.getElementById("napicprev");const rm=document.getElementById("napicrm");if(!pv)return;if(av){pv.style.backgroundImage="url('"+av+"')";pv.textContent="";if(rm)rm.style.display="inline";}else{pv.style.backgroundImage="";pv.textContent=initials(document.getElementById("gname").value||commenterName());if(rm)rm.style.display="none";}}
+function showNameGate(){const g=document.getElementById("namegate");g.classList.add("show");const i=document.getElementById("gname");i.value=localStorage.getItem("boko_user")||"";_napicPending=commenterAvatar()||null;_napicRender(_napicPending);setTimeout(()=>{i.focus();i.select();},60);}
+function saveName(){const n=(document.getElementById("gname").value||"").trim();if(!n){document.getElementById("gnerr").textContent="Please enter your name";return;}localStorage.setItem("boko_user",n);if(_napicPending)localStorage.setItem("boko_avatar",_napicPending);else localStorage.removeItem("boko_avatar");document.getElementById("namegate").classList.remove("show");askNotify();}
+(function(){const b=document.getElementById("napicbtn"),f=document.getElementById("napicfile"),rm=document.getElementById("napicrm");
+  if(b&&f){b.onclick=()=>f.click();f.onchange=()=>{const fl=f.files[0];if(!fl||!/^image\//.test(fl.type||""))return;const r=new FileReader();r.onload=()=>squareThumb(r.result,80,d=>{_napicPending=d;_napicRender(d);});r.readAsDataURL(fl);f.value="";};}
+  if(rm)rm.onclick=()=>{_napicPending=null;_napicRender(null);};
+})();
 document.getElementById("gnamebtn").onclick=saveName;
 document.getElementById("gname").addEventListener("keydown",e=>{if(e.key==="Enter")saveName();});
 document.getElementById("namegate").addEventListener("click",e=>{if(e.target.id==="namegate"&&localStorage.getItem("boko_user"))document.getElementById("namegate").classList.remove("show");});
@@ -822,12 +833,12 @@ function openEditor(id){
       ${isEmail?'':`<div><label class="fl">Hashtags</label><textarea class="f" data-f="hashtags" style="min-height:52px" placeholder="#AIAutomation #ShopifyAU">${esc(p.hashtags||'')}</textarea></div>`}
       <div class="activity">
         <div class="clabel">Activity</div>
-        <div class="alist">${(p.log&&p.log.length)?p.log.slice(-8).reverse().map(l=>`<div class="aitem"><span class="aav">${esc(initials(l.a))}</span><span class="atext"><b>${esc(l.a||"Someone")}</b> ${esc(l.act)}<span class="ctime">${timeAgo(l.ts)}</span></span></div>`).join(""):'<div class="cempty">No activity yet.</div>'}</div>
+        <div class="alist">${(p.log&&p.log.length)?p.log.slice(-8).reverse().map(l=>`<div class="aitem">${avEl("aav",l.a,l.av)}<span class="atext"><b>${esc(l.a||"Someone")}</b> ${esc(l.act)}<span class="ctime">${timeAgo(l.ts)}</span></span></div>`).join(""):'<div class="cempty">No activity yet.</div>'}</div>
       </div>
       <div class="comments">
         <div class="clabel">Comments</div>
-        <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem"><div class="cav">${esc(initials(c.a))}</div><div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}</span><span class="cdel" data-del="${ci}">delete</span></div><div class="ctext">${esc(c.t)}</div>${c.img?`<img class="cimg" src="${c.img}" data-full="${c.img}" alt="attachment">`:""}</div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
-        <div class="cbox"><div class="cav cavme">${esc(initials(commenterName())||"+")}</div><div class="cinput"><textarea id="cnew" placeholder="Add a comment... (paste an image with Ctrl+V)"></textarea><div id="cprev" class="cprev"></div><div class="crow" style="justify-content:space-between"><button type="button" class="cattach" id="cattach">📎 Attach image</button><button class="btn lime" id="cbtn">Comment</button></div><input type="file" id="cfile" accept="image/*" style="display:none"></div></div>
+        <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem">${avEl("cav",c.a,c.av)}<div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}</span><span class="cdel" data-del="${ci}">delete</span></div><div class="ctext">${esc(c.t)}</div>${c.img?`<img class="cimg" src="${c.img}" data-full="${c.img}" alt="attachment">`:""}</div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
+        <div class="cbox">${avEl("cav cavme",commenterName()||"+",commenterAvatar())}<div class="cinput"><textarea id="cnew" placeholder="Add a comment... (paste an image with Ctrl+V)"></textarea><div id="cprev" class="cprev"></div><div class="crow" style="justify-content:space-between"><button type="button" class="cattach" id="cattach">📎 Attach image</button><button class="btn lime" id="cbtn">Comment</button></div><input type="file" id="cfile" accept="image/*" style="display:none"></div></div>
       </div>
       <div class="mactions">
         <button class="btn lime" data-a="approve">Approve</button>
@@ -883,7 +894,7 @@ function openEditor(id){
   if(cfile)cfile.onchange=()=>{readImgFile(cfile.files[0]);cfile.value="";};
   if(cnew)cnew.addEventListener("paste",e=>{const items=(e.clipboardData&&e.clipboardData.items)||[];for(const it of items){if(it.type&&it.type.indexOf("image")===0){const f=it.getAsFile();if(f){e.preventDefault();readImgFile(f);return;}}}});
   m.querySelectorAll(".cimg").forEach(im=>im.onclick=()=>{const w=window.open("","_blank");if(w)w.document.write('<title>Attachment</title><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+im.dataset.full+'" style="max-width:100%;max-height:100vh"></body>');});
-  if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t&&!pendImg)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,t:t,img:pendImg||"",ts:Date.now()});logAct(p,"commented");askNotify();save();scheduleBoard();openEditor(id);};
+  if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t&&!pendImg)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,av:commenterAvatar(),t:t,img:pendImg||"",ts:Date.now()});logAct(p,"commented");askNotify();save();scheduleBoard();openEditor(id);};
   m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this comment?")){p.comments.splice(+b.dataset.del,1);save();scheduleBoard();openEditor(id);}});
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
@@ -909,11 +920,14 @@ function pubDownload(p){if(p.platform==="Hubspot")return;if(p.type==="video"){if
 function pubOpen(p){const d=PUBDEST[p.platform];if(d&&d.url)window.open(d.url,"_blank","noopener");pubCopy(p);setTimeout(()=>pubDownload(p),120);toast("Opened "+(d?d.tool:"platform")+" — paste & schedule");}
 
 function commenterName(){return localStorage.getItem("boko_user")||"";}
+function commenterAvatar(){return localStorage.getItem("boko_avatar")||"";}
+function squareThumb(dataUrl,size,cb){const im=new Image();im.onload=()=>{const s=Math.min(im.width,im.height);const cv=document.createElement("canvas");cv.width=cv.height=size;const cx=cv.getContext("2d");cx.drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,size,size);try{cb(cv.toDataURL("image/jpeg",0.7));}catch(e){cb(dataUrl);}};im.onerror=()=>cb(dataUrl);im.src=dataUrl;}
+function avEl(cls,name,av){return av?('<div class="'+cls+' hasimg" style="background-image:url(\''+av+'\')"></div>'):('<div class="'+cls+'">'+esc(initials(name))+'</div>');}
 function initials(n){const x=(n||"").trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();return x||"?";}
 function timeAgo(ts){if(!ts)return"";const s=Math.floor((Date.now()-ts)/1000);if(s<60)return"just now";const m=Math.floor(s/60);if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";return Math.floor(h/24)+"d ago";}
 function askNotify(){try{if(window.Notification&&Notification.permission==="default")Notification.requestPermission();}catch(e){}}
 function notifyApproved(p){try{if(window.Notification&&Notification.permission==="granted"){const nn=new Notification("Approved \u2713 "+(p.title||"Post"),{body:(p.platform||"")+" \u00b7 "+kindOf(p)+((p.log&&p.log.length)?(" \u00b7 by "+p.log[p.log.length-1].a):""),icon:K_LIME,tag:"boko-appr-"+p.id});setTimeout(()=>{try{nn.close();}catch(e){}},7000);}}catch(e){}}
-function logAct(p,act){p.log=p.log||[];p.log.push({a:(commenterName()||"Someone"),act:act,ts:Date.now()});if(p.log.length>60)p.log=p.log.slice(-60);}
+function logAct(p,act){p.log=p.log||[];p.log.push({a:(commenterName()||"Someone"),av:commenterAvatar(),act:act,ts:Date.now()});if(p.log.length>60)p.log=p.log.slice(-60);}
 function notifyComment(p,c){try{if(window.Notification&&Notification.permission==="granted"){const nn=new Notification("\uD83D\uDCAC "+(c.a||"Someone")+" commented",{body:(p.title||"Card")+": "+((c.t||"").slice(0,90)||"(image)"),icon:K_LIME,tag:"boko-cmt-"+p.id+"-"+c.ts});setTimeout(()=>{try{nn.close();}catch(e){}},8000);}}catch(e){}}
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
 function mdBold(s){let h=esc(s);h=h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');h=h.replace(/\*\*([^*]+?)\*\*/g,"<strong>$1</strong>");h=h.replace(/__([^_]+?)__/g,"<u>$1</u>");return h;}
