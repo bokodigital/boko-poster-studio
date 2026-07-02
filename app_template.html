@@ -319,7 +319,8 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     if(idx===0){
       let fs=W*0.076,lines;const topY=H*0.28,maxBot=H*0.70;
       for(;;){ctx.font="700 "+fs+"px Poppins";lines=wrapLines(ctx,(cur.h||"").toUpperCase(),W-2*margin);if(topY+lines.length*fs*1.1<=maxBot||fs<=W*0.042)break;fs*=0.93;}
-      const lh=fs*1.1;drawAccentLines(ctx,lines,p.accent,margin,topY,lh,base,C.lime,"left",W);
+      const lh=fs*1.1;const endY=drawAccentLines(ctx,lines,(cur.acc||p.accent),margin,topY,lh,base,C.lime,"left",W);
+      if((cur.b||"").trim()){ctx.font="400 "+(W*0.036)+"px Poppins";ctx.fillStyle=base;ctx.textBaseline="top";const blh=W*0.036*1.4;let by=endY+W*0.03;const bmax=H*0.705;for(const l of wrapLines(ctx,cur.b,W-2*margin)){if(by+blh>bmax)break;ctx.fillText(l,margin,by);by+=blh;}}
       ctx.fillStyle=C.lime;ctx.font="700 "+(W*0.030)+"px Poppins";ctx.textBaseline="middle";
       ctx.fillText("SWIPE",margin,H*0.74);
       const sw=ctx.measureText("SWIPE").width,ax=margin+sw+W*0.03,ay=H*0.74;
@@ -328,9 +329,13 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
       ctx.textBaseline="top";
     } else {
       let hfs=W*0.056,hlines;for(;;){ctx.font="700 "+hfs+"px Poppins";hlines=wrapLines(ctx,(cur.h||"").toUpperCase(),W-2*margin);if(hlines.length<=3||hfs<=W*0.038)break;hfs*=0.93;}
-      const hlh=hfs*1.12;ctx.fillStyle=base;ctx.textBaseline="top";
-      let y=H*0.20;for(const l of hlines){ctx.fillText(l,margin,y);y+=hlh;}
-      if(cur.h)y+=W*0.03;
+      const hlh=hfs*1.12;const hH=(cur.h?hlines.length*hlh:0);
+      const _bfs=W*0.036,_blh=_bfs*1.45;const _paras=(cur.b||"").split(String.fromCharCode(10));
+      ctx.font="400 "+_bfs+"px Poppins";let _bH=0;for(const pp of _paras){if(!pp.trim()){_bH+=_blh*0.5;continue;}for(const ll of wrapLines(ctx,pp,W-2*margin))_bH+=_blh;_bH+=_blh*0.3;}
+      const _gap=(cur.h&&(cur.b||"").trim())?W*0.03:0;
+      ctx.fillStyle=base;ctx.textBaseline="top";ctx.font="700 "+hfs+"px Poppins";
+      let y=H*0.12+Math.max(0,((H*0.72)-(hH+_gap+_bH))/2);if(cur.h){ctx.font="700 "+hfs+"px Poppins";y=drawAccentLines(ctx,hlines,cur.acc,margin,y,hlh,base,C.lime,"left",W);}
+      if(cur.h)y+=_gap;
       const bfs=W*0.036,blh=bfs*1.45;ctx.font="400 "+bfs+"px Poppins";ctx.fillStyle=base;
       for(const para of (cur.b||"").split("\n")){if(!para.trim()){y+=blh*0.5;continue;}for(const l of wrapLines(ctx,para,W-2*margin)){ctx.fillText(l,margin,y);y+=blh;}y+=blh*0.3;}
     }

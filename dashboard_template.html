@@ -580,7 +580,7 @@ function openEditor(id){
       </div>
       <div><label class="fl">Slide ${curSlide+1} headline</label><input class="f" data-s="h" value="${esc((p.slides[curSlide]||{}).h||'')}"></div>
       <div><label class="fl">Slide ${curSlide+1} body text</label><textarea class="f" data-s="b" style="min-height:90px">${esc((p.slides[curSlide]||{}).b||'')}</textarea></div>
-      <div><label class="fl">Accent word (cover)</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
+      <div><label class="fl">Accent word (this slide)</label><input class="f" data-s="acc" value="${esc((p.slides[curSlide]||{}).acc||(curSlide===0?p.accent:'')||'')}"></div>
       `:`
       <div><label class="fl">Headline / message</label><input class="f" data-f="headline" value="${esc(p.headline)}"></div>
       ${uf("sub")?`<div><label class="fl">Subheadline (small body text)</label><textarea class="f" data-f="subhead" style="min-height:56px" placeholder="Optional supporting line — auto-sized to fit the design">${esc(p.subhead||'')}</textarea></div>`:""}
