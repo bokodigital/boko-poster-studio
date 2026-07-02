@@ -733,20 +733,20 @@ function newPost(){
   const p={id:"u"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New post",
     template:"statement",ratio:"square",headline:"Your Heading",accent:"",cta:"DM US",
     eyebrow:"BOKO DIGITAL",bullets:["Point one","Point two","Point three"],caption:"",pillar:"Draft",date:"",changeNote:"",creator:commenterName(),comments:[],log:[]};
-  state.push(p);save();renderBoard();openEditor(p.id);
+  state.unshift(p);save();renderBoard();openEditor(p.id);
 }
 function newVideo(){
   const p={id:"v"+Date.now(),type:"video",platform:"YouTube",status:"idea",title:"New video",
     template:"statement",ratio:"square",headline:"",accent:"",cta:"",eyebrow:"Boko Digital",
     bullets:[],caption:"",pillar:"Video",date:"",videoUrl:"",publishedUrl:"",thumbnail:"",changeNote:"",creator:commenterName(),comments:[],log:[]};
-  state.push(p);save();renderBoard();openEditor(p.id);
+  state.unshift(p);save();renderBoard();openEditor(p.id);
 }
 function newInfographic(){
   const p={id:"i"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New infographic",
     template:"infographic",ratio:"square",headline:"Your Heading Title",accent:"",cta:"LEARN MORE",
     eyebrow:"BOKO DIGITAL",bullets:["First key point","Second key point","Third key point"],
     caption:"",pillar:"Infographic",date:"",comments:[],creator:commenterName(),log:[]};
-  state.push(p);save();renderBoard();openEditor(p.id);
+  state.unshift(p);save();renderBoard();openEditor(p.id);
 }
 function genPosts(){
   if(!REFPOOL||!REFPOOL.length){toast("No reference posts available");return;}
