@@ -306,7 +306,7 @@ function mergeServer(sv){return Array.isArray(sv)?sv.map(p=>({...p})):[];}
 function setSyncDot(){const d=document.getElementById("syncdot");if(d)d.className="syncdot"+(syncOn?" on":"");}
 function startPoll(){if(!syncOn||_poll)return;_poll=setInterval(()=>{if(document.getElementById('overlay').classList.contains('show'))return;
   fetch('/api/state',{headers:{'x-board-pass':PASS}}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.state){const m=mergeServer(d.state);
-    if(JSON.stringify(m)!==JSON.stringify(state)){const oldById={};state.forEach(o=>{oldById[o.id]=o.status;});m.forEach(np=>{if(np.status==="approved"&&oldById[np.id]&&oldById[np.id]!=="approved")notifyApproved(np);});state=m;localStorage.setItem(STORAGE,JSON.stringify(state));renderBoard();}}}).catch(()=>{});},8000);}
+    if(JSON.stringify(m)!==JSON.stringify(state)){const oldMap={};state.forEach(o=>{oldMap[o.id]={status:o.status,clen:(o.comments||[]).length,cauthors:(o.comments||[]).map(c=>c.a)};});const me=commenterName();m.forEach(np=>{const old=oldMap[np.id];if(np.status==="approved"&&old&&old.status!=="approved")notifyApproved(np);if(old){const nc=np.comments||[];if(nc.length>old.clen){const involved=(np.creator&&np.creator===me)||(old.cauthors&&old.cauthors.indexOf(me)>=0);if(involved){for(let k=old.clen;k<nc.length;k++){const c=nc[k];if(c&&c.a!==me)notifyComment(np,c);}}}}});state=m;localStorage.setItem(STORAGE,JSON.stringify(state));renderBoard();}}}).catch(()=>{});},8000);}
 function migrateHashtags(){let ch=false;state.forEach(p=>{if(p.platform!=="Hubspot"&&(p.hashtags===undefined||p.hashtags===null)){const t=(p.caption||"").match(/#[\w]+/g);p.hashtags=t?t.join(" "):"";if(t){p.caption=(p.caption||"").replace(/#[\w]+/g,"").replace(/[ \t]+/g," ").replace(/ *\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();}ch=true;}});if(ch)save();}
 function afterLoad(){document.getElementById("gate").classList.remove("show");migrateHashtags();preloadAvatars(()=>{renderBoard();setSyncDot();startPoll();if(!localStorage.getItem("boko_user"))showNameGate();try{const _cid=new URLSearchParams(location.search).get("card");if(_cid&&state.find(p=>p.id===_cid))openEditor(_cid);}catch(e){}});}
 function loadFrom(sv){state=mergeServer(sv);localStorage.setItem(STORAGE,JSON.stringify(state));pushServer();afterLoad();}
@@ -542,7 +542,7 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
       ctx.strokeStyle=C.lime;ctx.lineWidth=W*0.005;
       ctx.beginPath();ctx.moveTo(pillX+pr,pillY);ctx.arcTo(pillX+pillW,pillY,pillX+pillW,pillY+pillH,pr);ctx.arcTo(pillX+pillW,pillY+pillH,pillX,pillY+pillH,pr);ctx.arcTo(pillX,pillY+pillH,pillX,pillY,pr);ctx.arcTo(pillX,pillY,pillX+pillW,pillY,pr);ctx.closePath();ctx.stroke();
       ctx.fillStyle=C.lime;let ly=pillY+W*0.010;for(const l of labLines){ctx.fillText(l,pillX+W*0.025,ly);ly+=lfs*1.14;}
-      if(items[i].d){ctx.font="400 "+dfs+"px Poppins";ctx.fillStyle=base;const dl=wrapLines(ctx,items[i].d,availW).slice(0,2);let dy=pillY+pillH+W*0.014;for(const l of dl){ctx.fillText(l,pillX,dy);dy+=dfs*1.3;}}
+      if(items[i].d){ctx.font="400 "+dfs+"px Poppins";ctx.fillStyle=base;const dmax=n>=4?1:2;const dl=wrapLines(ctx,items[i].d,availW).slice(0,dmax);let dy=pillY+pillH+W*0.013;for(const l of dl){ctx.fillText(l,pillX,dy);dy+=dfs*1.3;}}
     }
     footer(ctx,W,H,margin,base);
   }
@@ -744,6 +744,7 @@ function copyEmail(p){
 function openEditor(id){
   const p=state.find(x=>x.id===id);if(!p)return;
   if(_openId!==id){curSlide=0;_openId=id;}
+  if(p.platform==="YouTube")p.type="video";
   const isEmail=p.platform==="Hubspot";const isVid=p.type==="video"&&!isEmail;
   const isCarousel=(!isVid&&!isEmail&&p.template==="carousel");
   if(isCarousel){if(!Array.isArray(p.slides)||!p.slides.length)p.slides=[{h:p.headline||"",b:(p.caption||"").split("\n")[0]||""}];curSlide=Math.max(0,Math.min(curSlide,p.slides.length-1));}
@@ -752,7 +753,7 @@ function openEditor(id){
     <div class="mprev">${isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):(autoStory(p)?'<div class="dualprev"><div class="pvcol"><span class="pvlab">Feed 1:1</span><canvas id="mcv"></canvas></div><div class="pvcol"><span class="pvlab">Story 9:16</span><canvas id="mcvS"></canvas></div></div>':'<canvas id="mcv"></canvas>')}</div>
     <div class="mform">
       <div style="display:flex;align-items:center"><h3>${esc(p.title)}</h3><button class="x" data-a="close">&times;</button></div>
-      ${isEmail?'':`<div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>`}
+      ${(isEmail||p.platform==="YouTube")?'':`<div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>`}
       ${(isVid||isEmail)?'':`<div class="seg" id="tplseg">${TEMPLATES.map(t=>`<button data-t="${t}" class="${p.template===t?'on':''}">${t}</button>`).join("")}</div>`}
       <div class="two">
         <div><label class="fl">Status</label><select class="f" data-f="status2">${STATUSES.map(sx=>`<option value="${sx.id}" ${p.status===sx.id?'selected':''}>${sx.label}</option>`).join("")}</select></div>
@@ -799,7 +800,7 @@ function openEditor(id){
         <div><label class="fl">Accent word / number</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
         <div><label class="fl">Eyebrow</label><input class="f" data-f="eyebrow" value="${esc(p.eyebrow||'')}"></div>
       </div>
-      <div><label class="fl">Bullets (comma)</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>
+      ${["checklist","grid","infographic"].includes(p.template)?`<div><label class="fl">Bullets (comma)${p.template==="infographic"?' — use "Label: description" per item':""}</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>`:""}
       `}
       <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>`}
       ${isEmail?'':`<div><label class="fl">Hashtags</label><textarea class="f" data-f="hashtags" style="min-height:52px" placeholder="#AIAutomation #ShopifyAU">${esc(p.hashtags||'')}</textarea></div>`}
@@ -852,7 +853,7 @@ function openEditor(id){
   {const b3=m.querySelector("#blink");if(b3)b3.onclick=efLink;}
   if(bodyfld)bodyfld.addEventListener("keydown",e=>{if(!(e.ctrlKey||e.metaKey))return;const k=(e.key||"").toLowerCase();if(k==="b"){e.preventDefault();efWrap("**","**","bold");}else if(k==="u"){e.preventDefault();efWrap("__","__","underline");}else if(k==="k"){e.preventDefault();efLink();}});
 
-  m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";save();openEditor(id);scheduleBoard();});
+  m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";if(p.platform==="YouTube")p.type="video";save();openEditor(id);scheduleBoard();});
   m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;const _lbl=(STATUSES.find(x=>x.id===sel.value)||{}).label||sel.value;logAct(p,"moved to "+_lbl);if(sel.value==="approved"){askNotify();notifyApproved(p);}save();counts();scheduleBoard();});
   const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();scheduleBoard();};
   const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;save();scheduleBoard();};
@@ -866,7 +867,7 @@ function openEditor(id){
   if(cfile)cfile.onchange=()=>{readImgFile(cfile.files[0]);cfile.value="";};
   if(cnew)cnew.addEventListener("paste",e=>{const items=(e.clipboardData&&e.clipboardData.items)||[];for(const it of items){if(it.type&&it.type.indexOf("image")===0){const f=it.getAsFile();if(f){e.preventDefault();readImgFile(f);return;}}}});
   m.querySelectorAll(".cimg").forEach(im=>im.onclick=()=>{const w=window.open("","_blank");if(w)w.document.write('<title>Attachment</title><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+im.dataset.full+'" style="max-width:100%;max-height:100vh"></body>');});
-  if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t&&!pendImg)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,t:t,img:pendImg||"",ts:Date.now()});save();scheduleBoard();openEditor(id);};
+  if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t&&!pendImg)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,t:t,img:pendImg||"",ts:Date.now()});logAct(p,"commented");askNotify();save();scheduleBoard();openEditor(id);};
   m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this comment?")){p.comments.splice(+b.dataset.del,1);save();scheduleBoard();openEditor(id);}});
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
@@ -897,6 +898,7 @@ function timeAgo(ts){if(!ts)return"";const s=Math.floor((Date.now()-ts)/1000);if
 function askNotify(){try{if(window.Notification&&Notification.permission==="default")Notification.requestPermission();}catch(e){}}
 function notifyApproved(p){try{if(window.Notification&&Notification.permission==="granted"){const nn=new Notification("Approved \u2713 "+(p.title||"Post"),{body:(p.platform||"")+" \u00b7 "+kindOf(p)+((p.log&&p.log.length)?(" \u00b7 by "+p.log[p.log.length-1].a):""),icon:K_LIME,tag:"boko-appr-"+p.id});setTimeout(()=>{try{nn.close();}catch(e){}},7000);}}catch(e){}}
 function logAct(p,act){p.log=p.log||[];p.log.push({a:(commenterName()||"Someone"),act:act,ts:Date.now()});if(p.log.length>60)p.log=p.log.slice(-60);}
+function notifyComment(p,c){try{if(window.Notification&&Notification.permission==="granted"){const nn=new Notification("\uD83D\uDCAC "+(c.a||"Someone")+" commented",{body:(p.title||"Card")+": "+((c.t||"").slice(0,90)||"(image)"),icon:K_LIME,tag:"boko-cmt-"+p.id+"-"+c.ts});setTimeout(()=>{try{nn.close();}catch(e){}},8000);}}catch(e){}}
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
 function mdBold(s){let h=esc(s);h=h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');h=h.replace(/\*\*([^*]+?)\*\*/g,"<strong>$1</strong>");h=h.replace(/__([^_]+?)__/g,"<u>$1</u>");return h;}
 function emailBodyHTML(p){return fname(p.body||p.caption||"",p.platform).split("\n").map(l=>l.trim()?('<p style="margin:0 0 10px">'+mdBold(l)+"</p>"):"<br>").join("");}
@@ -927,20 +929,20 @@ let toastT;function toast(msg){let t=document.getElementById("__t");
 function newPost(){
   const p={id:"u"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New post",
     template:"statement",ratio:"square",headline:"YOUR HEADLINE HERE",accent:"",cta:"DM US",
-    eyebrow:"BOKO DIGITAL",bullets:["Point one","Point two","Point three"],caption:"",pillar:"Draft",date:"",changeNote:""};
+    eyebrow:"BOKO DIGITAL",bullets:["Point one","Point two","Point three"],caption:"",pillar:"Draft",date:"",changeNote:"",creator:commenterName(),comments:[],log:[]};
   state.push(p);save();renderBoard();openEditor(p.id);
 }
 function newVideo(){
   const p={id:"v"+Date.now(),type:"video",platform:"YouTube",status:"idea",title:"New video",
     template:"statement",ratio:"square",headline:"",accent:"",cta:"",eyebrow:"Boko Digital",
-    bullets:[],caption:"",pillar:"Video",date:"",videoUrl:"",publishedUrl:"",thumbnail:"",changeNote:""};
+    bullets:[],caption:"",pillar:"Video",date:"",videoUrl:"",publishedUrl:"",thumbnail:"",changeNote:"",creator:commenterName(),comments:[],log:[]};
   state.push(p);save();renderBoard();openEditor(p.id);
 }
 function newInfographic(){
   const p={id:"i"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New infographic",
     template:"infographic",ratio:"square",headline:"YOUR INFOGRAPHIC TITLE",accent:"",cta:"LEARN MORE",
     eyebrow:"BOKO DIGITAL",bullets:["First key point","Second key point","Third key point"],
-    caption:"",pillar:"Infographic",date:"",comments:[]};
+    caption:"",pillar:"Infographic",date:"",comments:[],creator:commenterName(),log:[]};
   state.push(p);save();renderBoard();openEditor(p.id);
 }
 function genPosts(){
@@ -952,7 +954,7 @@ function genPosts(){
   const m=curMonth||new Date().toISOString().slice(0,7);const[Y,M]=m.split("-").map(Number);const last=new Date(Y,M,0).getDate();
   pool.slice(0,n).forEach((src,idx)=>{
     const p=JSON.parse(JSON.stringify(src));
-    p.id="g"+Date.now().toString(36)+idx;p.status="idea";p.comments=[];p.changeNote="";
+    p.id="g"+Date.now().toString(36)+idx;p.status="idea";p.comments=[];p.changeNote="";p.creator=commenterName();
     p.date=m+"-"+String(1+Math.floor(Math.random()*last)).padStart(2,"0");
     state.push(p);
   });
