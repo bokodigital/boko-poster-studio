@@ -534,6 +534,8 @@ function openEditor(id){
   const isEmail=p.platform==="Hubspot";const isVid=p.type==="video"&&!isEmail;
   const isCarousel=(!isVid&&!isEmail&&p.template==="carousel");
   if(isCarousel){if(!Array.isArray(p.slides)||!p.slides.length)p.slides=[{h:p.headline||"",b:(p.caption||"").split("\n")[0]||""}];curSlide=Math.max(0,Math.min(curSlide,p.slides.length-1));}
+  const TPL_FIELDS={statement:["sub","acc"],stat:["eye","acc","sub"],cta:["acc","sub"],card:["acc","sub"],lime:["sub"],checklist:["acc","bul"],quote:["acc","sub"],grid:["bul"],index:["eye","acc"],split:["acc","sub"],founder:["eye"],carousel:["acc"],infographic:["eye","acc","bul"]};
+  const uf=(k)=>(TPL_FIELDS[p.template]||["sub","acc","eye"]).indexOf(k)>=0;
   const m=document.getElementById("modal");
   m.innerHTML=`
     <div class="mprev">${isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):(autoStory(p)?'<div class="dualprev"><div class="pvcol"><span class="pvlab">Feed 1:1</span><canvas id="mcv"></canvas></div><div class="pvcol"><span class="pvlab">Story 9:16</span><canvas id="mcvS"></canvas></div></div>':'<canvas id="mcv"></canvas>')}</div>
@@ -581,12 +583,12 @@ function openEditor(id){
       <div><label class="fl">Accent word (cover)</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
       `:`
       <div><label class="fl">Headline / message</label><input class="f" data-f="headline" value="${esc(p.headline)}"></div>
-      <div><label class="fl">Subheadline (small body text)</label><textarea class="f" data-f="subhead" style="min-height:56px" placeholder="Optional supporting line — auto-sized to fit the design">${esc(p.subhead||'')}</textarea></div>
-      <div class="two">
-        <div><label class="fl">Accent word / number</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>
-        <div><label class="fl">Eyebrow</label><input class="f" data-f="eyebrow" value="${esc(p.eyebrow||'')}"></div>
-      </div>
-      ${["checklist","grid","infographic"].includes(p.template)?`<div><label class="fl">Bullets (comma)${p.template==="infographic"?' — use "Label: description" per item':""}</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>`:""}
+      ${uf("sub")?`<div><label class="fl">Subheadline (small body text)</label><textarea class="f" data-f="subhead" style="min-height:56px" placeholder="Optional supporting line — auto-sized to fit the design">${esc(p.subhead||'')}</textarea></div>`:""}
+      ${(uf("acc")||uf("eye"))?`<div class="two">
+        ${uf("acc")?`<div><label class="fl">${p.template==="stat"||p.template==="index"?"Accent number":"Accent word / number"}</label><input class="f" data-f="accent" value="${esc(p.accent||'')}"></div>`:""}
+        ${uf("eye")?`<div><label class="fl">${p.template==="founder"?"Name":"Eyebrow"}</label><input class="f" data-f="eyebrow" value="${esc(p.eyebrow||'')}"></div>`:""}
+      </div>`:""}
+      ${uf("bul")?`<div><label class="fl">Bullets (comma)${p.template==="infographic"?' — use "Label: description" per item':""}</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>`:""}
       `}
       <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>`}
       ${isEmail?'':`<div><label class="fl">Hashtags</label><textarea class="f" data-f="hashtags" style="min-height:52px" placeholder="#AIAutomation #ShopifyAU">${esc(p.hashtags||'')}</textarea></div>`}
