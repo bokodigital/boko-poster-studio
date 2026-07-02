@@ -120,6 +120,7 @@
   .ctime{font-weight:500;color:var(--muted);font-size:11px;margin-left:6px}
   .ctext{font-size:13px;color:var(--text);line-height:1.45;white-space:pre-wrap;word-break:break-word}
   .ctext a{color:#2456b8;text-decoration:underline;word-break:break-all}
+  .cedit{margin-left:8px;font-size:10px;color:#2456b8;cursor:pointer;font-weight:600}
   .cdel{margin-left:8px;font-size:10px;color:#c0392b;cursor:pointer;font-weight:600}
   .cimg{max-width:220px;max-height:200px;border-radius:8px;margin-top:6px;display:block;cursor:pointer;border:1px solid var(--line)}
   .cprev{margin-top:6px}
@@ -598,7 +599,7 @@ function openEditor(id){
       </div>
       <div class="comments">
         <div class="clabel">Comments</div>
-        <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem">${avEl("cav",c.a,c.av)}<div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}</span><span class="cdel" data-del="${ci}">delete</span></div><div class="ctext">${linkify(c.t)}</div>${c.img?`<img class="cimg" src="${c.img}" data-full="${c.img}" alt="attachment">`:""}</div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
+        <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem">${avEl("cav",c.a,c.av)}<div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}${c.edited?" · edited":""}</span><span class="cedit" data-edit="${ci}">edit</span><span class="cdel" data-del="${ci}">delete</span></div><div class="ctext">${linkify(c.t)}</div>${c.img?`<img class="cimg" src="${c.img}" data-full="${c.img}" alt="attachment">`:""}</div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
         <div class="cbox">${avEl("cav cavme",commenterName()||"+",commenterAvatar())}<div class="cinput"><textarea id="cnew" placeholder="Add a comment... (paste an image with Ctrl+V)">${esc(localStorage.getItem("boko_cdraft_"+p.id)||"")}</textarea><div id="cprev" class="cprev"></div><div class="crow" style="justify-content:space-between"><button type="button" class="cattach" id="cattach">📎 Attach image</button><button class="btn lime" id="cbtn">Comment</button></div><input type="file" id="cfile" accept="image/*" style="display:none"></div></div>
       </div>
       <div class="mactions">
@@ -648,6 +649,7 @@ function openEditor(id){
   m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";logAct(p,"approved");askNotify();notifyApproved(p);save();closeEditor();renderBoard();confetti();toast("Approved");};
   const cbtn=m.querySelector("#cbtn"),cnew=m.querySelector("#cnew"),cfile=m.querySelector("#cfile"),cattach=m.querySelector("#cattach"),cprev=m.querySelector("#cprev");
   if(cnew)cnew.addEventListener("input",()=>{const v=cnew.value;if(v.trim())localStorage.setItem("boko_cdraft_"+id,v);else localStorage.removeItem("boko_cdraft_"+id);});
+  if(cnew)cnew.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&(e.key||"").toLowerCase()==="b"){e.preventDefault();const s2=cnew.selectionStart,e2=cnew.selectionEnd,v=cnew.value;if(e2>s2){cnew.value=v.slice(0,s2)+"**"+v.slice(s2,e2)+"**"+v.slice(e2);cnew.dispatchEvent(new Event("input"));cnew.focus();const np=e2+4;cnew.setSelectionRange(np,np);}else{cnew.value=v.slice(0,s2)+"**bold**"+v.slice(s2);cnew.dispatchEvent(new Event("input"));cnew.focus();cnew.setSelectionRange(s2+2,s2+6);}}});
   let pendImg=null;
   function shrinkImg(dataUrl,cb){const im=new Image();im.onload=()=>{let w=im.width,h=im.height,mx=1000;if(w>mx||h>mx){if(w>=h){h=Math.round(h*mx/w);w=mx;}else{w=Math.round(w*mx/h);h=mx;}}const cv=document.createElement("canvas");cv.width=w;cv.height=h;cv.getContext("2d").drawImage(im,0,0,w,h);try{cb(cv.toDataURL("image/jpeg",0.82));}catch(e){cb(dataUrl);}};im.onerror=()=>cb(dataUrl);im.src=dataUrl;}
   function setPend(dataUrl){shrinkImg(dataUrl,d=>{pendImg=d;cprev.innerHTML='<div class="cprevwrap"><img src="'+d+'"><span class="cprevx" title="Remove">\u00d7</span></div>';const x=cprev.querySelector(".cprevx");if(x)x.onclick=()=>{pendImg=null;cprev.innerHTML="";};});}
@@ -658,6 +660,7 @@ function openEditor(id){
   m.querySelectorAll(".cimg").forEach(im=>im.onclick=()=>{const w=window.open("","_blank");if(w)w.document.write('<title>Attachment</title><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+im.dataset.full+'" style="max-width:100%;max-height:100vh"></body>');});
   if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t&&!pendImg)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,av:commenterAvatar(),t:t,img:pendImg||"",ts:Date.now()});localStorage.removeItem("boko_cdraft_"+id);logAct(p,"commented");askNotify();save();scheduleBoard();openEditor(id);};
   m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this comment?")){p.comments.splice(+b.dataset.del,1);save();scheduleBoard();openEditor(id);}});
+  m.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{const i=+b.dataset.edit;const cc=p.comments[i];if(!cc)return;const nt=prompt("Edit comment:",cc.t||"");if(nt===null)return;cc.t=nt.trim();cc.edited=Date.now();save();scheduleBoard();openEditor(id);});
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
   const td=m.querySelector('[data-a="thumbdl"]');if(td)td.onclick=()=>downloadThumb(p);
@@ -692,7 +695,7 @@ function notifyApproved(p){try{if(window.Notification&&Notification.permission==
 function logAct(p,act){p.log=p.log||[];p.log.push({a:(commenterName()||"Someone"),av:commenterAvatar(),act:act,ts:Date.now()});if(p.log.length>60)p.log=p.log.slice(-60);}
 function notifyComment(p,c){try{if(window.Notification&&Notification.permission==="granted"){const nn=new Notification("\uD83D\uDCAC "+(c.a||"Someone")+" commented",{body:(p.title||"Card")+": "+((c.t||"").slice(0,90)||"(image)"),icon:K_LIME,tag:"boko-cmt-"+p.id+"-"+c.ts});setTimeout(()=>{try{nn.close();}catch(e){}},8000);}}catch(e){}}
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
-function linkify(t){let h=esc(t);h=h.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');h=h.replace(/(^|[\s(])(www\.[^\s<]+)/g,'$1<a href="http://$2" target="_blank" rel="noopener">$2</a>');return h;}
+function linkify(t){let h=esc(t);h=h.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');h=h.replace(/(^|[\s(])(www\.[^\s<]+)/g,'$1<a href="http://$2" target="_blank" rel="noopener">$2</a>');h=h.replace(/\*\*([^*]+?)\*\*/g,"<strong>$1</strong>");h=h.replace(/__([^_]+?)__/g,"<u>$1</u>");return h;}
 function mdBold(s){let h=esc(s);h=h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');h=h.replace(/\*\*([^*]+?)\*\*/g,"<strong>$1</strong>");h=h.replace(/__([^_]+?)__/g,"<u>$1</u>");return h;}
 function emailBodyHTML(p){return fname(p.body||p.caption||"",p.platform).split("\n").map(l=>l.trim()?('<p style="margin:0 0 10px">'+mdBold(l)+"</p>"):"<br>").join("");}
 function downloadPNG(p,si){const off=document.createElement("canvas");renderPoster(off,p,si||0);
