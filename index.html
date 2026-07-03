@@ -568,9 +568,9 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
       // label pill (lime fill, black text)
       ctx.font="700 "+(W*0.034)+"px Poppins";const lab=(items[i].t||"").toUpperCase();
       const labLines=wrapLines(ctx,lab,availW-W*0.05);let maxLW=0;for(const l of labLines)maxLW=Math.max(maxLW,ctx.measureText(l).width);
-      const pw=Math.min(availW,maxLW+W*0.05),ph=labLines.length*W*0.034*1.14+W*0.020,py=cy-ph/2,pr=ph/2;
+      const pw=Math.min(availW,maxLW+W*0.075),ph=labLines.length*W*0.034*1.14+W*0.020,py=cy-ph/2,pr=ph/2;
       ctx.fillStyle=C.lime;ctx.beginPath();ctx.moveTo(pillX+pr,py);ctx.arcTo(pillX+pw,py,pillX+pw,py+ph,pr);ctx.arcTo(pillX+pw,py+ph,pillX,py+ph,pr);ctx.arcTo(pillX,py+ph,pillX,py,pr);ctx.arcTo(pillX,py,pillX+pw,py,pr);ctx.closePath();ctx.fill();
-      ctx.fillStyle=C.black;let ly=py+W*0.010;for(const l of labLines){ctx.fillText(l,pillX+W*0.025,ly);ly+=W*0.034*1.14;}
+      ctx.fillStyle=C.black;let ly=py+W*0.010;for(const l of labLines){const lw=ctx.measureText(l).width;ctx.fillText(l,pillX+(pw-lw)/2,ly);ly+=W*0.034*1.14;}
       // description under pill (white)
       if(items[i].d){ctx.font="400 "+(W*0.026)+"px Poppins";ctx.fillStyle=C.white;const dl=wrapLines(ctx,items[i].d,availW).slice(0,2);let dy=py+ph+W*0.010;for(const l of dl){ctx.fillText(l,pillX,dy);dy+=W*0.026*1.28;}}
     }
