@@ -121,6 +121,10 @@
   .ctext{font-size:13px;color:var(--text);line-height:1.45;white-space:pre-wrap;word-break:break-word}
   .ctext a{color:#2456b8;text-decoration:underline;word-break:break-all}
   .cedit{margin-left:8px;font-size:10px;color:#2456b8;cursor:pointer;font-weight:600}
+  .ceditbox{width:100%;min-height:52px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;font-size:13px;box-sizing:border-box;resize:vertical}
+  .ceditbox:focus{outline:none;border-color:var(--lime)}
+  .ceditrow{display:flex;gap:6px;margin-top:5px}
+  .cmini{font-size:11px !important;padding:5px 12px !important}
   .cdel{margin-left:8px;font-size:10px;color:#c0392b;cursor:pointer;font-weight:600}
   .cimg{max-width:220px;max-height:200px;border-radius:8px;margin-top:6px;display:block;cursor:pointer;border:1px solid var(--line)}
   .cprev{margin-top:6px}
@@ -615,7 +619,7 @@ function todayStr(){return new Date().toISOString().slice(0,10);}
 function fmtDate(d){if(!d)return "";const dt=new Date(d+"T00:00:00");if(isNaN(dt))return d;return WK[dt.getDay()]+" "+dt.getDate()+" "+MON[dt.getMonth()];}
 function isOverdue(p){return p.date && p.date<todayStr() && p.status!=="published";}
 function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":(p==="YouTube"||p==="YouTube Shorts")?"yt":p==="Hubspot"?"hs":"fb";}
-let curMonth="",curWeek=null,_brd=null,curSlide=0,_openId=null,view="board";
+let curMonth="",curWeek=null,_brd=null,curSlide=0,_openId=null,view="board",_editCmt=null;
 function scheduleBoard(){clearTimeout(_brd);_brd=setTimeout(()=>{if(document.getElementById("overlay").classList.contains("show"))renderBoard();},450);}
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
 function ym(d){return (d||"").slice(0,7);}
@@ -786,7 +790,7 @@ function copyEmail(p){
 }
 function openEditor(id){
   const p=state.find(x=>x.id===id);if(!p)return;
-  if(_openId!==id){curSlide=0;_openId=id;}
+  if(_openId!==id){curSlide=0;_openId=id;_editCmt=null;}
   if(p.platform==="YouTube"||p.platform==="YouTube Shorts")p.type="video";
   const isEmail=p.platform==="Hubspot";const isVid=p.type==="video"&&!isEmail;
   const isCarousel=(!isVid&&!isEmail&&p.template==="carousel");
@@ -855,7 +859,7 @@ function openEditor(id){
       </div>
       <div class="comments">
         <div class="clabel">Comments</div>
-        <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem">${avEl("cav",c.a,c.av)}<div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}${c.edited?" · edited":""}</span>${(c.a&&c.a===commenterName())?`<span class="cedit" data-edit="${ci}">edit</span>`:""}<span class="cdel" data-del="${ci}">delete</span></div><div class="ctext">${linkify(c.t)}</div>${c.img?`<img class="cimg" src="${c.img}" data-full="${c.img}" alt="attachment">`:""}</div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
+        <div class="clist">${(p.comments&&p.comments.length)?p.comments.map((c,ci)=>`<div class="citem">${avEl("cav",c.a,c.av)}<div class="cmeta"><div class="cauthor">${esc(c.a||"Anon")}<span class="ctime">${timeAgo(c.ts)}${c.edited?" · edited":""}</span>${(c.a&&c.a===commenterName())?`<span class="cedit" data-edit="${ci}">edit</span>`:""}<span class="cdel" data-del="${ci}">delete</span></div>${_editCmt===ci?`<textarea class="ceditbox" id="cedit_${ci}">${esc(c.t)}</textarea><div class="ceditrow"><button class="btn lime cmini" data-esave="${ci}">Save</button><button class="btn ghost cmini" data-ecancel="${ci}">Cancel</button></div>`:`<div class="ctext">${linkify(c.t)}</div>${c.img?`<img class="cimg" src="${c.img}" data-full="${c.img}" alt="attachment">`:""}`}</div></div>`).join(""):'<div class="cempty">No comments yet.</div>'}</div>
         <div class="cbox">${avEl("cav cavme",commenterName()||"+",commenterAvatar())}<div class="cinput"><textarea id="cnew" placeholder="Add a comment... (paste an image with Ctrl+V)">${esc(localStorage.getItem("boko_cdraft_"+p.id)||"")}</textarea><div id="cprev" class="cprev"></div><div class="crow" style="justify-content:space-between"><button type="button" class="cattach" id="cattach">📎 Attach image</button><button class="btn lime" id="cbtn">Comment</button></div><input type="file" id="cfile" accept="image/*" style="display:none"></div></div>
       </div>
       <div class="mactions">
@@ -916,7 +920,10 @@ function openEditor(id){
   m.querySelectorAll(".cimg").forEach(im=>im.onclick=()=>{const w=window.open("","_blank");if(w)w.document.write('<title>Attachment</title><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+im.dataset.full+'" style="max-width:100%;max-height:100vh"></body>');});
   if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t&&!pendImg)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,av:commenterAvatar(),t:t,img:pendImg||"",ts:Date.now()});localStorage.removeItem("boko_cdraft_"+id);logAct(p,"commented");askNotify();save();scheduleBoard();openEditor(id);};
   m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this comment?")){p.comments.splice(+b.dataset.del,1);save();scheduleBoard();openEditor(id);}});
-  m.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{const i=+b.dataset.edit;const cc=p.comments[i];if(!cc)return;if(cc.a!==commenterName()){toast("You can only edit your own comment");return;}const nt=prompt("Edit comment:",cc.t||"");if(nt===null)return;cc.t=nt.trim();cc.edited=Date.now();save();scheduleBoard();openEditor(id);});
+  m.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{const i=+b.dataset.edit;const cc=p.comments[i];if(!cc||cc.a!==commenterName())return;_editCmt=i;openEditor(id);});
+  m.querySelectorAll("[data-esave]").forEach(b=>b.onclick=()=>{const i=+b.dataset.esave;const cc=p.comments[i];const te=m.querySelector("#cedit_"+i);if(!cc||!te)return;cc.t=(te.value||"").trim();cc.edited=Date.now();_editCmt=null;save();scheduleBoard();openEditor(id);});
+  m.querySelectorAll("[data-ecancel]").forEach(b=>b.onclick=()=>{_editCmt=null;openEditor(id);});
+  if(_editCmt!=null){const _te=m.querySelector("#cedit_"+_editCmt);if(_te){_te.focus();_te.setSelectionRange(_te.value.length,_te.value.length);}}
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
   const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
   const td=m.querySelector('[data-a="thumbdl"]');if(td)td.onclick=()=>downloadThumb(p);
