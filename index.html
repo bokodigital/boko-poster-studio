@@ -859,7 +859,7 @@ function openEditor(id){
         <div class="cbox">${avEl("cav cavme",commenterName()||"+",commenterAvatar())}<div class="cinput"><textarea id="cnew" placeholder="Add a comment... (paste an image with Ctrl+V)">${esc(localStorage.getItem("boko_cdraft_"+p.id)||"")}</textarea><div id="cprev" class="cprev"></div><div class="crow" style="justify-content:space-between"><button type="button" class="cattach" id="cattach">📎 Attach image</button><button class="btn lime" id="cbtn">Comment</button></div><input type="file" id="cfile" accept="image/*" style="display:none"></div></div>
       </div>
       <div class="mactions">
-        <button class="btn lime" data-a="approve">Approve</button>
+        ${["approved","scheduled","published"].includes(p.status)?"":'<button class="btn lime" data-a="approve">Approve</button>'}
         <button class="btn ghost" data-a="copy">${isEmail?'Copy email':'Copy caption'}</button>
         ${(isVid||isEmail)?'':'<button class="btn ghost" data-a="download">Download PNG</button>'}
         ${(isVid&&p.thumbnail)?'<button class="btn ghost" data-a="thumbdl">Download thumbnail</button>':''}
@@ -902,7 +902,7 @@ function openEditor(id){
   m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;const _lbl=(STATUSES.find(x=>x.id===sel.value)||{}).label||sel.value;logAct(p,"moved to "+_lbl);if(sel.value==="approved"){askNotify();notifyApproved(p);}save();counts();scheduleBoard();});
   const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();scheduleBoard();};
   const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;save();scheduleBoard();};
-  m.querySelector('[data-a="approve"]').onclick=()=>{p.status="approved";p.changeNote="";logAct(p,"approved");askNotify();notifyApproved(p);save();closeEditor();renderBoard();confetti();toast("Approved");};
+  {const _ap=m.querySelector('[data-a="approve"]');if(_ap)_ap.onclick=()=>{p.status="approved";p.changeNote="";logAct(p,"approved");askNotify();notifyApproved(p);save();closeEditor();renderBoard();confetti();toast("Approved");};}
   const cbtn=m.querySelector("#cbtn"),cnew=m.querySelector("#cnew"),cfile=m.querySelector("#cfile"),cattach=m.querySelector("#cattach"),cprev=m.querySelector("#cprev");
   if(cnew)cnew.addEventListener("input",()=>{const v=cnew.value;if(v.trim())localStorage.setItem("boko_cdraft_"+id,v);else localStorage.removeItem("boko_cdraft_"+id);});
   if(cnew)cnew.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&(e.key||"").toLowerCase()==="b"){e.preventDefault();const s2=cnew.selectionStart,e2=cnew.selectionEnd,v=cnew.value;if(e2>s2){cnew.value=v.slice(0,s2)+"**"+v.slice(s2,e2)+"**"+v.slice(e2);cnew.dispatchEvent(new Event("input"));cnew.focus();const np=e2+4;cnew.setSelectionRange(np,np);}else{cnew.value=v.slice(0,s2)+"**bold**"+v.slice(s2);cnew.dispatchEvent(new Event("input"));cnew.focus();cnew.setSelectionRange(s2+2,s2+6);}}});
