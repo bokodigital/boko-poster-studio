@@ -233,6 +233,12 @@
   .gerr{color:#c0392b;font-size:12px;min-height:16px;margin-bottom:8px}
   .offbanner{display:none;position:fixed;bottom:14px;left:14px;background:#fff7e3;color:#8a6a00;border:1px solid #f0d488;border-radius:10px;padding:8px 12px;font-size:12px;z-index:40}
   .syncdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#cfd3d8;margin-left:8px;vertical-align:middle}
+  .usemeter{display:inline-flex;align-items:center;gap:7px;margin-left:10px;vertical-align:middle}
+  .usebar{display:inline-block;width:90px;height:8px;border-radius:999px;background:#e4e7ee;overflow:hidden}
+  .usefill{display:block;height:100%;width:0%;background:var(--lime);transition:width .3s,background .3s}
+  .usefill.warn{background:#f0a500}
+  .usefill.danger{background:#c0392b}
+  .uselabel{font-size:11px;font-weight:600;color:var(--muted)}
   .syncdot.on{background:#3fb950}
   .x{margin-left:auto;background:transparent;border:0;color:var(--muted);font-size:20px;cursor:pointer}
 </style>
@@ -243,7 +249,7 @@
   <div class="topcount">
     <span class="pill">Total <b id="cTotal">0</b></span>
     <span class="pill">For Approval <b id="cReview">0</b></span>
-    <span class="pill">Approved <b id="cApproved">0</b></span><span class="syncdot" id="syncdot" title="Cloud sync"></span>
+    <span class="pill">Approved <b id="cApproved">0</b></span><span class="syncdot" id="syncdot" title="Cloud sync"></span><span class="usemeter" id="usemeter" title="Board storage used"><span class="usebar"><span class="usefill" id="usefill"></span></span><span class="uselabel" id="uselabel">—</span></span>
   </div>
 </header>
 <div class="toolbar">
@@ -654,7 +660,15 @@ function counts(){
   cTotal.textContent=state.length;
   cReview.textContent=state.filter(p=>p.status==="review").length;
   cApproved.textContent=state.filter(p=>p.status==="approved").length;
+  syncMeter();
 }
+function syncMeter(){const f=document.getElementById("usefill"),l=document.getElementById("uselabel");if(!f||!l)return;
+  let bytes=0;try{bytes=JSON.stringify(state).length;}catch(e){}
+  const LIMIT=1000000;const pct=Math.min(100,Math.round(bytes/LIMIT*100));
+  f.style.width=pct+"%";f.className="usefill"+(pct>=90?" danger":pct>=75?" warn":"");
+  const kb=bytes>=1000000?(bytes/1000000).toFixed(2)+" MB":Math.round(bytes/1000)+" KB";
+  l.textContent=kb+" / 1 MB";
+  const m=document.getElementById("usemeter");if(m)m.title="Board storage: "+kb+" of ~1 MB cloud limit ("+pct+"%)";}
 function renderFilters(){
   const ts=document.getElementById("typeSel");
   if(!ts.dataset.init){ts.dataset.init="1";ts.innerHTML=TYPE_FILTERS.map(([l,k])=>`<option value="${k}">${k==="All"?"All formats":l}</option>`).join("");ts.onchange=()=>{typeFilter=ts.value;renderBoard();};}
