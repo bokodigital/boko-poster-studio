@@ -321,8 +321,20 @@ try{const saved=JSON.parse(localStorage.getItem(STORAGE)||"null");
   if(saved&&Array.isArray(saved)){state=saved.map(p=>({...p}));}}catch(e){}
 let syncOn=false,PASS="",_pushT=null,_poll=null;
 function save(){localStorage.setItem(STORAGE,JSON.stringify(state));if(syncOn){clearTimeout(_pushT);_pushT=setTimeout(pushServer,600);}}
-function syncWarn(bad){const b=document.getElementById("offbanner");if(!b)return;if(bad){b.textContent="\u26a0 Cloud save failed \u2014 the board may be too large to sync. Recent changes may not reach other devices.";b.style.display="block";b.style.background="#fdecea";b.style.color="#c0392b";b.style.borderColor="#e9b7b1";}else if((b.textContent||"").indexOf("Cloud save failed")>=0){b.style.display="none";}}
-function pushServer(){if(!syncOn)return;let body;try{body=JSON.stringify({state});}catch(e){return;}fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json','x-board-pass':PASS},body:body}).then(r=>{syncWarn(!r.ok);}).catch(()=>syncWarn(true));}
+let _bgRetry=null;
+function syncWarn(msg){const b=document.getElementById("offbanner");if(!b)return;if(msg){b.textContent=msg;b.style.display="block";b.style.background="#fdecea";b.style.color="#c0392b";b.style.borderColor="#e9b7b1";b.dataset.warn="1";}else if(b.dataset.warn==="1"){b.style.display="none";b.dataset.warn="";}}
+function pushServer(attempt){if(!syncOn)return;attempt=attempt||0;let body;try{body=JSON.stringify({state});}catch(e){return;}
+  fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json','x-board-pass':PASS},body:body}).then(r=>{
+    if(r.ok){if(_bgRetry){clearTimeout(_bgRetry);_bgRetry=null;}syncWarn("");return;}
+    if(r.status===413){syncWarn("\u26a0 Board is over the ~4 MB cloud limit \u2014 remove some heavy content, then it will sync.");return;}
+    if(r.status===401){const sp=localStorage.getItem("boko_pass");if(sp)PASS=sp;}
+    if(attempt<3){setTimeout(function(){pushServer(attempt+1);},700*(attempt+1));}
+    else{syncWarn("\u26a0 Couldn't reach the cloud right now (network). Your changes are saved on this device and will re-sync automatically.");if(!_bgRetry)_bgRetry=setTimeout(function(){_bgRetry=null;pushServer(0);},12000);}
+  }).catch(function(){
+    if(attempt<3){setTimeout(function(){pushServer(attempt+1);},700*(attempt+1));}
+    else{syncWarn("\u26a0 Couldn't reach the cloud right now (network). Your changes are saved on this device and will re-sync automatically.");if(!_bgRetry)_bgRetry=setTimeout(function(){_bgRetry=null;pushServer(0);},12000);}
+  });
+}
 function mergeServer(sv){const srv=Array.isArray(sv)?sv.map(p=>({...p})):[];const ids={};srv.forEach(p=>ids[p.id]=1);const localOnly=(Array.isArray(state)?state:[]).filter(p=>p&&!ids[p.id]);return localOnly.concat(srv);}
 function setSyncDot(){const d=document.getElementById("syncdot");if(d)d.className="syncdot"+(syncOn?" on":"");}
 function startPoll(){if(!syncOn||_poll)return;_poll=setInterval(()=>{if(document.getElementById('overlay').classList.contains('show'))return;
