@@ -201,6 +201,13 @@
   .ebbold{font-weight:800;font-size:13px;width:30px;height:26px;border:1px solid var(--line);background:#fff;border-radius:7px;cursor:pointer;line-height:1}
   .ebbold:hover{background:#f3f3f3}
   .ebhint{font-size:11px;color:var(--muted)}
+  .rte{border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13px;line-height:1.5;background:#fff;color:var(--text);overflow:auto;white-space:normal;word-break:break-word}
+  .rte:focus{outline:none;border-color:var(--lime)}
+  .rte:empty:before{content:"Write the email body...";color:#9aa1ab}
+  .rte p{margin:0 0 8px}
+  .rte ul,.rte ol{margin:4px 0 8px 20px;padding:0}
+  .rte a{color:#2456b8;text-decoration:underline}
+  .rte b,.rte strong{font-weight:700}
   .gmail .gm-sig{margin-top:16px}
   .gmail .gm-sig img{max-width:100%}
   .vthumb{position:relative;width:100%;aspect-ratio:1/1;background:#0c0e10;display:flex;align-items:center;justify-content:center}
@@ -549,7 +556,7 @@ function emailThumbHTML(p){return `<div class="ethumb"><span class="elabel">Emai
 function gmailPreviewHTML(p){
   const subj=esc(fname(p.subject||p.title||"(no subject)",p.platform));
   const prev=esc(p.preview||"");
-  const body=fname(p.body||p.caption||"",p.platform).split("\n").map(l=>l.trim()?("<p>"+mdBold(l)+"</p>"):"<br>").join("");
+  const body=fname(bodyToHtml(p),p.platform);
   return `<div class="gmail"><div class="gm-subj">${subj}</div>
     <div class="gm-row"><div class="gm-av">M</div><div><div class="gm-name">Maria Mendieta <span class="gm-em">&lt;maria@boko.com.au&gt;</span></div><div class="gm-to">to me</div></div></div>
     ${prev?`<div class="gm-prev">${prev}</div>`:""}
@@ -557,9 +564,8 @@ function gmailPreviewHTML(p){
 }
 function copyEmail(p){
   const subj=fname(p.subject,p.platform);
-  const rawBody=fname(p.body||p.caption||"",p.platform);
   const sigText=EMAIL_SIG.replace(/<br\s*\/?>/gi,"\n").replace(/<[^>]+>/g,"").replace(/&nbsp;/g," ").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
-  const plain=(subj?("Subject: "+subj+"\n\n"):"")+rawBody.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,"$1 ($2)").replace(/\*\*([^*]+?)\*\*/g,"$1").replace(/__([^_]+?)__/g,"$1")+"\n\n"+sigText;
+  const plain=(subj?("Subject: "+subj+"\n\n"):"")+htmlToText(fname(bodyToHtml(p),p.platform))+"\n\n"+sigText;
   const html=(subj?("<p><strong>Subject:</strong> "+esc(subj)+"</p>"):"")+emailBodyHTML(p)+EMAIL_SIG;
   try{
     if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
@@ -598,7 +604,7 @@ function openEditor(id){
       ${isEmail?`
       <div><label class="fl">Subject line</label><input class="f" data-f="subject" value="${esc(p.subject||p.title||'')}"></div>
       <div><label class="fl">Preview text</label><input class="f" data-f="preview" value="${esc(p.preview||'')}"></div>
-      <div><label class="fl">Body message</label><div class="ebtoolbar"><button type="button" class="ebbold" id="bbold" title="Bold (Ctrl+B)">B</button><button type="button" class="ebbold ebu" id="bul" title="Underline (Ctrl+U)">U</button><button type="button" class="ebbold ebl" id="blink" title="Insert link (Ctrl+K)">🔗 Link</button><span class="ebhint">Select text, then use the buttons or <b>Ctrl+B</b> / <b>Ctrl+U</b> / <b>Ctrl+K</b></span></div><textarea class="f" data-f="body" id="bodyfld" style="min-height:150px">${esc(p.body||p.caption||'')}</textarea></div>
+      <div><label class="fl">Body message</label><div class="ebtoolbar"><button type="button" class="ebbold" id="bbold" title="Bold (Ctrl+B)">B</button><button type="button" class="ebbold ebu" id="bul" title="Underline (Ctrl+U)">U</button><button type="button" class="ebbold ebl" id="blist" title="Bullet list">• List</button><button type="button" class="ebbold ebl" id="blink" title="Insert link">🔗 Link</button><span class="ebhint">Formatting shows live — select text then click a button (<b>Ctrl+B</b> / <b>Ctrl+U</b>)</span></div><div class="f rte" id="bodyfld" contenteditable="true" style="min-height:150px">${bodyToHtml(p)}</div></div>
       <div class="vnote">&#9993; Maria's HTML email signature is added automatically at the end of the body when you copy the email.</div>
       `:isVid?`<div class="vnote">&#127916; Video is uploaded manually${(p.platform==="YouTube"||p.platform==="YouTube Shorts")?" to YouTube":""}. Paste a video link below to show it on the tile, and the published link once it's live.</div>
       <div class="two">
@@ -672,18 +678,18 @@ function openEditor(id){
     inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();if(f!=="videoUrl"&&f!=="publishedUrl"&&f!=="thumbnail")refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;scheduleBoard();};});
   ["videoUrl","publishedUrl","thumbnail"].forEach(f=>{const el=m.querySelector('[data-f="'+f+'"]');if(el)el.onchange=()=>{refreshPrev();scheduleBoard();};});
   const bodyfld=m.querySelector("#bodyfld");
-  if(bodyfld){const _grow=()=>{bodyfld.style.height="auto";bodyfld.style.height=(bodyfld.scrollHeight+4)+"px";};bodyfld.style.overflow="hidden";_grow();setTimeout(_grow,0);bodyfld.addEventListener("input",_grow);}
-  function efWrap(pre,post,ph){if(!bodyfld)return;const s2=bodyfld.selectionStart,e2=bodyfld.selectionEnd,v=bodyfld.value;
-    if(e2>s2){bodyfld.value=v.slice(0,s2)+pre+v.slice(s2,e2)+post+v.slice(e2);bodyfld.dispatchEvent(new Event("input"));bodyfld.focus();const np=e2+pre.length+post.length;bodyfld.setSelectionRange(np,np);}
-    else{const ins=pre+ph+post;bodyfld.value=v.slice(0,s2)+ins+v.slice(s2);bodyfld.dispatchEvent(new Event("input"));bodyfld.focus();bodyfld.setSelectionRange(s2+pre.length,s2+pre.length+ph.length);}}
-  function efLink(){if(!bodyfld)return;const s2=bodyfld.selectionStart,e2=bodyfld.selectionEnd,v=bodyfld.value;const sel=v.slice(s2,e2);
-    let url=(prompt("Link URL:","https://")||"").trim();if(!url)return;if(!/^[a-z]+:|^\//i.test(url))url="https://"+url;
-    const text=sel||((prompt("Link text:","")||"").trim())||url;const ins="["+text+"]("+url+")";
-    bodyfld.value=v.slice(0,s2)+ins+v.slice(e2);bodyfld.dispatchEvent(new Event("input"));bodyfld.focus();const np=s2+ins.length;bodyfld.setSelectionRange(np,np);}
-  {const b1=m.querySelector("#bbold");if(b1)b1.onclick=()=>efWrap("**","**","bold");}
-  {const b2=m.querySelector("#bul");if(b2)b2.onclick=()=>efWrap("__","__","underline");}
-  {const b3=m.querySelector("#blink");if(b3)b3.onclick=efLink;}
-  if(bodyfld)bodyfld.addEventListener("keydown",e=>{if(!(e.ctrlKey||e.metaKey))return;const k=(e.key||"").toLowerCase();if(k==="b"){e.preventDefault();efWrap("**","**","bold");}else if(k==="u"){e.preventDefault();efWrap("__","__","underline");}else if(k==="k"){e.preventDefault();efLink();}});
+  if(bodyfld){
+    const _pv=m.querySelector(".mprev");
+    const bsync=()=>{p.body=bodyfld.innerHTML;save();if(_pv)_pv.innerHTML=gmailPreviewHTML(p);scheduleBoard();};
+    bodyfld.addEventListener("input",bsync);
+    const _cmd=(c,v)=>{try{document.execCommand(c,false,v||null);}catch(e){}bodyfld.focus();bsync();};
+    const _btn=(id,fn)=>{const b=m.querySelector(id);if(b){b.onmousedown=(e)=>e.preventDefault();b.onclick=fn;}};
+    _btn("#bbold",()=>_cmd("bold"));
+    _btn("#bul",()=>_cmd("underline"));
+    _btn("#blist",()=>_cmd("insertUnorderedList"));
+    _btn("#blink",()=>{const sel=(window.getSelection&&window.getSelection().toString())||"";let url=(prompt("Link URL:","https://")||"").trim();if(!url)return;if(!/^[a-z]+:/i.test(url))url="https://"+url;if(sel){_cmd("createLink",url);}else{_cmd("insertHTML",'<a href="'+url+'" target="_blank" rel="noopener">'+url+'</a>');}});
+    bodyfld.addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey){const k=(e.key||"").toLowerCase();if(k==="b"){e.preventDefault();_cmd("bold");}else if(k==="u"){e.preventDefault();_cmd("underline");}}});
+  }
 
   m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";if(p.platform==="YouTube"||p.platform==="YouTube Shorts")p.type="video";save();openEditor(id);scheduleBoard();});
   m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;const _lbl=(STATUSES.find(x=>x.id===sel.value)||{}).label||sel.value;logAct(p,"moved to "+_lbl);if(sel.value==="approved"){askNotify();notifyApproved(p);}save();counts();scheduleBoard();});
@@ -738,7 +744,9 @@ function notifyComment(p,c){try{if(window.Notification&&Notification.permission=
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
 function linkify(t){let h=esc(t);h=h.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');h=h.replace(/(^|[\s(])(www\.[^\s<]+)/g,'$1<a href="http://$2" target="_blank" rel="noopener">$2</a>');h=h.replace(/\*\*([^*]+?)\*\*/g,"<strong>$1</strong>");h=h.replace(/__([^_]+?)__/g,"<u>$1</u>");return h;}
 function mdBold(s){let h=esc(s);h=h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');h=h.replace(/\*\*([^*]+?)\*\*/g,"<strong>$1</strong>");h=h.replace(/__([^_]+?)__/g,"<u>$1</u>");return h;}
-function emailBodyHTML(p){return fname(p.body||p.caption||"",p.platform).split("\n").map(l=>l.trim()?('<p style="margin:0 0 10px">'+mdBold(l)+"</p>"):"<br>").join("");}
+function bodyToHtml(p){var b=(p&&p.body!=null&&p.body!=="")?p.body:((p&&p.caption)||"");if(/<(p|div|ul|ol|li|br|b|strong|i|em|u|a|span|h[1-6])\b/i.test(b))return b;return String(b).split("\n").map(function(l){return l.trim()?('<p style="margin:0 0 10px">'+mdBold(l)+"</p>"):"<br>";}).join("");}
+function htmlToText(html){var d=document.createElement("div");d.innerHTML=html||"";d.querySelectorAll("li").forEach(function(li){li.insertAdjacentText("afterbegin","- ");});d.querySelectorAll("br").forEach(function(b){b.replaceWith(document.createTextNode("\n"));});d.querySelectorAll("p,div,ul,ol,li,h1,h2,h3,h4,h5,h6").forEach(function(b){b.insertAdjacentText("beforeend","\n");});var t=d.textContent||"";return t.replace(/\n{3,}/g,"\n\n").replace(/[ \t]+\n/g,"\n").trim();}
+function emailBodyHTML(p){return fname(bodyToHtml(p),p.platform);}
 function slugName(p){return ((p&&p.title)||"boko").replace(/[^\w\-]+/g,"_").replace(/_+/g,"_").replace(/^_|_$/g,"").slice(0,80)||"boko";}
 function _concat(arrs){let len=0;arrs.forEach(a=>len+=a.length);const out=new Uint8Array(len);let o=0;arrs.forEach(a=>{out.set(a,o);o+=a.length;});return out;}
 function _crc32(bytes){const t=_crc32.t||(_crc32.t=(function(){const tb=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;tb[n]=c>>>0;}return tb;})());let crc=0xFFFFFFFF;for(let i=0;i<bytes.length;i++)crc=(crc>>>8)^t[(crc^bytes[i])&0xFF];return (crc^0xFFFFFFFF)>>>0;}
