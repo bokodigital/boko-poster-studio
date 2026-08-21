@@ -1,6 +1,6 @@
 // Boko Content Board - shared state via Vercel KV (Upstash Redis REST).
 // Env (set by the Vercel KV / Upstash integration): KV_REST_API_URL, KV_REST_API_TOKEN
-// Optional: BOARD_PASSCODE (shared passcode). If unset, no passcode is enforged.
+// Optional: BOARD_PASSCODE (shared passcode). If unset, no passcode is enforced.
 const URL_ = process.env.KV_REST_API_URL;
 const TOK  = process.env.KV_REST_API_TOKEN;
 const PASS = process.env.BOARD_PASSCODE || "";
@@ -32,7 +32,8 @@ module.exports = async (req, res) => {
       let body = req.body;
       if (typeof body === "string") { try { body = JSON.parse(body); } catch (e) { body = {}; } }
       const state = body && body.state;
-      if (!Array.isArray(state)) { res.status(400).json({ error: "bad_state" }); return; }
+      const okShape = Array.isArray(state) || (state && typeof state === "object" && Array.isArray(state.cards));
+      if (!okShape) { res.status(400).json({ error: "bad_state" }); return; }
       await redis(["SET", KEY, JSON.stringify(state)]);
       res.status(200).json({ ok: true });
     } else {
