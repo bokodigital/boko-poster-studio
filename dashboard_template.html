@@ -317,8 +317,8 @@ const EMAIL_SIG=__EMAILSIG__;
 const FNAME_TAG={Hubspot:"{{ contact.firstname }}"};
 function fname(text,platform){const tag=FNAME_TAG[platform];return tag?(text||"").replace(/\[\s*first[\s_]*name\s*\]/gi,tag):(text||"");}
 let filter="All";let typeFilter="All";let searchQ="";
-const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Infographics","Infographic"],["Emails","Email"]];
-function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":p.template==="infographic"?"Infographic":"Post";}
+const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Emails","Email"]];
+function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":"Post";}
 function autoStory(p){return p.type!=="video"&&p.platform!=="Hubspot"&&(p.platform==="Instagram"||p.platform==="Facebook");}
 
 document.getElementById("logo").src=LOGO_LIGHT;
@@ -327,22 +327,34 @@ let state=POSTS.map(p=>({...p}));
 try{const saved=JSON.parse(localStorage.getItem(STORAGE)||"null");
   if(saved&&Array.isArray(saved)){state=saved.map(p=>({...p}));}}catch(e){}
 let syncOn=false,PASS="",_pushT=null,_poll=null;
-function save(){localStorage.setItem(STORAGE,JSON.stringify(state));if(syncOn){clearTimeout(_pushT);_pushT=setTimeout(pushServer,600);}}
+let _tomb={};try{_tomb=JSON.parse(localStorage.getItem("boko_tomb")||"{}")||{};}catch(e){_tomb={};}
+function touch(p){if(p&&typeof p==="object")p.u=Date.now();}
+function persistTomb(){try{localStorage.setItem("boko_tomb",JSON.stringify(_tomb));}catch(e){}}
+function normSrv(sv){if(Array.isArray(sv))return{cards:sv,tomb:{}};if(sv&&typeof sv==="object"&&Array.isArray(sv.cards))return{cards:sv.cards,tomb:sv.tomb||{}};return{cards:[],tomb:{}};}
+function mergeTomb(t){if(!t)return;for(const id in t){if(!_tomb[id]||t[id]>_tomb[id])_tomb[id]=t[id];}}
+function mergeCards(serverCards,localCards){const byS={};(serverCards||[]).forEach(function(p){if(p&&p.id)byS[p.id]=p;});const seen={};const out=[];
+  (localCards||[]).forEach(function(p){if(!p||!p.id||_tomb[p.id])return;const sc=byS[p.id];const win=(sc&&((sc.u||0)>(p.u||0)))?sc:p;out.push(win);seen[p.id]=1;});
+  (serverCards||[]).forEach(function(p){if(!p||!p.id||seen[p.id]||_tomb[p.id])return;out.push(p);});
+  return out;}
+function save(){localStorage.setItem(STORAGE,JSON.stringify(state));persistTomb();if(syncOn){clearTimeout(_pushT);_pushT=setTimeout(function(){pushServer(0);},600);}}
 let _bgRetry=null;
 function syncWarn(msg){const b=document.getElementById("offbanner");if(!b)return;if(msg){b.textContent=msg;b.style.display="block";b.style.background="#fdecea";b.style.color="#c0392b";b.style.borderColor="#e9b7b1";b.dataset.warn="1";}else if(b.dataset.warn==="1"){b.style.display="none";b.dataset.warn="";}}
-function pushServer(attempt){if(!syncOn)return;attempt=attempt||0;let body;try{body=JSON.stringify({state});}catch(e){return;}
-  fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json','x-board-pass':PASS},body:body}).then(r=>{
-    if(r.ok){if(_bgRetry){clearTimeout(_bgRetry);_bgRetry=null;}syncWarn("");return;}
-    if(r.status===413){syncWarn("\u26a0 Board is over the ~4 MB cloud limit \u2014 remove some heavy content, then it will sync.");return;}
-    if(r.status===401){const sp=localStorage.getItem("boko_pass");if(sp)PASS=sp;}
-    if(attempt<3){setTimeout(function(){pushServer(attempt+1);},700*(attempt+1));}
-    else{syncWarn("\u26a0 Couldn't reach the cloud right now (network). Your changes are saved on this device and will re-sync automatically.");if(!_bgRetry)_bgRetry=setTimeout(function(){_bgRetry=null;pushServer(0);},12000);}
-  }).catch(function(){
-    if(attempt<3){setTimeout(function(){pushServer(attempt+1);},700*(attempt+1));}
-    else{syncWarn("\u26a0 Couldn't reach the cloud right now (network). Your changes are saved on this device and will re-sync automatically.");if(!_bgRetry)_bgRetry=setTimeout(function(){_bgRetry=null;pushServer(0);},12000);}
-  });
+function pushServer(attempt){if(!syncOn)return;attempt=attempt||0;
+  const netfail=function(){if(attempt<3){setTimeout(function(){pushServer(attempt+1);},700*(attempt+1));}else{syncWarn("\u26a0 Couldn't reach the cloud right now (network). Your changes are saved on this device and will re-sync automatically.");if(!_bgRetry)_bgRetry=setTimeout(function(){_bgRetry=null;pushServer(0);},12000);}};
+  fetch('/api/state',{headers:{'x-board-pass':PASS}}).then(function(r){if(!r.ok)throw {s:r.status};return r.json();}).then(function(d){
+    const n=normSrv(d.state);mergeTomb(n.tomb);const merged=mergeCards(n.cards,state);
+    let body;try{body=JSON.stringify({state:{cards:merged,tomb:_tomb}});}catch(e){throw {s:0};}
+    return fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json','x-board-pass':PASS},body:body}).then(function(r2){return{r2:r2,merged:merged};});
+  }).then(function(o){var r2=o.r2,merged=o.merged;
+    if(r2.ok){if(_bgRetry){clearTimeout(_bgRetry);_bgRetry=null;}syncWarn("");persistTomb();
+      if(!document.getElementById('overlay').classList.contains('show')){state=merged;localStorage.setItem(STORAGE,JSON.stringify(state));renderBoard();}
+      return;}
+    if(r2.status===413){syncWarn("\u26a0 Board is over the ~4 MB cloud limit \u2014 remove some heavy content, then it will sync.");return;}
+    if(r2.status===401){const sp=localStorage.getItem("boko_pass");if(sp)PASS=sp;}
+    throw {s:r2.status};
+  }).catch(function(err){if(err&&err.s===413)return;netfail();});
 }
-function mergeServer(sv){const srv=Array.isArray(sv)?sv.map(p=>({...p})):[];const ids={};srv.forEach(p=>ids[p.id]=1);const localOnly=(Array.isArray(state)?state:[]).filter(p=>p&&!ids[p.id]);return localOnly.concat(srv);}
+function mergeServer(sv){const n=normSrv(sv);mergeTomb(n.tomb);return mergeCards(n.cards,state);}
 function setSyncDot(){const d=document.getElementById("syncdot");if(d)d.className="syncdot"+(syncOn?" on":"");}
 function startPoll(){if(!syncOn||_poll)return;_poll=setInterval(()=>{if(document.getElementById('overlay').classList.contains('show'))return;
   fetch('/api/state',{headers:{'x-board-pass':PASS}}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.state){const m=mergeServer(d.state);
@@ -403,7 +415,7 @@ function ym(d){return (d||"").slice(0,7);}
 function isoWeek(d){if(!d)return"";const dt=new Date(d+"T00:00:00");if(isNaN(dt))return"";const t=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate()));const day=(t.getUTCDay()+6)%7;t.setUTCDate(t.getUTCDate()-day+3);const w1=new Date(Date.UTC(t.getUTCFullYear(),0,4));const w=1+Math.round(((t-w1)/864e5-3+((w1.getUTCDay()+6)%7))/7);return t.getUTCFullYear()+"-W"+String(w).padStart(2,"0");}
 function weekMonday(wk){const [y,w]=wk.split("-W").map(Number);const s=new Date(Date.UTC(y,0,4));s.setUTCDate(s.getUTCDate()-((s.getUTCDay()+6)%7)+(w-1)*7);return s;}
 function monthLabel(m){const[y,mm]=m.split("-");return MONTHS[+mm-1]+" "+y;}
-function defaultMonth(){const c={};state.forEach(p=>{if(p.date)c[ym(p.date)]=(c[ym(p.date)]||0)+1;});let best="",n=-1;for(const k in c)if(c[k]>n){n=c[k];best=k;}return best||new Date().toISOString().slice(0,7);}
+function defaultMonth(){return new Date().toISOString().slice(0,7);}
 function shiftMonth(delta){const[y,m]=curMonth.split("-").map(Number);const d=new Date(y,m-1+delta,1);curMonth=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");curWeek=null;renderBoard();}
 function dstr(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function monthWeeks(){const [Y,M]=curMonth.split("-").map(Number);const last=new Date(Y,M,0).getDate();
@@ -493,7 +505,7 @@ function renderBoard(){
     col.addEventListener("dragleave",()=>col.classList.remove("drag"));
     col.addEventListener("drop",e=>{e.preventDefault();col.classList.remove("drag");
       const id=e.dataTransfer.getData("text/plain");const dragged=state.find(x=>x.id===id);if(!dragged)return;
-      if(dragged.status!==st.id){dragged.status=st.id;logAct(dragged,"moved to "+st.label);if(st.id==="approved"){askNotify();notifyApproved(dragged);}}
+      if(dragged.status!==st.id){dragged.status=st.id;logAct(dragged,"moved to "+st.label);if(st.id==="approved"){askNotify();notifyApproved(dragged);}}touch(dragged);
       const cardsEl=col.querySelector(".cards");const afterEl=getDragAfterElement(cardsEl,e.clientY);
       state=state.filter(x=>x.id!==id);
       if(afterEl&&afterEl.dataset.id){const bi=state.findIndex(x=>x.id===afterEl.dataset.id);if(bi>=0)state.splice(bi,0,dragged);else state.push(dragged);}
@@ -507,12 +519,11 @@ function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;c.dataset.id=p.id;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":p.template==="infographic"?"INFOGRAPHIC":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
+      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
       <div class="cact">
         <button class="mini" data-a="open">Open</button>
-        <button class="mini" data-a="dup">Duplicate</button>
         <button class="mini" data-a="dup" title="Duplicate this card">⧉ Duplicate</button>
         ${p.status==="approved"?('<button class="mini pubm" data-a="publish">'+((p.date&&p.date<=todayStr())?'↑ Publish now':'↑ Schedule')+'</button>'):p.status==="scheduled"?'<button class="mini pubm" data-a="markpub">✓ Mark published</button>':(p.status==="published"?'':'<button class="mini ok" data-a="approve">Approve</button>')}
       </div>
@@ -522,11 +533,10 @@ function cardEl(p){
   c.addEventListener("dragend",()=>c.classList.remove("dragging"));
   c.addEventListener("click",e=>{if(e.target.closest("[data-a]"))return;openEditor(p.id);});
   {const op=c.querySelector('[data-a="open"]');if(op)op.onclick=()=>openEditor(p.id);}
-  {const dp=c.querySelector('[data-a="dup"]');if(dp)dp.onclick=(e)=>{e.stopPropagation();const copy=JSON.parse(JSON.stringify(p));copy.id="d"+Date.now().toString(36);copy.title=(p.title||"Untitled")+" (copy)";copy.comments=[];copy.log=[];copy.creator=commenterName();const idx=state.findIndex(x=>x.id===p.id);state.splice(idx>=0?idx+1:state.length,0,copy);save();renderBoard();toast("Card duplicated");};}
-  {const du=c.querySelector('[data-a="dup"]');if(du)du.onclick=(e)=>{e.stopPropagation();const np=JSON.parse(JSON.stringify(p));np.id=(p.type==="video"?"v":"u")+Date.now().toString(36);np.title=(p.title||"Untitled")+" (copy)";np.status="idea";np.comments=[];np.log=[];np.creator=commenterName();const idx=state.findIndex(x=>x.id===p.id);state.splice(idx>=0?idx+1:state.length,0,np);save();renderBoard();toast("Card duplicated");openEditor(np.id);};}
-  {const ap=c.querySelector('[data-a="approve"]');if(ap)ap.onclick=()=>{p.status="approved";p.changeNote="";logAct(p,"approved");askNotify();notifyApproved(p);save();renderBoard();confetti();toast("Approved");};}
-  {const pb=c.querySelector('[data-a="publish"]');if(pb)pb.onclick=(e)=>{e.stopPropagation();pubOpen(p);const t=todayStr();if(p.date&&p.date<=t){p.status="published";logAct(p,"published");save();renderBoard();toast("Published — moved to Published");}else{p.status="scheduled";logAct(p,"scheduled");save();renderBoard();toast("Scheduled — moved to Scheduled");}};}
-  {const mp=c.querySelector('[data-a="markpub"]');if(mp)mp.onclick=(e)=>{e.stopPropagation();p.status="published";logAct(p,"marked published");save();renderBoard();toast("Moved to Published");};}
+  {const du=c.querySelector('[data-a="dup"]');if(du)du.onclick=(e)=>{e.stopPropagation();const np=JSON.parse(JSON.stringify(p));np.id=(p.type==="video"?"v":"u")+Date.now().toString(36);np.title=(p.title||"Untitled")+" (copy)";np.status="idea";np.comments=[];np.log=[];np.creator=commenterName();np.u=Date.now();const idx=state.findIndex(x=>x.id===p.id);state.splice(idx>=0?idx+1:state.length,0,np);save();renderBoard();toast("Card duplicated");openEditor(np.id);};}
+  {const ap=c.querySelector('[data-a="approve"]');if(ap)ap.onclick=()=>{p.status="approved";p.changeNote="";logAct(p,"approved");askNotify();notifyApproved(p);touch(p);save();renderBoard();confetti();toast("Approved");};}
+  {const pb=c.querySelector('[data-a="publish"]');if(pb)pb.onclick=(e)=>{e.stopPropagation();pubOpen(p);const t=todayStr();if(p.date&&p.date<=t){p.status="published";logAct(p,"published");touch(p);save();renderBoard();toast("Published — moved to Published");}else{p.status="scheduled";logAct(p,"scheduled");touch(p);save();renderBoard();toast("Scheduled — moved to Scheduled");}};}
+  {const mp=c.querySelector('[data-a="markpub"]');if(mp)mp.onclick=(e)=>{e.stopPropagation();p.status="published";logAct(p,"marked published");touch(p);save();renderBoard();toast("Moved to Published");};}
   return c;
 }
 
@@ -664,23 +674,23 @@ function openEditor(id){
     if(cv){if(autoStory(p)){renderPoster(cv,Object.assign({},p,{ratio:"square"}),isCarousel?curSlide:0);const sC=m.querySelector("#mcvS");if(sC)renderPoster(sC,Object.assign({},p,{ratio:"story"}),isCarousel?curSlide:0);}else renderPoster(cv,p,isCarousel?curSlide:0);}
     else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):"";}};
   refreshPrev();
-  const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"&&(p.platform==="Hubspot"||p.platform==="Facebook"))p.platform="YouTube";save();openEditor(id);});
-  const tplseg=m.querySelector('#tplseg');if(tplseg)tplseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;save();openEditor(id);});
-  const ratioseg=m.querySelector('#ratioseg');if(ratioseg)ratioseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;save();openEditor(id);});
+  const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"&&(p.platform==="Hubspot"||p.platform==="Facebook"))p.platform="YouTube";touch(p);save();openEditor(id);});
+  const tplseg=m.querySelector('#tplseg');if(tplseg)tplseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;touch(p);save();openEditor(id);});
+  const ratioseg=m.querySelector('#ratioseg');if(ratioseg)ratioseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;touch(p);save();openEditor(id);});
   m.querySelectorAll('[data-sn]').forEach(b=>b.onclick=()=>{const a=b.dataset.sn;const N=p.slides.length;
     if(a==="prev")curSlide=Math.max(0,curSlide-1);
     else if(a==="next")curSlide=Math.min(N-1,curSlide+1);
     else if(a==="add"){p.slides.splice(curSlide+1,0,{h:"",b:""});curSlide++;}
     else if(a==="del"&&N>1){p.slides.splice(curSlide,1);curSlide=Math.min(curSlide,p.slides.length-1);}
-    p.headline=p.slides[0].h;save();openEditor(id);scheduleBoard();});
-  m.querySelectorAll('[data-s]').forEach(inp=>inp.oninput=()=>{p.slides[curSlide][inp.dataset.s]=inp.value;if(curSlide===0)p.headline=p.slides[0].h;save();refreshPrev();scheduleBoard();});
+    p.headline=p.slides[0].h;touch(p);save();openEditor(id);scheduleBoard();});
+  m.querySelectorAll('[data-s]').forEach(inp=>inp.oninput=()=>{p.slides[curSlide][inp.dataset.s]=inp.value;if(curSlide===0)p.headline=p.slides[0].h;touch(p);save();refreshPrev();scheduleBoard();});
   m.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f;if(f==="status2"||f==="platform"||f==="date"||f==="time")return;
-    inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;save();if(f!=="videoUrl"&&f!=="publishedUrl"&&f!=="thumbnail")refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;scheduleBoard();};});
+    inp.oninput=()=>{if(f==="bullets")p.bullets=inp.value.split(",").map(x=>x.trim()).filter(Boolean);else p[f]=inp.value;touch(p);save();if(f!=="videoUrl"&&f!=="publishedUrl"&&f!=="thumbnail")refreshPrev();if(f==="title"||f==="subject"||f==="body")m.querySelector("h3").textContent=p.title;scheduleBoard();};});
   ["videoUrl","publishedUrl","thumbnail"].forEach(f=>{const el=m.querySelector('[data-f="'+f+'"]');if(el)el.onchange=()=>{refreshPrev();scheduleBoard();};});
   const bodyfld=m.querySelector("#bodyfld");
   if(bodyfld){
     const _pv=m.querySelector(".mprev");
-    const bsync=()=>{p.body=bodyfld.innerHTML;save();if(_pv)_pv.innerHTML=gmailPreviewHTML(p);scheduleBoard();};
+    const bsync=()=>{p.body=bodyfld.innerHTML;touch(p);save();if(_pv)_pv.innerHTML=gmailPreviewHTML(p);scheduleBoard();};
     bodyfld.addEventListener("input",bsync);
     const _cmd=(c,v)=>{try{document.execCommand(c,false,v||null);}catch(e){}bodyfld.focus();bsync();};
     const _btn=(id,fn)=>{const b=m.querySelector(id);if(b){b.onmousedown=(e)=>e.preventDefault();b.onclick=fn;}};
@@ -691,18 +701,18 @@ function openEditor(id){
     bodyfld.addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey){const k=(e.key||"").toLowerCase();if(k==="b"){e.preventDefault();_cmd("bold");}else if(k==="u"){e.preventDefault();_cmd("underline");}}});
   }
 
-  m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";if(p.platform==="YouTube"||p.platform==="YouTube Shorts")p.type="video";save();openEditor(id);scheduleBoard();});
-  m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;const _lbl=(STATUSES.find(x=>x.id===sel.value)||{}).label||sel.value;logAct(p,"moved to "+_lbl);if(sel.value==="approved"){askNotify();notifyApproved(p);}save();counts();scheduleBoard();});
-  const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;save();scheduleBoard();};
-  const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;save();scheduleBoard();};
-  {const _ap=m.querySelector('[data-a="approve"]');if(_ap)_ap.onclick=()=>{p.status="approved";p.changeNote="";logAct(p,"approved");askNotify();notifyApproved(p);save();closeEditor();renderBoard();confetti();toast("Approved");};}
+  m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";if(p.platform==="YouTube"||p.platform==="YouTube Shorts")p.type="video";touch(p);save();openEditor(id);scheduleBoard();});
+  m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;const _lbl=(STATUSES.find(x=>x.id===sel.value)||{}).label||sel.value;logAct(p,"moved to "+_lbl);if(sel.value==="approved"){askNotify();notifyApproved(p);}touch(p);save();counts();scheduleBoard();});
+  const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;touch(p);save();scheduleBoard();};
+  const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;touch(p);save();scheduleBoard();};
+  {const _ap=m.querySelector('[data-a="approve"]');if(_ap)_ap.onclick=()=>{p.status="approved";p.changeNote="";logAct(p,"approved");askNotify();notifyApproved(p);touch(p);save();closeEditor();renderBoard();confetti();toast("Approved");};}
   const cbtn=m.querySelector("#cbtn"),cnew=m.querySelector("#cnew");
   if(cnew)cnew.addEventListener("input",()=>{const v=cnew.value;if(v.trim())localStorage.setItem("boko_cdraft_"+id,v);else localStorage.removeItem("boko_cdraft_"+id);});
   if(cnew)cnew.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&(e.key||"").toLowerCase()==="b"){e.preventDefault();const s2=cnew.selectionStart,e2=cnew.selectionEnd,v=cnew.value;if(e2>s2){cnew.value=v.slice(0,s2)+"**"+v.slice(s2,e2)+"**"+v.slice(e2);cnew.dispatchEvent(new Event("input"));cnew.focus();const np=e2+4;cnew.setSelectionRange(np,np);}else{cnew.value=v.slice(0,s2)+"**bold**"+v.slice(s2);cnew.dispatchEvent(new Event("input"));cnew.focus();cnew.setSelectionRange(s2+2,s2+6);}}});
-  if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,t:t,ts:Date.now()});localStorage.removeItem("boko_cdraft_"+id);logAct(p,"commented");askNotify();save();scheduleBoard();openEditor(id);};
-  m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this comment?")){p.comments.splice(+b.dataset.del,1);save();scheduleBoard();openEditor(id);}});
+  if(cbtn)cbtn.onclick=()=>{const t=(cnew.value||"").trim();if(!t)return;let nm=localStorage.getItem("boko_user");if(!nm){nm=((prompt("Your name (shown on comments):","")||"").trim())||"Anon";localStorage.setItem("boko_user",nm);}p.comments=p.comments||[];p.comments.push({a:nm,t:t,ts:Date.now()});localStorage.removeItem("boko_cdraft_"+id);logAct(p,"commented");askNotify();touch(p);save();scheduleBoard();openEditor(id);};
+  m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this comment?")){p.comments.splice(+b.dataset.del,1);touch(p);save();scheduleBoard();openEditor(id);}});
   m.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{const i=+b.dataset.edit;const cc=p.comments[i];if(!cc||cc.a!==commenterName())return;_editCmt=i;openEditor(id);});
-  m.querySelectorAll("[data-esave]").forEach(b=>b.onclick=()=>{const i=+b.dataset.esave;const cc=p.comments[i];const te=m.querySelector("#cedit_"+i);if(!cc||!te)return;cc.t=(te.value||"").trim();cc.edited=Date.now();_editCmt=null;save();scheduleBoard();openEditor(id);});
+  m.querySelectorAll("[data-esave]").forEach(b=>b.onclick=()=>{const i=+b.dataset.esave;const cc=p.comments[i];const te=m.querySelector("#cedit_"+i);if(!cc||!te)return;cc.t=(te.value||"").trim();cc.edited=Date.now();_editCmt=null;touch(p);save();scheduleBoard();openEditor(id);});
   m.querySelectorAll("[data-ecancel]").forEach(b=>b.onclick=()=>{_editCmt=null;openEditor(id);});
   if(_editCmt!=null){const _te=m.querySelector("#cedit_"+_editCmt);if(_te){_te.focus();_te.setSelectionRange(_te.value.length,_te.value.length);}}
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
@@ -711,7 +721,7 @@ function openEditor(id){
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
   const sv=m.querySelector('[data-a="save"]');if(sv)sv.onclick=()=>{save();closeEditor();toast("Saved");};
   const sh=m.querySelector('[data-a="share"]');if(sh)sh.onclick=()=>{const url=location.origin+location.pathname+"?card="+encodeURIComponent(id);navigator.clipboard.writeText(url).then(()=>toast("Share link copied \u2014 opens this card")).catch(()=>prompt("Copy this share link:",url));};
-  const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this card?")){state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
+  const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this card?")){_tomb[id]=Date.now();state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
   document.getElementById("overlay").classList.add("show");
 }
 function closeEditor(){const m=document.getElementById("modal");if(m){m.querySelectorAll("video").forEach(v=>{try{v.pause();}catch(e){}});m.innerHTML="";}document.getElementById("overlay").classList.remove("show");renderBoard();}
@@ -791,20 +801,20 @@ function newPost(){
   const p={id:"u"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New post",
     template:"statement",ratio:"square",headline:"Your Heading",accent:"",cta:"DM US",
     eyebrow:"BOKO DIGITAL",bullets:["Point one","Point two","Point three"],caption:"",pillar:"Draft",date:"",changeNote:"",creator:commenterName(),comments:[],log:[]};
-  state.unshift(p);save();renderBoard();openEditor(p.id);
+  p.u=Date.now();state.unshift(p);save();renderBoard();openEditor(p.id);
 }
 function newVideo(){
   const p={id:"v"+Date.now(),type:"video",platform:"YouTube",status:"idea",title:"New video",
     template:"statement",ratio:"square",headline:"",accent:"",cta:"",eyebrow:"Boko Digital",
     bullets:[],caption:"",pillar:"Video",date:"",videoUrl:"",publishedUrl:"",thumbnail:"",changeNote:"",creator:commenterName(),comments:[],log:[]};
-  state.unshift(p);save();renderBoard();openEditor(p.id);
+  p.u=Date.now();state.unshift(p);save();renderBoard();openEditor(p.id);
 }
 function newInfographic(){
   const p={id:"i"+Date.now(),type:"post",platform:"Instagram",status:"idea",title:"New infographic",
     template:"infographic",ratio:"square",headline:"Your Heading Title",accent:"",cta:"LEARN MORE",
     eyebrow:"BOKO DIGITAL",bullets:["First key point","Second key point","Third key point"],
     caption:"",pillar:"Infographic",date:"",comments:[],creator:commenterName(),log:[]};
-  state.unshift(p);save();renderBoard();openEditor(p.id);
+  p.u=Date.now();state.unshift(p);save();renderBoard();openEditor(p.id);
 }
 function genPosts(){
   if(!REFPOOL||!REFPOOL.length){toast("No reference posts available");return;}
@@ -815,7 +825,7 @@ function genPosts(){
   const m=curMonth||new Date().toISOString().slice(0,7);const[Y,M]=m.split("-").map(Number);const last=new Date(Y,M,0).getDate();
   pool.slice(0,n).forEach((src,idx)=>{
     const p=JSON.parse(JSON.stringify(src));
-    p.id="g"+Date.now().toString(36)+idx;p.status="idea";p.comments=[];p.changeNote="";p.creator=commenterName();
+    p.id="g"+Date.now().toString(36)+idx;p.status="idea";p.comments=[];p.changeNote="";p.creator=commenterName();p.u=Date.now();
     p.date=m+"-"+String(1+Math.floor(Math.random()*last)).padStart(2,"0");
     state.push(p);
   });
