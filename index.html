@@ -793,7 +793,7 @@ function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;c.dataset.id=p.id;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${autoStory(p)?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
+      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${(autoStory(p)||(p.canvaStory&&p.canvaStory.id))?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
       <div class="cact">
@@ -1013,7 +1013,10 @@ function canvaLogin(){location.href="/api/canva?"+cvQS({action:"login",p:PASS||"
 function canvaSectionHTML(p){const c=p.canva;
   if(c&&c.id){return `<div class="cvbox"><div class="cvhead"><span class="cvlogo">C</span>Canva design <span class="cvnote" style="margin-left:auto">Preview and downloads use this design</span></div>
     <div class="cvlinked"><img src="${canvaThumbSrc(p)}" onerror="this.style.visibility='hidden'"><div class="cvt"><b>${esc(c.title||"Canva design")}</b><small>${c.pages?(c.pages+" page"+(c.pages>1?"s":"")+" · "):""}${esc(c.id)}</small></div></div>
-    <div class="cvrow"><a class="btn" href="${esc(c.editUrl||("https://www.canva.com/design/"+c.id+"/edit"))}" target="_blank" rel="noopener">Edit in Canva</a><button class="btn" data-cv="refresh">↻ Refresh from Canva</button><button class="btn" data-cv="unlink">Unlink</button></div></div>`;}
+    <div class="cvrow"><a class="btn" href="${esc(c.editUrl||("https://www.canva.com/design/"+c.id+"/edit"))}" target="_blank" rel="noopener">Edit in Canva</a><button class="btn" data-cv="refresh">↻ Refresh from Canva</button><button class="btn" data-cv="unlink">Unlink</button></div>${canvaStoryRowHTML(p)}</div>`;}
+function canvaStoryRowHTML(p){if(p.type==="video"||p.template==="carousel"||!(p.platform==="Instagram"||p.platform==="Facebook"))return "";const s=p.canvaStory;
+  if(s&&s.id)return `<div class="cvrow" style="margin-top:8px"><span class="cvnote" style="flex:1">Story 9:16: <b>${esc(s.title||s.id)}</b></span><a class="btn" href="${esc(s.editUrl||("https://www.canva.com/design/"+s.id+"/edit"))}" target="_blank" rel="noopener">Edit story</a><button class="btn" data-cv="sunlink">Unlink story</button></div>`;
+  return `<div class="cvrow" style="margin-top:8px"><input class="f" id="cvslink" placeholder="Story 9:16 version: paste its Canva design link"><button class="btn" data-cv="slink">Link story</button></div>`;}
   return `<div class="cvbox"><div class="cvhead"><span class="cvlogo">C</span>Use a Canva design for this card</div>
     <div class="cvrow"><input class="f" id="cvlink" placeholder="Paste a Canva design link (canva.com/design/...)"><button class="btn" data-cv="link">Link</button><button class="btn lime" data-cv="browse">Browse my Canva</button></div>
     <div class="cvnote" id="cvmsg">The design replaces the built-in template: the board, preview and downloads all show the Canva pages.</div></div>`;}
@@ -1023,19 +1026,22 @@ async function canvaAttach(p,id,openId){const msg=document.getElementById("cvmsg
   try{const d=await canvaApi("design",{id:id});p.canva={id:d.id,title:d.title,editUrl:d.editUrl,viewUrl:d.viewUrl,pages:d.pages,u:Date.now()};delete _cvPages[d.id];
     logAct(p,"linked Canva design");touch(p);save();scheduleBoard();openEditor(openId);toast("Canva design linked");}
   catch(e){if(msg)msg.textContent=(e.status===404||e.status===403)?"Canva can't find that design for the connected account. Share it with Boko's Canva or use Browse.":"Couldn't link: "+e.message;}}
-async function canvaExportUrls(p,force){const id=p.canva.id;const c=_cvPages[id];if(c&&!force&&Date.now()-c.t<20*60*1000)return c.urls;
+async function canvaExportUrls(p,force){return canvaExportById(p.canva.id,force);}
+async function canvaExportById(id,force){const c=_cvPages[id];if(c&&!force&&Date.now()-c.t<20*60*1000)return c.urls;
   const s=await canvaApi("export",{id:id});let urls=s.urls||[],status=s.status,tries=0;
   while(status!=="success"&&tries<40){if(status==="failed")throw new Error("Canva export failed");await new Promise(r=>setTimeout(r,1500));const j=await canvaApi("exportStatus",{job:s.job});status=j.status;urls=j.urls||[];if(j.error)throw new Error(j.error);tries++;}
   if(status!=="success")throw new Error("Canva export timed out");_cvPages[id]={t:Date.now(),urls:urls};return urls;}
 function canvaFileSrc(u){return "/api/canva?"+cvQS({action:"file",u:u,p:PASS||""});}
 async function mountCanvaPreview(el,p,force){if(!el)return;el.innerHTML=`<div class="cvgal"><div class="cvpl">Canva · ${esc(p.canva.title||"")}</div><img src="${canvaThumbSrc(p)}"><div class="cvnote">Loading all pages from Canva...</div></div>`;
   try{const urls=await canvaExportUrls(p,force);if(!el.isConnected)return;
-    el.innerHTML=`<div class="cvgal"><div class="cvpl">Canva · ${urls.length} page${urls.length>1?"s":""}</div>${urls.map((u,i)=>`<div class="cvpl">Slide ${i+1}</div><img src="${canvaFileSrc(u)}" loading="lazy">`).join("")}</div>`;}
+    let sh="";if(p.canvaStory&&p.canvaStory.id){try{const su=await canvaExportById(p.canvaStory.id,force);sh=su.map(u=>`<div class="cvpl">Story 9:16</div><img src="${canvaFileSrc(u)}" loading="lazy">`).join("");}catch(e){sh='<div class="cvnote">Story pages could not load: '+esc(e.message)+'</div>';}}
+    if(!el.isConnected)return;el.innerHTML=`<div class="cvgal"><div class="cvpl">Canva · ${urls.length} page${urls.length>1?"s":""}</div>${urls.map((u,i)=>`<div class="cvpl">${urls.length>1?"Slide "+(i+1):"Feed 1:1"}</div><img src="${canvaFileSrc(u)}" loading="lazy">`).join("")}${sh}</div>`;}
   catch(e){if(el.isConnected){const n=el.querySelector(".cvnote");if(n)n.textContent=e.status===401?"Canva isn't connected. Open a card's Canva box to connect.":"Couldn't load pages: "+e.message;}}}
 async function downloadCanva(p){toast("Exporting from Canva...");
-  try{const urls=await canvaExportUrls(p,true);const base=slugName(p);
-    if(urls.length===1){const b=await (await fetch(canvaFileSrc(urls[0]))).blob();const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=base+".png";a.click();setTimeout(()=>URL.revokeObjectURL(u),3000);toast("Downloaded");return;}
-    const files=[];for(let i=0;i<urls.length;i++){const b=await (await fetch(canvaFileSrc(urls[i]))).blob();files.push({name:base+"_slide"+(i+1)+".png",data:new Uint8Array(await b.arrayBuffer())});}
+  try{const urls=await canvaExportUrls(p,true);const base=slugName(p);let surls=[];if(p.canvaStory&&p.canvaStory.id)surls=await canvaExportById(p.canvaStory.id,true);
+    if(urls.length===1&&!surls.length){const b=await (await fetch(canvaFileSrc(urls[0]))).blob();const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=base+".png";a.click();setTimeout(()=>URL.revokeObjectURL(u),3000);toast("Downloaded");return;}
+    const files=[];for(let i=0;i<urls.length;i++){const b=await (await fetch(canvaFileSrc(urls[i]))).blob();files.push({name:base+(urls.length>1?"_slide"+(i+1):"_feed")+".png",data:new Uint8Array(await b.arrayBuffer())});}
+    for(let i=0;i<surls.length;i++){const b=await (await fetch(canvaFileSrc(surls[i]))).blob();files.push({name:base+"_story"+(surls.length>1?(i+1):"")+".png",data:new Uint8Array(await b.arrayBuffer())});}
     const zip=zipStore(files);const u=URL.createObjectURL(zip);const a=document.createElement("a");a.download=base+"_canva.zip";a.href=u;a.click();setTimeout(()=>URL.revokeObjectURL(u),3000);toast("Canva pages downloaded as ZIP");}
   catch(e){toast(e.status===401?"Connect Canva first":"Canva download failed: "+e.message);}}
 function canvaPicker(p,openId){const old=document.getElementById("cvpick");if(old)old.remove();
@@ -1055,6 +1061,9 @@ async function wireCanva(m,p,id){
   m.querySelectorAll("[data-cv]").forEach(b=>b.onclick=async()=>{const a=b.dataset.cv;
     if(a==="browse"){const st=await canvaStatus(true);if(!st.configured){toast("Canva isn't set up yet: add CANVA_CLIENT_ID and CANVA_CLIENT_SECRET in Vercel");return;}if(!st.connected){if(confirm("Connect Boko's Canva account? You'll be sent to Canva to approve access."))canvaLogin();return;}canvaPicker(p,id);}
     else if(a==="link"){const inp=m.querySelector("#cvlink");const cid=canvaIdFrom(inp&&inp.value);if(!cid){const msg=m.querySelector("#cvmsg");if(msg)msg.textContent=/canva\.com\/d\//.test((inp&&inp.value)||"")?"Short canva.com/d/ links can't be read. In Canva use Share > Copy link (canva.com/design/...), or Browse.":"That doesn't look like a Canva design link.";return;}canvaAttach(p,cid,id);}
+    else if(a==="slink"){const inp=m.querySelector("#cvslink");const cid=canvaIdFrom(inp&&inp.value);if(!cid){toast("Paste a canva.com/design/... link for the story version");return;}
+      try{const d=await canvaApi("design",{id:cid});p.canvaStory={id:d.id,title:d.title,editUrl:d.editUrl,viewUrl:d.viewUrl,pages:d.pages,u:Date.now()};logAct(p,"linked Canva story design");touch(p);save();scheduleBoard();openEditor(id);toast("Story design linked");}catch(e){toast("Couldn't link story: "+e.message);}}
+    else if(a==="sunlink"){delete p.canvaStory;logAct(p,"unlinked Canva story design");touch(p);save();scheduleBoard();openEditor(id);}
     else if(a==="unlink"){if(!confirm("Unlink this Canva design? The card goes back to the built-in template."))return;delete p.canva;logAct(p,"unlinked Canva design");touch(p);save();scheduleBoard();openEditor(id);}
     else if(a==="refresh"){try{const d=await canvaApi("design",{id:p.canva.id});Object.assign(p.canva,{title:d.title,editUrl:d.editUrl,viewUrl:d.viewUrl,pages:d.pages,u:Date.now()});touch(p);save();scheduleBoard();}catch(e){}mountCanvaPreview(m.querySelector(".mprev"),p,true);toast("Refreshed from Canva");}});
   if(p.canva&&p.canva.id)mountCanvaPreview(m.querySelector(".mprev"),p,false);}
