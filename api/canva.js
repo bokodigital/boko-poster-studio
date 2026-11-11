@@ -97,7 +97,15 @@ const slim = (d) => ({
 });
 
 module.exports = async (req, res) => {
-  const q = req.query || {};
+  const q = Object.assign({}, req.query || {});
+  // Canva appends ?code=&state= to a redirect URI that already has a query, so
+  // "action" can arrive as "callback?code=...". Split it back out.
+  if (typeof q.action === "string" && q.action.indexOf("?") >= 0) {
+    const [a, rest] = q.action.split("?");
+    q.action = a;
+    for (const [k, v] of new URLSearchParams(rest)) if (!(k in q)) q[k] = v;
+  }
+  if (!q.action && q.code && q.state) q.action = "callback";
   const action = q.action || "status";
   const noStore = () => res.setHeader("Cache-Control", "no-store");
 
