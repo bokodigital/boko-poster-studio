@@ -431,7 +431,7 @@ function platformsIn(text){text=String(text||"");let hits=[];for(const pl of LOG
   if(out.indexOf("claude")>=0){const i=out.indexOf("anthropic");if(i>=0)out.splice(i,1);}return out.slice(0,4);}
 function posterText(p,slideIdx){if(p.template==="carousel"&&Array.isArray(p.slides)&&p.slides.length){const s=p.slides[Math.max(0,Math.min(slideIdx||0,p.slides.length-1))]||{};return [s.h,s.b,s.acc].join(" ");}
   const parts=[p.headline,p.subhead,p.accent,p.eyebrow,(p.bullets||[]).join(" ")];
-  if(p.template==="founder")parts.push(p.caption);if(p.template==="index")parts.push((p.caption||"").split("\n")[0]);return parts.join(" ");}
+  if(p.template==="index")parts.push((p.caption||"").split("\n")[0]);return parts.join(" ");}
 function drawPlatformLogos(ctx,W,margin,p,slideIdx,rightX,dark){if(p.noLogos)return;const ks=platformsIn(posterText(p,slideIdx)).filter(k=>PLOGO[k]&&PLOGO[k].complete&&PLOGO[k].naturalWidth);if(!ks.length)return;
   const r=W*0.036,gap=W*0.016,cy=margin+W*0.035;let cx=rightX-r;
   for(let i=ks.length-1;i>=0;i--){const im=PLOGO[ks[i]];
@@ -695,8 +695,9 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
       for(const para of (cur.b||"").split("\n")){if(!para.trim()){y+=blh*0.5;continue;}for(const l of wrapLines(ctx,para,W-2*margin)){ctx.fillText(l,margin,y);y+=blh;}y+=blh*0.3;}
     }
     footer(ctx,W,H,margin,base);}
-  const _lx=(tpl!=="cta"&&tpl!=="split")?drawCTApill(ctx,W,H,margin,p,!isLime):W-margin;
-  drawPlatformLogos(ctx,W,margin,p,slideIdx,_lx,!(isLime||tpl==="split"));
+  // Founder (text-post) style: no CTA pill and no platform logos, just the profile header and text.
+  if(tpl!=="founder"){const _lx=(tpl!=="cta"&&tpl!=="split")?drawCTApill(ctx,W,H,margin,p,!isLime):W-margin;
+  drawPlatformLogos(ctx,W,margin,p,slideIdx,_lx,!(isLime||tpl==="split"));}
 }
 
 /* ---------- board ---------- */
