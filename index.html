@@ -248,6 +248,30 @@
   .uselabel{font-size:11px;font-weight:600;color:var(--muted)}
   .syncdot.on{background:#3fb950}
   .x{margin-left:auto;background:transparent;border:0;color:var(--muted);font-size:20px;cursor:pointer}
+
+  /* Canva integration */
+  .cvbox{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fafbfc;display:flex;flex-direction:column;gap:8px}
+  .cvhead{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px}
+  .cvhead .cvlogo{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#00c4cc,#7d2ae8);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .cvrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .cvrow .f{flex:1;min-width:180px}
+  .cvlinked{display:flex;gap:10px;align-items:center}
+  .cvlinked img{width:56px;height:56px;object-fit:cover;border-radius:8px;background:#111}
+  .cvlinked .cvt{flex:1;font-size:13px;line-height:1.3}
+  .cvlinked .cvt small{color:#7a7f87;display:block}
+  .cvnote{font-size:12px;color:#7a7f87}
+  .cvgal{display:flex;flex-direction:column;gap:10px;width:100%;max-height:78vh;overflow:auto}
+  .cvgal img{width:100%;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.12);background:#111}
+  .cvgal .cvpl{font-size:11px;font-weight:600;color:#7a7f87;text-transform:uppercase;letter-spacing:.06em}
+  .thumb img.cvthumb{width:100%;height:100%;object-fit:cover;display:block}
+  #cvpick{position:fixed;inset:0;background:rgba(10,12,16,.55);z-index:9999;display:flex;align-items:center;justify-content:center}
+  #cvpick .cvpanel{background:#fff;border-radius:16px;width:min(880px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden}
+  #cvpick .cvtop{display:flex;gap:8px;padding:14px;border-bottom:1px solid var(--line);align-items:center}
+  #cvpick .cvgrid{padding:14px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  #cvpick .cvitem{cursor:pointer;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fafbfc}
+  #cvpick .cvitem:hover{outline:2px solid #BFFC00}
+  #cvpick .cvitem img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#111;display:block}
+  #cvpick .cvitem div{padding:6px 8px;font-size:12px;line-height:1.3}
 </style>
 </head>
 <body>
@@ -319,7 +343,7 @@ function fname(text,platform){const tag=FNAME_TAG[platform];return tag?(text||""
 let filter="All";let typeFilter="All";let searchQ="";
 const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Emails","Email"]];
 function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":"Post";}
-function autoStory(p){return p.type!=="video"&&p.platform!=="Hubspot"&&(p.platform==="Instagram"||p.platform==="Facebook");}
+function autoStory(p){return !(p.canva&&p.canva.id)&&p.type!=="video"&&p.platform!=="Hubspot"&&(p.platform==="Instagram"||p.platform==="Facebook");}
 
 document.getElementById("logo").src=LOGO_LIGHT;
 
@@ -778,7 +802,7 @@ function cardEl(p){
         ${p.status==="approved"?('<button class="mini pubm" data-a="publish">'+((p.date&&p.date<=todayStr())?'↑ Publish now':'↑ Schedule')+'</button>'):p.status==="scheduled"?'<button class="mini pubm" data-a="markpub">✓ Mark published</button>':(p.status==="published"?'':'<button class="mini ok" data-a="approve">Approve</button>')}
       </div>
     </div>`;
-  if(p.platform==="Hubspot"){c.querySelector(".thumb").innerHTML=emailThumbHTML(p);}else if(p.type==="video"){c.querySelector(".thumb").innerHTML=videoThumbHTML(p);}else{const cv=document.createElement("canvas");c.querySelector(".thumb").appendChild(cv);renderPoster(cv,p);}
+  if(p.platform==="Hubspot"){c.querySelector(".thumb").innerHTML=emailThumbHTML(p);}else if(p.type==="video"){c.querySelector(".thumb").innerHTML=videoThumbHTML(p);}else if(p.canva&&p.canva.id){const im=document.createElement("img");im.className="cvthumb";im.loading="lazy";im.src=canvaThumbSrc(p);im.onerror=()=>{im.remove();const cv=document.createElement("canvas");c.querySelector(".thumb").appendChild(cv);renderPoster(cv,p);};c.querySelector(".thumb").appendChild(im);}else{const cv=document.createElement("canvas");c.querySelector(".thumb").appendChild(cv);renderPoster(cv,p);}
   c.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",p.id);c.classList.add("dragging");});
   c.addEventListener("dragend",()=>c.classList.remove("dragging"));
   c.addEventListener("click",e=>{if(e.target.closest("[data-a]"))return;openEditor(p.id);});
@@ -899,6 +923,7 @@ function openEditor(id){
       </div>`:""}
       ${uf("bul")?`<div><label class="fl">Bullets (comma)${p.template==="infographic"?' — use "Label: description" per item':""}</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>`:""}
       `}
+      ${canvaSectionHTML(p)}
       <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>`}
       ${isEmail?'':`<div><label class="fl">Hashtags</label><textarea class="f" data-f="hashtags" style="min-height:52px" placeholder="#AIAutomation #ShopifyAU">${esc(p.hashtags||'')}</textarea></div>`}
       <div class="activity">
@@ -920,10 +945,11 @@ function openEditor(id){
         <button class="btn lime" data-a="save" style="margin-left:auto">Save</button>
       </div>
     </div>`;
-  const refreshPrev=()=>{const cv=m.querySelector("#mcv");
+  const refreshPrev=()=>{if(!isEmail&&!isVid&&p.canva&&p.canva.id)return;const cv=m.querySelector("#mcv");
     if(cv){if(autoStory(p)){renderPoster(cv,Object.assign({},p,{ratio:"square"}),isCarousel?curSlide:0);const sC=m.querySelector("#mcvS");if(sC)renderPoster(sC,Object.assign({},p,{ratio:"story"}),isCarousel?curSlide:0);}else renderPoster(cv,p,isCarousel?curSlide:0);}
     else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):"";}};
   refreshPrev();
+  if(!isEmail&&!isVid)wireCanva(m,p,id);
   const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"&&(p.platform==="Hubspot"||p.platform==="Facebook"))p.platform="YouTube";touch(p);save();openEditor(id);});
   const tplseg=m.querySelector('#tplseg');if(tplseg)tplseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;touch(p);save();openEditor(id);});
   const ratioseg=m.querySelector('#ratioseg');if(ratioseg)ratioseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;touch(p);save();openEditor(id);});
@@ -966,7 +992,7 @@ function openEditor(id){
   m.querySelectorAll("[data-ecancel]").forEach(b=>b.onclick=()=>{_editCmt=null;openEditor(id);});
   if(_editCmt!=null){const _te=m.querySelector("#cedit_"+_editCmt);if(_te){_te.focus();_te.setSelectionRange(_te.value.length,_te.value.length);}}
   m.querySelector('[data-a="copy"]').onclick=()=>{if(isEmail)copyEmail(p);else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Copied"));}};
-  const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
+  const dl=m.querySelector('[data-a="download"]');if(dl)dl.onclick=()=>{if(p.canva&&p.canva.id)downloadCanva(p);else if(isCarousel)downloadCarousel(p);else if(autoStory(p))downloadBoth(p);else downloadPNG(p);};
   const td=m.querySelector('[data-a="thumbdl"]');if(td)td.onclick=()=>downloadThumb(p);
   m.querySelectorAll('[data-a="close"]').forEach(b=>b.onclick=closeEditor);
   const sv=m.querySelector('[data-a="save"]');if(sv)sv.onclick=()=>{save();closeEditor();toast("Saved");};
@@ -974,6 +1000,68 @@ function openEditor(id){
   const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this card?")){_tomb[id]=Date.now();state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
   document.getElementById("overlay").classList.add("show");
 }
+
+/* ===== Canva integration ===== */
+let _cvStatus=null;const _cvPages={};
+function cvQS(o){return Object.keys(o).map(k=>encodeURIComponent(k)+"="+encodeURIComponent(o[k])).join("&");}
+async function canvaApi(action,params){const r=await fetch("/api/canva?"+cvQS(Object.assign({action:action},params||{})),{headers:{"x-board-pass":PASS}});
+  let j={};try{j=await r.json();}catch(e){}if(!r.ok){const e=new Error(j.error||("canva_"+r.status));e.status=r.status;throw e;}return j;}
+async function canvaStatus(force){if(_cvStatus&&!force)return _cvStatus;try{_cvStatus=await canvaApi("status");}catch(e){_cvStatus={configured:false,connected:false,error:e.message};}return _cvStatus;}
+function canvaIdFrom(s){s=(s||"").trim();const m=s.match(/canva\.com\/design\/(D[A-Za-z0-9_-]{6,20})/);if(m)return m[1];if(/^D[A-Za-z0-9_-]{6,20}$/.test(s))return s;return "";}
+function canvaThumbSrc(p){return "/api/canva?"+cvQS({action:"thumb",id:p.canva.id,p:PASS||"",v:(p.canva.u||0)});}
+function canvaLogin(){location.href="/api/canva?"+cvQS({action:"login",p:PASS||""});}
+function canvaSectionHTML(p){const c=p.canva;
+  if(c&&c.id){return `<div class="cvbox"><div class="cvhead"><span class="cvlogo">C</span>Canva design <span class="cvnote" style="margin-left:auto">Preview and downloads use this design</span></div>
+    <div class="cvlinked"><img src="${canvaThumbSrc(p)}" onerror="this.style.visibility='hidden'"><div class="cvt"><b>${esc(c.title||"Canva design")}</b><small>${c.pages?(c.pages+" page"+(c.pages>1?"s":"")+" · "):""}${esc(c.id)}</small></div></div>
+    <div class="cvrow"><a class="btn" href="${esc(c.editUrl||("https://www.canva.com/design/"+c.id+"/edit"))}" target="_blank" rel="noopener">Edit in Canva</a><button class="btn" data-cv="refresh">↻ Refresh from Canva</button><button class="btn" data-cv="unlink">Unlink</button></div></div>`;}
+  return `<div class="cvbox"><div class="cvhead"><span class="cvlogo">C</span>Use a Canva design for this card</div>
+    <div class="cvrow"><input class="f" id="cvlink" placeholder="Paste a Canva design link (canva.com/design/...)"><button class="btn" data-cv="link">Link</button><button class="btn lime" data-cv="browse">Browse my Canva</button></div>
+    <div class="cvnote" id="cvmsg">The design replaces the built-in template: the board, preview and downloads all show the Canva pages.</div></div>`;}
+async function canvaAttach(p,id,openId){const msg=document.getElementById("cvmsg");
+  const st=await canvaStatus(true);if(!st.connected){if(!st.configured){toast("Canva isn't set up yet: add CANVA_CLIENT_ID and CANVA_CLIENT_SECRET in Vercel");return;}if(confirm("Connect Boko's Canva account first?"))canvaLogin();return;}
+  if(msg)msg.textContent="Linking design...";
+  try{const d=await canvaApi("design",{id:id});p.canva={id:d.id,title:d.title,editUrl:d.editUrl,viewUrl:d.viewUrl,pages:d.pages,u:Date.now()};delete _cvPages[d.id];
+    logAct(p,"linked Canva design");touch(p);save();scheduleBoard();openEditor(openId);toast("Canva design linked");}
+  catch(e){if(msg)msg.textContent=(e.status===404||e.status===403)?"Canva can't find that design for the connected account. Share it with Boko's Canva or use Browse.":"Couldn't link: "+e.message;}}
+async function canvaExportUrls(p,force){const id=p.canva.id;const c=_cvPages[id];if(c&&!force&&Date.now()-c.t<20*60*1000)return c.urls;
+  const s=await canvaApi("export",{id:id});let urls=s.urls||[],status=s.status,tries=0;
+  while(status!=="success"&&tries<40){if(status==="failed")throw new Error("Canva export failed");await new Promise(r=>setTimeout(r,1500));const j=await canvaApi("exportStatus",{job:s.job});status=j.status;urls=j.urls||[];if(j.error)throw new Error(j.error);tries++;}
+  if(status!=="success")throw new Error("Canva export timed out");_cvPages[id]={t:Date.now(),urls:urls};return urls;}
+function canvaFileSrc(u){return "/api/canva?"+cvQS({action:"file",u:u,p:PASS||""});}
+async function mountCanvaPreview(el,p,force){if(!el)return;el.innerHTML=`<div class="cvgal"><div class="cvpl">Canva · ${esc(p.canva.title||"")}</div><img src="${canvaThumbSrc(p)}"><div class="cvnote">Loading all pages from Canva...</div></div>`;
+  try{const urls=await canvaExportUrls(p,force);if(!el.isConnected)return;
+    el.innerHTML=`<div class="cvgal"><div class="cvpl">Canva · ${urls.length} page${urls.length>1?"s":""}</div>${urls.map((u,i)=>`<div class="cvpl">Slide ${i+1}</div><img src="${canvaFileSrc(u)}" loading="lazy">`).join("")}</div>`;}
+  catch(e){if(el.isConnected){const n=el.querySelector(".cvnote");if(n)n.textContent=e.status===401?"Canva isn't connected. Open a card's Canva box to connect.":"Couldn't load pages: "+e.message;}}}
+async function downloadCanva(p){toast("Exporting from Canva...");
+  try{const urls=await canvaExportUrls(p,true);const base=slugName(p);
+    if(urls.length===1){const b=await (await fetch(canvaFileSrc(urls[0]))).blob();const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=base+".png";a.click();setTimeout(()=>URL.revokeObjectURL(u),3000);toast("Downloaded");return;}
+    const files=[];for(let i=0;i<urls.length;i++){const b=await (await fetch(canvaFileSrc(urls[i]))).blob();files.push({name:base+"_slide"+(i+1)+".png",data:new Uint8Array(await b.arrayBuffer())});}
+    const zip=zipStore(files);const u=URL.createObjectURL(zip);const a=document.createElement("a");a.download=base+"_canva.zip";a.href=u;a.click();setTimeout(()=>URL.revokeObjectURL(u),3000);toast("Canva pages downloaded as ZIP");}
+  catch(e){toast(e.status===401?"Connect Canva first":"Canva download failed: "+e.message);}}
+function canvaPicker(p,openId){const old=document.getElementById("cvpick");if(old)old.remove();
+  const w=document.createElement("div");w.id="cvpick";w.innerHTML=`<div class="cvpanel"><div class="cvtop"><span class="cvlogo" style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#00c4cc,#7d2ae8);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px">C</span><b>Pick a Canva design</b><input class="f" id="cvq" placeholder="Search designs" style="flex:1"><button class="btn" id="cvgo">Search</button><button class="btn" id="cvdisc" title="Disconnect Canva">Disconnect</button><button class="x" id="cvx">&times;</button></div><div class="cvgrid" id="cvgrid"><div class="cvnote">Loading...</div></div><div style="padding:0 14px 14px"><button class="btn" id="cvmore" style="display:none">Load more</button></div></div>`;
+  document.body.appendChild(w);let cont=null;const grid=w.querySelector("#cvgrid");
+  const load=async(append)=>{const q=w.querySelector("#cvq").value.trim();if(!append){grid.innerHTML='<div class="cvnote">Loading...</div>';cont=null;}
+    try{const j=await canvaApi("search",Object.assign({q:q},cont?{cont:cont}:{}));if(!append)grid.innerHTML="";cont=j.cont;
+      j.items.forEach(d=>{const it=document.createElement("div");it.className="cvitem";it.innerHTML=`<img src="${esc(d.thumb)}" loading="lazy"><div><b>${esc(d.title)}</b><br><span class="cvnote">${d.pages} page${d.pages>1?"s":""}</span></div>`;
+        it.onclick=()=>{p.canva={id:d.id,title:d.title,editUrl:d.editUrl,viewUrl:d.viewUrl,pages:d.pages,u:Date.now()};delete _cvPages[d.id];logAct(p,"linked Canva design");touch(p);save();scheduleBoard();w.remove();openEditor(openId);toast("Canva design linked");};grid.appendChild(it);});
+      if(!grid.children.length)grid.innerHTML='<div class="cvnote">No designs found.</div>';w.querySelector("#cvmore").style.display=cont?"":"none";}
+    catch(e){grid.innerHTML='<div class="cvnote">'+(e.status===401?'Canva is not connected. <a href="#" id="cvconn">Connect Canva</a>':esc("Couldn't load designs: "+e.message))+'</div>';const cc=grid.querySelector("#cvconn");if(cc)cc.onclick=(ev)=>{ev.preventDefault();canvaLogin();};}};
+  w.querySelector("#cvgo").onclick=()=>load(false);w.querySelector("#cvq").onkeydown=(e)=>{if(e.key==="Enter")load(false);};
+  w.querySelector("#cvmore").onclick=()=>load(true);w.querySelector("#cvx").onclick=()=>w.remove();w.onclick=(e)=>{if(e.target===w)w.remove();};
+  w.querySelector("#cvdisc").onclick=async()=>{if(!confirm("Disconnect Boko's Canva account from the board?"))return;try{await canvaApi("disconnect");_cvStatus=null;toast("Canva disconnected");w.remove();}catch(e){toast("Couldn't disconnect: "+e.message);}};
+  load(false);}
+async function wireCanva(m,p,id){
+  m.querySelectorAll("[data-cv]").forEach(b=>b.onclick=async()=>{const a=b.dataset.cv;
+    if(a==="browse"){const st=await canvaStatus(true);if(!st.configured){toast("Canva isn't set up yet: add CANVA_CLIENT_ID and CANVA_CLIENT_SECRET in Vercel");return;}if(!st.connected){if(confirm("Connect Boko's Canva account? You'll be sent to Canva to approve access."))canvaLogin();return;}canvaPicker(p,id);}
+    else if(a==="link"){const inp=m.querySelector("#cvlink");const cid=canvaIdFrom(inp&&inp.value);if(!cid){const msg=m.querySelector("#cvmsg");if(msg)msg.textContent=/canva\.com\/d\//.test((inp&&inp.value)||"")?"Short canva.com/d/ links can't be read. In Canva use Share > Copy link (canva.com/design/...), or Browse.":"That doesn't look like a Canva design link.";return;}canvaAttach(p,cid,id);}
+    else if(a==="unlink"){if(!confirm("Unlink this Canva design? The card goes back to the built-in template."))return;delete p.canva;logAct(p,"unlinked Canva design");touch(p);save();scheduleBoard();openEditor(id);}
+    else if(a==="refresh"){try{const d=await canvaApi("design",{id:p.canva.id});Object.assign(p.canva,{title:d.title,editUrl:d.editUrl,viewUrl:d.viewUrl,pages:d.pages,u:Date.now()});touch(p);save();scheduleBoard();}catch(e){}mountCanvaPreview(m.querySelector(".mprev"),p,true);toast("Refreshed from Canva");}});
+  if(p.canva&&p.canva.id)mountCanvaPreview(m.querySelector(".mprev"),p,false);}
+(function(){try{const q=new URLSearchParams(location.search);const c=q.get("canva");if(!c)return;
+  setTimeout(()=>{toast(c==="connected"?"Canva connected":(c==="denied"?"Canva access was not granted":"Canva connection failed, try again"));},800);
+  q.delete("canva");history.replaceState(null,"",location.pathname+(q.toString()?("?"+q.toString()):"")+location.hash);}catch(e){}})();
+/* ===== end Canva integration ===== */
 function closeEditor(){const m=document.getElementById("modal");if(m){m.querySelectorAll("video").forEach(v=>{try{v.pause();}catch(e){}});m.innerHTML="";}document.getElementById("overlay").classList.remove("show");renderBoard();}
 function renderBoardThumb(id){/* board re-renders on close; cheap no-op live */}
 document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeEditor();});
@@ -986,7 +1074,7 @@ const PUBDEST={
   Hubspot:{account:"Boko Digital account",tool:"HubSpot email",url:"https://app.hubspot.com/email"}
 };
 function pubCopy(p){if(p.platform==="Hubspot"){copyEmail(p);}else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Caption copied")).catch(()=>{});}}
-function pubDownload(p){if(p.platform==="Hubspot")return;if(p.type==="video"){if(p.thumbnail)downloadThumb(p);return;}if(p.template==="carousel"){downloadCarousel(p);return;}if(autoStory(p)){downloadBoth(p);return;}downloadPNG(p);}
+function pubDownload(p){if(p.platform==="Hubspot")return;if(p.type!=="video"&&p.canva&&p.canva.id){downloadCanva(p);return;}if(p.type==="video"){if(p.thumbnail)downloadThumb(p);return;}if(p.template==="carousel"){downloadCarousel(p);return;}if(autoStory(p)){downloadBoth(p);return;}downloadPNG(p);}
 function pubOpen(p){const d=PUBDEST[p.platform];if(d&&d.url)window.open(d.url,"_blank","noopener");pubCopy(p);setTimeout(()=>pubDownload(p),120);toast("Opened "+(d?d.tool:"platform")+" — paste & schedule");}
 
 function commenterName(){return localStorage.getItem("boko_user")||"";}
