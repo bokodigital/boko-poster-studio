@@ -526,11 +526,15 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     if(si){let sy=yStart+hH+gap;ctx.font="400 "+si.fs+"px Poppins";ctx.fillStyle=C.black;for(const l of si.lines){ctx.fillText(l,margin,sy);sy+=si.lh;}}
     footer(ctx,W,H,margin,C.black);}
   else if(tpl==="checklist"){const fs=W*0.062,lh=fs*1.12;ctx.font="700 "+fs+"px Poppins";
-    const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);let y=margin+W*0.11/KASPECT+W*0.055;
-    y=drawAccentLines(ctx,lines,p.accent,margin,y,lh,base,C.lime,"left",W);y+=W*0.04;
+    const lines=wrapLines(ctx,p.headline.toUpperCase(),W-2*margin);
     const items=(p.bullets&&p.bullets.length?p.bullets:["Strategy","Design","Development","Marketing"]).slice(0,4);
     const ifs=W*0.040;ctx.font="500 "+ifs+"px Poppins";const r=W*0.026;
     const itX=margin+r*2+W*0.03,itAvail=W-itX-margin,ilh=ifs*1.18;
+    // centre headline + list vertically between the K mark and the footer
+    let _ih=0;for(const it of items){const wl=wrapLines(ctx,it,itAvail).slice(0,2);_ih+=Math.max(ifs*1.9,wl.length*ilh+ifs*0.55);}
+    const _bt=margin+W*0.11/KASPECT+W*0.04,_bb=H-margin*1.4,_tot=lines.length*lh+W*0.04+_ih;
+    let y=Math.max(_bt,_bt+((_bb-_bt)-_tot)/2);ctx.font="700 "+fs+"px Poppins";
+    y=drawAccentLines(ctx,lines,p.accent,margin,y,lh,base,C.lime,"left",W);y+=W*0.04;
     for(const it of items){ctx.font="500 "+ifs+"px Poppins";const wl=wrapLines(ctx,it,itAvail).slice(0,2);
       const blockH=Math.max(ifs*1.9,wl.length*ilh+ifs*0.55);const cy=y+ifs/2;
       ctx.beginPath();ctx.arc(margin+r,cy,r,0,Math.PI*2);ctx.fillStyle=C.lime;ctx.fill();
@@ -596,7 +600,12 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     ctx.fillStyle=C.black;ctx.textAlign="left";ctx.fillText(btnText,bx+padX,by+bh/2);ctx.textBaseline="top";}
   else if(tpl==="founder"){ctx.textAlign="left";
     const name=(p.eyebrow||"Maria Jose Mendieta");const handle=(p.cta&&p.cta.indexOf("@")===0)?p.cta:"@boko.digital.solutions";
-    const av=W*0.052,hx=margin,hcy=H*0.305;
+    const av=W*0.052,hx=margin;
+    // measure body so the whole block (header + text) is centred vertically
+    const _bfs=W*0.030,_blh=_bfs*1.5;let _bh=0;ctx.font="700 "+_bfs+"px Poppins";_bh+=wrapLines(ctx,p.headline||"",W-2*margin).length*_blh;_bh+=_blh*0.45;ctx.font="400 "+_bfs+"px Poppins";
+    for(const para of (p.caption||"").split("\n")){if(para.trim()===""){_bh+=_blh*0.55;continue;}_bh+=wrapLines(ctx,para,W-2*margin).length*_blh+_blh*0.4;}
+    _bh-=_blh*0.4;const _hdrH=av*2,_gap=W*0.05,_tot=_hdrH+_gap+_bh,_top=Math.max(margin,(H-_tot)/2);
+    const hcy=_top+av;
     const avImg=(p.avatar&&typeof AVATARS!=="undefined"&&AVATARS[p.avatar]&&AVATARS[p.avatar].complete&&AVATARS[p.avatar].naturalWidth)?AVATARS[p.avatar]:null;
     if(avImg){ctx.save();ctx.beginPath();ctx.arc(hx+av,hcy,av,0,Math.PI*2);ctx.clip();ctx.drawImage(avImg,hx,hcy-av,av*2,av*2);ctx.restore();}
     else{ctx.beginPath();ctx.arc(hx+av,hcy,av,0,Math.PI*2);ctx.fillStyle="#26292e";ctx.fill();
@@ -611,7 +620,7 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     ctx.strokeStyle="#fff";ctx.lineWidth=W*0.006;ctx.lineCap="round";ctx.lineJoin="round";
     ctx.beginPath();ctx.moveTo(bcx-br*0.42,bcy);ctx.lineTo(bcx-br*0.08,bcy+br*0.4);ctx.lineTo(bcx+br*0.5,bcy-br*0.42);ctx.stroke();
     ctx.fillStyle="#8a8f98";ctx.font="500 "+(W*0.026)+"px Poppins";ctx.fillText(handle,nx,nameY+W*0.042);
-    ctx.textBaseline="top";const bfs=W*0.030,blh=bfs*1.5;let y=H*0.42;
+    ctx.textBaseline="top";const bfs=W*0.030,blh=bfs*1.5;let y=_top+_hdrH+_gap;
     ctx.fillStyle=C.white;ctx.font="700 "+bfs+"px Poppins";
     for(const l of wrapLines(ctx,p.headline||"",W-2*margin)){ctx.fillText(l,margin,y);y+=blh;}
     y+=blh*0.45;ctx.font="400 "+bfs+"px Poppins";
