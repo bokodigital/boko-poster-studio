@@ -697,7 +697,7 @@ function renderPoster(canvas,p,slideIdx){const _ratio=p.ratio||"square";if(_rati
     footer(ctx,W,H,margin,base);}
   // Founder (text-post) style: no CTA pill and no platform logos, just the profile header and text.
   if(tpl!=="founder"){const _lx=(tpl!=="cta"&&tpl!=="split")?drawCTApill(ctx,W,H,margin,p,!isLime):W-margin;
-  drawPlatformLogos(ctx,W,margin,p,slideIdx,_lx,!(isLime||tpl==="split"));}
+  if(tpl!=="infographic")drawPlatformLogos(ctx,W,margin,p,slideIdx,_lx,!(isLime||tpl==="split"));}
 }
 
 /* ---------- board ---------- */
