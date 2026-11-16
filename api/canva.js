@@ -81,7 +81,13 @@ async function accessToken() {
       try {
         t = await kvGet(TOKEN_KEY); // another request may have refreshed already
         if (t && t.exp > Date.now()) return t.access;
-        const nt = await tokenRequest({ grant_type: "refresh_token", refresh_token: t.refresh });
+        let nt;
+        try { nt = await tokenRequest({ grant_type: "refresh_token", refresh_token: t.refresh }); }
+        catch (e) {
+          // A dead refresh token never recovers: drop it so the board shows "Connect Canva" instead of an error.
+          await kvDel(TOKEN_KEY);
+          const err = new Error("not_connected"); err.code = 401; throw err;
+        }
         await kvSet(TOKEN_KEY, nt);
         return nt.access;
       } finally {
