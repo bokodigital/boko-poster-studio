@@ -205,6 +205,17 @@ module.exports = async (req, res) => {
       return;
     }
 
+    if (action === "pages") {
+      // Page thumbnails always reflect the latest saved version, unlike exports which can lag behind edits.
+      noStore();
+      if (!/^D[A-Za-z0-9_-]{6,20}$/.test(q.id || "")) { res.status(400).json({ error: "bad_id" }); return; }
+      const j = await canva("/designs/" + encodeURIComponent(q.id) + "/pages?limit=50");
+      const items = j.items || [];
+      res.status(200).json({ urls: items.map((p) => (p.thumbnail && p.thumbnail.url) || "").filter(Boolean),
+        sizes: items.map((p) => p.thumbnail ? [p.thumbnail.width, p.thumbnail.height] : null) });
+      return;
+    }
+
     if (action === "export") {
       noStore();
       if (!/^D[A-Za-z0-9_-]{6,20}$/.test(q.id || "")) { res.status(400).json({ error: "bad_id" }); return; }
