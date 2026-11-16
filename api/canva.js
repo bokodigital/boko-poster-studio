@@ -66,14 +66,33 @@ async function tokenRequest(params) {
   return { access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000 - 60000 };
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const LOCK_KEY = "boko_canva_refresh_lock";
+
+// One shared token for the whole board. Refresh tokens are single use, so only one
+// request may refresh at a time: the others wait and reuse the new token from KV.
 async function accessToken() {
-  const t = await kvGet(TOKEN_KEY);
+  let t = await kvGet(TOKEN_KEY);
   if (!t) return null;
   if (t.exp > Date.now()) return t.access;
-  // Canva refresh tokens are single use: store the new pair straight away.
-  const nt = await tokenRequest({ grant_type: "refresh_token", refresh_token: t.refresh });
-  await kvSet(TOKEN_KEY, nt);
-  return nt.access;
+  for (let i = 0; i < 40; i++) {
+    const got = await redis(["SET", LOCK_KEY, "1", "NX", "EX", "20"]);
+    if (got === "OK") {
+      try {
+        t = await kvGet(TOKEN_KEY); // another request may have refreshed already
+        if (t && t.exp > Date.now()) return t.access;
+        const nt = await tokenRequest({ grant_type: "refresh_token", refresh_token: t.refresh });
+        await kvSet(TOKEN_KEY, nt);
+        return nt.access;
+      } finally {
+        await kvDel(LOCK_KEY);
+      }
+    }
+    await sleep(500);
+    t = await kvGet(TOKEN_KEY);
+    if (t && t.exp > Date.now()) return t.access;
+  }
+  throw new Error("canva_token_busy");
 }
 
 async function canva(path, opts) {

@@ -1037,7 +1037,10 @@ function openEditor(id){
 /* ===== Canva integration ===== */
 let _cvStatus=null;const _cvPages={};
 function cvQS(o){return Object.keys(o).map(k=>encodeURIComponent(k)+"="+encodeURIComponent(o[k])).join("&");}
-async function canvaApi(action,params){const r=await fetch("/api/canva?"+cvQS(Object.assign({action:action},params||{})),{headers:{"x-board-pass":PASS}});
+// Limit parallel Canva calls so a board full of previews doesn't hammer the API.
+let _cvActive=0;const _cvQueue=[];function _cvSlot(){return new Promise(r=>{const go=()=>{_cvActive++;r(()=>{_cvActive--;const n=_cvQueue.shift();if(n)n();});};if(_cvActive<3)go();else _cvQueue.push(go);});}
+async function canvaApi(action,params){const _rel=await _cvSlot();try{return await _canvaApi(action,params);}finally{_rel();}}
+async function _canvaApi(action,params){const r=await fetch("/api/canva?"+cvQS(Object.assign({action:action},params||{})),{headers:{"x-board-pass":PASS}});
   let j={};try{j=await r.json();}catch(e){}if(!r.ok){const e=new Error(j.error||("canva_"+r.status));e.status=r.status;throw e;}return j;}
 async function canvaStatus(force){if(_cvStatus&&!force)return _cvStatus;try{_cvStatus=await canvaApi("status");}catch(e){_cvStatus={configured:false,connected:false,error:e.message};}return _cvStatus;}
 function canvaIdFrom(s){s=(s||"").trim();const m=s.match(/canva\.com\/design\/(D[A-Za-z0-9_-]{6,20})/);if(m)return m[1];if(/^D[A-Za-z0-9_-]{6,20}$/.test(s))return s;return "";}
