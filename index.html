@@ -1073,8 +1073,8 @@ async function canvaExportById(id,force){const c=_cvPages[id];if(c&&!force&&Date
   if(status!=="success")throw new Error("Canva export timed out");_cvPages[id]={t:Date.now(),urls:urls};return urls;}
 function canvaFileSrc(u){return "/api/canva?"+cvQS({action:"file",u:u,p:PASS||""});}
 async function mountCanvaPreview(el,p,force){if(!el)return;el.innerHTML=`<div class="cvgal"><div class="cvpl">Canva · ${esc(p.canva.title||"")}</div><img src="${canvaThumbSrc(p)}"><div class="cvnote">Loading all pages from Canva...</div></div>`;
-  try{const urls=await canvaPreviewById(p.canva.id,force);if(!el.isConnected)return;
-    let sh="";if(p.canvaStory&&p.canvaStory.id){try{const su=await canvaPreviewById(p.canvaStory.id,force);sh=su.map(u=>`<div class="cvpl">Story 9:16</div><img src="${canvaFileSrc(u)}" loading="lazy">`).join("");}catch(e){sh='<div class="cvnote">Story pages could not load: '+esc(e.message)+'</div>';}}
+  try{const urls=await canvaExportUrls(p,force);if(!el.isConnected)return;
+    let sh="";if(p.canvaStory&&p.canvaStory.id){try{const su=await canvaExportById(p.canvaStory.id,force);sh=su.map(u=>`<div class="cvpl">Story 9:16</div><img src="${canvaFileSrc(u)}" loading="lazy">`).join("");}catch(e){sh='<div class="cvnote">Story pages could not load: '+esc(e.message)+'</div>';}}
     if(!el.isConnected)return;el.innerHTML=`<div class="cvgal"><div class="cvpl">Canva · ${urls.length} page${urls.length>1?"s":""}</div>${urls.map((u,i)=>`<div class="cvpl">${urls.length>1?"Slide "+(i+1):"Feed 1:1"}</div><img src="${canvaFileSrc(u)}" loading="lazy">`).join("")}${sh}</div>`;}
   catch(e){if(el.isConnected){const n=el.querySelector(".cvnote");if(n)n.textContent=e.status===401?"Canva isn't connected. Open a card's Canva box to connect.":"Couldn't load pages: "+e.message;}}}
 async function downloadCanva(p){toast("Exporting from Canva...");

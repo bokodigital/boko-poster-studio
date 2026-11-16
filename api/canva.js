@@ -196,8 +196,38 @@ module.exports = async (req, res) => {
       const j = await canva("/designs/" + encodeURIComponent(q.id));
       const d = slim(j.design || {});
       if (action === "thumb") {
+        // Canva's own thumbnail can lag behind edits, so render a small export of the
+        // current version instead, cached per design version (updated_at) for everyone.
+        const upd = (j.design && j.design.updated_at) || 0;
+        const key = "boko_cv_thumb_" + q.id;
+        let url = null;
+        try {
+          const c = await kvGet(key);
+          if (c && c.upd === upd && c.exp > Date.now()) url = c.url;
+          if (!url) {
+            const ex = await canva("/exports", { method: "POST", body: JSON.stringify({ design_id: q.id, pages: [1], format: { type: "jpg", quality: 80, width: 600 } }) });
+            let job = ex.job || {};
+            for (let i = 0; i < 20 && job.status === "in_progress"; i++) {
+              await sleep(1000);
+              job = (await canva("/exports/" + encodeURIComponent(job.id))).job || {};
+            }
+            if (job.status === "success" && job.urls && job.urls[0]) {
+              url = job.urls[0];
+              await kvSet(key, { upd, url, exp: Date.now() + 20 * 3600 * 1000 }, 21 * 3600);
+            }
+          }
+        } catch (e) { url = null; }
+        if (url) {
+          const r = await fetch(url);
+          if (r.ok) {
+            res.setHeader("Content-Type", r.headers.get("content-type") || "image/jpeg");
+            res.setHeader("Cache-Control", "private, max-age=300");
+            res.status(200).send(Buffer.from(await r.arrayBuffer()));
+            return;
+          }
+        }
         if (!d.thumb) { res.status(404).end(); return; }
-        res.setHeader("Cache-Control", "private, max-age=900");
+        res.setHeader("Cache-Control", "private, max-age=60");
         res.writeHead(302, { Location: d.thumb }); res.end();
         return;
       }
