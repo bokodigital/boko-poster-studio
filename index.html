@@ -1044,7 +1044,7 @@ async function _canvaApi(action,params){const r=await fetch("/api/canva?"+cvQS(O
   let j={};try{j=await r.json();}catch(e){}if(!r.ok){const e=new Error(j.error||("canva_"+r.status));e.status=r.status;throw e;}return j;}
 async function canvaStatus(force){if(_cvStatus&&!force)return _cvStatus;try{_cvStatus=await canvaApi("status");}catch(e){_cvStatus={configured:false,connected:false,error:e.message};}return _cvStatus;}
 function canvaIdFrom(s){s=(s||"").trim();const m=s.match(/canva\.com\/design\/(D[A-Za-z0-9_-]{6,20})/);if(m)return m[1];if(/^D[A-Za-z0-9_-]{6,20}$/.test(s))return s;return "";}
-function canvaThumbSrc(p){return "/api/canva?"+cvQS({action:"thumb",id:p.canva.id,p:PASS||"",v:(p.canva.u||0)});}
+function canvaThumbSrc(p){return "/api/canva?"+cvQS({action:"thumb",id:p.canva.id,p:PASS||"",v:(p.canva.u||0),r:"x2"});}
 function canvaLogin(){location.href="/api/canva?"+cvQS({action:"login",p:PASS||""});}
 function canvaSectionHTML(p){const c=p.canva;
   if(c&&c.id){return `<div class="cvbox"><div class="cvhead"><span class="cvlogo">C</span>Canva design <span class="cvnote" style="margin-left:auto">Preview and downloads use this design</span></div>
