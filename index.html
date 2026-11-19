@@ -157,6 +157,11 @@
   .seg{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
   .seg button{background:transparent;color:var(--muted);border:0;padding:6px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
   .seg button.on{background:var(--lime);color:#000}
+  .flhint{text-transform:none;letter-spacing:0;font-size:11px;color:var(--muted);opacity:.8;margin-left:4px}
+  .platpick{display:flex;flex-wrap:wrap;gap:6px}
+  .platpick button{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+  .platpick button .ck{width:13px;height:13px;border-radius:4px;border:1.5px solid currentColor;display:inline-flex;align-items:center;justify-content:center;font-size:9px;line-height:1}
+  .platpick button.on{background:#101316;border-color:#101316;color:var(--lime)}
   .mactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;border-top:1px solid var(--line);padding-top:12px}
   .btn{font-family:inherit;font-weight:600;font-size:13px;border-radius:9px;padding:9px 13px;cursor:pointer;border:1px solid var(--line);background:#f3f5f9;color:var(--text)}
   .btn.lime{background:var(--lime);color:#000;border-color:var(--lime)}
@@ -337,13 +342,18 @@ const DIMS={square:[1080,1080],story:[1080,1920]};
 const KASPECT=1.046;
 const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"rework",label:"Needs Rework"},{id:"review",label:"For Approval"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
 const PLATFORMS=["Instagram","LinkedIn","Facebook","YouTube","YouTube Shorts","Hubspot"];
+/* Multi-platform: p.platforms lists every platform a card goes to; p.platform stays the primary (first) one so older cards and tools keep working. */
+function plats(p){const a=Array.isArray(p.platforms)?p.platforms.filter(x=>PLATFORMS.indexOf(x)>=0):[];return (a.length&&a.indexOf(p.platform)>=0)?a:(p.platform?[p.platform]:[]);}
+function hasPlat(p,pl){return plats(p).indexOf(pl)>=0;}
+function setPlats(p,arr){arr=PLATFORMS.filter(x=>arr.indexOf(x)>=0);if(!arr.length)return false;p.platforms=arr;if(arr.indexOf(p.platform)<0)p.platform=arr[0];return true;}
+function platLabel(p){return plats(p).join(" + ");}
 const EMAIL_SIG="<table cellspacing=\"0\" cellpadding=\"0\"><tbody><tr>\n<td style=\"width:120px; text-align: center;\"><a href=\"https://boko.com.au/\">\n<img src=\"https://boko.com.au/wp-content/uploads/2024/05/WhatsApp-Image-2024-01-19-at-10.17.06-AM-1024x1024-2.jpg\" style=\"width: 140px;border-radius: 50%;margin-right: 15px; border: 3px solid #8484fa;\">\n<img src=\"https://boko.com.au/wp-content/uploads/2026/02/signlogo.png\" style=\"width: 70px;margin-top: 0px;\"></a></td>\n<td style=\"width:240px;\"><div><span style=\"display: inline-block;font-size: 15px;font-family: Helvetica;line-height: 16px;\"><strong style=\"font-weight:600;font-size: 16px; line-height: 30px;font-family: Helvetica; color:#000\">Maria Mendieta</strong>\n<br><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">Digital Strategist | Founder</span>\n<br><a href=\"tel:+61413615016\" style=\"color:#000;\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">+61 413 615 016</span></a>\n<br><a href=\"https://boko.com.au/\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">www.boko.com.au</span></a><br><a href=\"https://boko.com.au/the-lead-generation-discovery-call/\" style=\"color:#000;\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica; color:#000;\">Book a free consultation</span></a><br></div><div style=\"margin-top:15px;\"><span><a href=\"https://www.facebook.com/bokodigitalsolutions/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/9034971_logo_facebook_icon.png\" style=\"width:25px;\"></a></span>&nbsp;&nbsp;<span><a href=\"https://www.instagram.com/boko.digital.solutions/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/1161954_instagram_icon.png\" style=\"width:25px;\"></a></span>&nbsp;&nbsp;<span><a href=\"https://www.linkedin.com/in/maria-jose-mendieta-mayorga/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/287697_linkedin_icon.png\" style=\"width:23px;\"></a></span>&nbsp;&nbsp;&nbsp;<span><a href=\"https://www.tiktok.com/@bokodigital\"><img src=\"https://boko.com.au/wp-content/uploads/2024/05/7693325_tiktok_social-media_logo_apps_icon.png\" style=\"width:23px;\"></a>&nbsp;&nbsp;&nbsp;</span><span><a href=\"https://maps.app.goo.gl/wC7cMc5uBCfkgh1j8\"><img src=\"https://boko.com.au/wp-content/uploads/2024/12/map-black.png\" style=\"width:23px;\"></a></div></td>\n</tr></tbody></table>";
 const FNAME_TAG={Hubspot:"{{ contact.firstname }}"};
 function fname(text,platform){const tag=FNAME_TAG[platform];return tag?(text||"").replace(/\[\s*first[\s_]*name\s*\]/gi,tag):(text||"");}
 let filter="All";let typeFilter="All";let searchQ="";
 const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Emails","Email"]];
 function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":"Post";}
-function autoStory(p){return !(p.canva&&p.canva.id)&&p.type!=="video"&&p.platform!=="Hubspot"&&(p.platform==="Instagram"||p.platform==="Facebook");}
+function autoStory(p){return !(p.canva&&p.canva.id)&&p.type!=="video"&&p.platform!=="Hubspot"&&(hasPlat(p,"Instagram")||hasPlat(p,"Facebook"));}
 
 document.getElementById("logo").src=LOGO_LIGHT;
 
@@ -735,11 +745,11 @@ function renderWeekSel(){const sel=document.getElementById("weekSel");const ws=m
     const a=w.start.getDate()+" "+MONTHS[w.start.getMonth()].slice(0,3),b=w.end.getDate()+" "+MONTHS[w.end.getMonth()].slice(0,3);
     return `<option value="${w.key}" ${curWeek===w.key?"selected":""}>Week ${w.n} (${a} - ${b})</option>`;}).join("");
   sel.onchange=()=>{curWeek=sel.value||null;renderBoard();};}
-function matchesSearch(p){if(!searchQ)return true;const q=searchQ;const hay=[p.title,p.headline,p.subhead,p.caption,p.eyebrow,p.pillar,p.platform,p.cta,p.hashtags,(p.bullets||[]).join(" "),(p.slides||[]).map(s=>((s.h||"")+" "+(s.b||""))).join(" ")].join(" ").toLowerCase();return hay.indexOf(q)>=0;}
+function matchesSearch(p){if(!searchQ)return true;const q=searchQ;const hay=[p.title,p.headline,p.subhead,p.caption,p.eyebrow,p.pillar,plats(p).join(" "),p.cta,p.hashtags,(p.bullets||[]).join(" "),(p.slides||[]).map(s=>((s.h||"")+" "+(s.b||""))).join(" ")].join(" ").toLowerCase();return hay.indexOf(q)>=0;}
 function visible(){return state.filter(p=>{
   if(!matchesSearch(p))return false;
   if(searchQ)return true;
-  if(filter!=="All"&&p.platform!==filter)return false;
+  if(filter!=="All"&&!hasPlat(p,filter))return false;
   if(typeFilter!=="All"&&kindOf(p)!==typeFilter)return false;
   if(curWeek){const r=curWeek.split("..");return p.date&&p.date>=r[0]&&p.date<=r[1];}
   if(!p.date)return true;
@@ -826,7 +836,7 @@ function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;c.dataset.id=p.id;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span><span class="badge ${platClass(p.platform)}">${p.platform}</span>${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${(autoStory(p)||(p.canvaStory&&p.canvaStory.id))?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
+      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span>${plats(p).map(pl=>`<span class="badge ${platClass(pl)}">${esc(pl)}</span>`).join("")}${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${(autoStory(p)||(p.canvaStory&&p.canvaStory.id))?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
       <div class="cact">
@@ -864,10 +874,10 @@ function videoPlayerHTML(p){const u=p.videoUrl||p.publishedUrl||"";
 function videoThumbHTML(p){
   const u=p.videoUrl||p.publishedUrl||"";
   const pub=p.publishedUrl?'<span class="vpub">&#9654; Published</span>':'';
-  if(isVideoFile(p.videoUrl)){return `<div class="vthumb"><span class="vlabel">${esc(p.platform)} &middot; Video</span><video class="vvid" ${p.thumbnail?`poster="${esc(imgSrc(p.thumbnail))}"`:""} src="${esc(p.videoUrl)}" controls playsinline preload="metadata" onclick="event.stopPropagation()"></video><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;}
+  if(isVideoFile(p.videoUrl)){return `<div class="vthumb"><span class="vlabel">${esc(platLabel(p))} &middot; Video</span><video class="vvid" ${p.thumbnail?`poster="${esc(imgSrc(p.thumbnail))}"`:""} src="${esc(p.videoUrl)}" controls playsinline preload="metadata" onclick="event.stopPropagation()"></video><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;}
   const yid=ytId(u);
   const bg=p.thumbnail?`<img class="vvid" src="${esc(imgSrc(p.thumbnail))}" alt="">`:(yid?`<img class="vvid" src="https://img.youtube.com/vi/${yid}/hqdefault.jpg" alt="">`:"");
-  return `<div class="vthumb">${bg}<span class="vlabel">${esc(p.platform)} &middot; Video</span><span class="play"></span><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;
+  return `<div class="vthumb">${bg}<span class="vlabel">${esc(platLabel(p))} &middot; Video</span><span class="play"></span><span class="vtitle">${esc(p.title)}</span>${pub}</div>`;
 }
 function emailThumbHTML(p){return `<div class="ethumb"><span class="elabel">Email &middot; Hubspot</span><div class="esub">${esc(fname(p.subject||p.title,p.platform))}</div>${p.preview?`<div class="eprev">${esc(p.preview)}</div>`:""}<div class="ebody">${mdBold(fname((p.body||p.caption||""),p.platform).slice(0,240))}</div><div class="esig">+ Maria Mendieta email signature (auto)</div></div>`;}
 function gmailPreviewHTML(p){
@@ -896,7 +906,7 @@ function copyEmail(p){
 function openEditor(id){
   const p=state.find(x=>x.id===id);if(!p)return;
   if(_openId!==id){curSlide=0;_openId=id;_editCmt=null;}
-  if(p.platform==="YouTube"||p.platform==="YouTube Shorts")p.type="video";
+  if(hasPlat(p,"YouTube")||hasPlat(p,"YouTube Shorts"))p.type="video";
   const isEmail=p.platform==="Hubspot";const isVid=p.type==="video"&&!isEmail;
   const isCarousel=(!isVid&&!isEmail&&p.template==="carousel");
   if(isCarousel){if(!Array.isArray(p.slides)||!p.slides.length)p.slides=[{h:p.headline||"",b:(p.caption||"").split("\n")[0]||""}];curSlide=Math.max(0,Math.min(curSlide,p.slides.length-1));}
@@ -907,12 +917,10 @@ function openEditor(id){
     <div class="mprev">${isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):(autoStory(p)?'<div class="dualprev"><div class="pvcol"><span class="pvlab">Feed 1:1</span><canvas id="mcv"></canvas></div><div class="pvcol"><span class="pvlab">Story 9:16</span><canvas id="mcvS"></canvas></div></div>':'<canvas id="mcv"></canvas>')}</div>
     <div class="mform">
       <div style="display:flex;align-items:center"><h3>${esc(p.title)}</h3><button class="x" data-a="close">&times;</button></div>
-      ${(isEmail||p.platform==="YouTube"||p.platform==="YouTube Shorts")?'':`<div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>`}
+      ${(isEmail||hasPlat(p,"YouTube")||hasPlat(p,"YouTube Shorts"))?'':`<div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>`}
       ${(isVid||isEmail)?'':`<div class="seg" id="tplseg">${TEMPLATES.map(t=>`<button data-t="${t}" class="${p.template===t?'on':''}">${t}</button>`).join("")}</div>`}
-      <div class="two">
-        <div><label class="fl">Status</label><select class="f" data-f="status2">${STATUSES.map(sx=>`<option value="${sx.id}" ${p.status===sx.id?'selected':''}>${sx.label}</option>`).join("")}</select></div>
-        <div><label class="fl">Platform</label><select class="f" data-f="platform">${PLATFORMS.map(pl=>`<option ${p.platform===pl?'selected':''}>${pl}</option>`).join("")}</select></div>
-      </div>
+      <div><label class="fl">Status</label><select class="f" data-f="status2">${STATUSES.map(sx=>`<option value="${sx.id}" ${p.status===sx.id?'selected':''}>${sx.label}</option>`).join("")}</select></div>
+      <div><label class="fl">Platforms <span class="flhint">pick one or more</span></label><div class="platpick" data-f="platforms">${PLATFORMS.map(pl=>`<button type="button" data-pl="${pl}" class="${hasPlat(p,pl)?'on':''}" title="${pl==="Hubspot"?"Email goes to HubSpot only":""}"><span class="ck">${hasPlat(p,pl)?'&#10003;':''}</span>${pl}</button>`).join("")}</div></div>
       <div class="two">
         <div><label class="fl">Scheduled date</label><input type="date" class="f" data-f="date" value="${p.date||''}"></div>
         <div><label class="fl">Time (AEST)</label><input type="time" class="f" data-f="time" value="${p.time||''}"></div>
@@ -923,7 +931,7 @@ function openEditor(id){
       <div><label class="fl">Preview text</label><input class="f" data-f="preview" value="${esc(p.preview||'')}"></div>
       <div><label class="fl">Body message</label><div class="ebtoolbar"><button type="button" class="ebbold" id="bbold" title="Bold (Ctrl+B)">B</button><button type="button" class="ebbold ebu" id="bul" title="Underline (Ctrl+U)">U</button><button type="button" class="ebbold ebl" id="blist" title="Bullet list">• List</button><button type="button" class="ebbold ebl" id="blink" title="Insert link">🔗 Link</button><span class="ebhint">Formatting shows live — select text then click a button (<b>Ctrl+B</b> / <b>Ctrl+U</b>)</span></div><div class="f rte" id="bodyfld" contenteditable="true" style="min-height:150px">${bodyToHtml(p)}</div></div>
       <div class="vnote">&#9993; Maria's HTML email signature is added automatically at the end of the body when you copy the email.</div>
-      `:isVid?`<div class="vnote">&#127916; Video is uploaded manually${(p.platform==="YouTube"||p.platform==="YouTube Shorts")?" to YouTube":""}. Paste a video link below to show it on the tile, and the published link once it's live.</div>
+      `:isVid?`<div class="vnote">&#127916; Video is uploaded manually${(hasPlat(p,"YouTube")||hasPlat(p,"YouTube Shorts"))?" to YouTube":""}. Paste a video link below to show it on the tile, and the published link once it's live.</div>
       <div class="two">
         <div><label class="fl">Video link (file / source)</label><input class="f" data-f="videoUrl" value="${esc(p.videoUrl||'')}" placeholder="https:// .mp4 or Drive/YouTube"></div>
         <div><label class="fl">Published link</label><input class="f" data-f="publishedUrl" value="${esc(p.publishedUrl||'')}" placeholder="https://youtu.be/..."></div>
@@ -983,7 +991,7 @@ function openEditor(id){
     else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):"";}};
   refreshPrev();
   if(!isEmail&&!isVid)wireCanva(m,p,id);
-  const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"&&(p.platform==="Hubspot"||p.platform==="Facebook"))p.platform="YouTube";touch(p);save();openEditor(id);});
+  const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"){const a=plats(p).filter(x=>x!=="Hubspot"&&x!=="Facebook");setPlats(p,a.length?a:["YouTube"]);}touch(p);save();openEditor(id);});
   const tplseg=m.querySelector('#tplseg');if(tplseg)tplseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;touch(p);save();openEditor(id);});
   const ratioseg=m.querySelector('#ratioseg');if(ratioseg)ratioseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;touch(p);save();openEditor(id);});
   m.querySelectorAll('[data-sn]').forEach(b=>b.onclick=()=>{const a=b.dataset.sn;const N=p.slides.length;
@@ -1010,7 +1018,12 @@ function openEditor(id){
     bodyfld.addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey){const k=(e.key||"").toLowerCase();if(k==="b"){e.preventDefault();_cmd("bold");}else if(k==="u"){e.preventDefault();_cmd("underline");}}});
   }
 
-  m.querySelectorAll('[data-f="platform"]').forEach(sel=>sel.onchange=()=>{p.platform=sel.value;if(p.platform==="Hubspot")p.type="post";if(p.platform==="YouTube"||p.platform==="YouTube Shorts")p.type="video";touch(p);save();openEditor(id);scheduleBoard();});
+  m.querySelectorAll('[data-f="platforms"] button').forEach(b=>b.onclick=()=>{const pl=b.dataset.pl;let a=plats(p);
+    if(a.indexOf(pl)>=0){if(a.length===1){toast("A card needs at least one platform");return;}a=a.filter(x=>x!==pl);}
+    else if(pl==="Hubspot"){a=["Hubspot"];}
+    else{a=a.filter(x=>x!=="Hubspot").concat(pl);}
+    setPlats(p,a);if(a.indexOf("Hubspot")>=0)p.type="post";if(a.indexOf("YouTube")>=0||a.indexOf("YouTube Shorts")>=0)p.type="video";
+    touch(p);save();openEditor(id);scheduleBoard();});
   m.querySelectorAll('[data-f="status2"]').forEach(sel=>sel.onchange=()=>{p.status=sel.value;const _lbl=(STATUSES.find(x=>x.id===sel.value)||{}).label||sel.value;logAct(p,"moved to "+_lbl);if(sel.value==="approved"){askNotify();notifyApproved(p);}touch(p);save();counts();scheduleBoard();});
   const dInp=m.querySelector('[data-f="date"]');if(dInp)dInp.onchange=()=>{p.date=dInp.value;touch(p);save();scheduleBoard();};
   const tInp=m.querySelector('[data-f="time"]');if(tInp)tInp.onchange=()=>{p.time=tInp.value;touch(p);save();scheduleBoard();};
@@ -1050,7 +1063,7 @@ function canvaSectionHTML(p){const c=p.canva;
   if(c&&c.id){return `<div class="cvbox"><div class="cvhead"><span class="cvlogo">C</span>Canva design <span class="cvnote" style="margin-left:auto">Preview and downloads use this design</span></div>
     <div class="cvlinked"><img src="${canvaThumbSrc(p)}" onerror="this.style.visibility='hidden'"><div class="cvt"><b>${esc(c.title||"Canva design")}</b><small>${c.pages?(c.pages+" page"+(c.pages>1?"s":"")+" · "):""}${esc(c.id)}</small></div></div>
     <div class="cvrow"><a class="btn" href="${esc(c.editUrl||("https://www.canva.com/design/"+c.id+"/edit"))}" target="_blank" rel="noopener">Edit in Canva</a><button class="btn" data-cv="refresh">↻ Refresh from Canva</button><button class="btn" data-cv="unlink">Unlink</button></div>${canvaStoryRowHTML(p)}</div>`;}
-function canvaStoryRowHTML(p){if(p.type==="video"||p.template==="carousel"||!(p.platform==="Instagram"||p.platform==="Facebook"))return "";const s=p.canvaStory;
+function canvaStoryRowHTML(p){if(p.type==="video"||p.template==="carousel"||!(hasPlat(p,"Instagram")||hasPlat(p,"Facebook")))return "";const s=p.canvaStory;
   if(s&&s.id)return `<div class="cvrow" style="margin-top:8px"><span class="cvnote" style="flex:1">Story 9:16: <b>${esc(s.title||s.id)}</b></span><a class="btn" href="${esc(s.editUrl||("https://www.canva.com/design/"+s.id+"/edit"))}" target="_blank" rel="noopener">Edit story</a><button class="btn" data-cv="sunlink">Unlink story</button></div>`;
   return `<div class="cvrow" style="margin-top:8px"><input class="f" id="cvslink" placeholder="Story 9:16 version: paste its Canva design link"><button class="btn" data-cv="slink">Link story</button></div>`;}
   return `<div class="cvbox"><div class="cvhead"><span class="cvlogo">C</span>Use a Canva design for this card</div>
@@ -1124,7 +1137,9 @@ const PUBDEST={
 };
 function pubCopy(p){if(p.platform==="Hubspot"){copyEmail(p);}else{const tx=fname(p.caption||"",p.platform)+((p.hashtags||"").trim()?("\n\n"+p.hashtags.trim()):"");navigator.clipboard.writeText(tx).then(()=>toast("Caption copied")).catch(()=>{});}}
 function pubDownload(p){if(p.platform==="Hubspot")return;if(p.type!=="video"&&p.canva&&p.canva.id){downloadCanva(p);return;}if(p.type==="video"){if(p.thumbnail)downloadThumb(p);return;}if(p.template==="carousel"){downloadCarousel(p);return;}if(autoStory(p)){downloadBoth(p);return;}downloadPNG(p);}
-function pubOpen(p){const d=PUBDEST[p.platform];if(d&&d.url)window.open(d.url,"_blank","noopener");pubCopy(p);setTimeout(()=>pubDownload(p),120);toast("Opened "+(d?d.tool:"platform")+" — paste & schedule");}
+function pubOpen(p){const seen={},tools=[],blocked=[];plats(p).forEach(pl=>{const d=PUBDEST[pl];if(!d||!d.url||seen[d.url])return;seen[d.url]=1;const w=window.open(d.url,"_blank","noopener");tools.push(d.tool);if(w===null&&tools.length>1)blocked.push(d.tool);});
+  pubCopy(p);setTimeout(()=>pubDownload(p),120);
+  toast(blocked.length?("Opened "+tools.filter(t=>blocked.indexOf(t)<0).join(" + ")+". Allow pop-ups to also open "+blocked.join(" + ")):("Opened "+(tools.length?tools.join(" + "):"platform")+" — paste & schedule"));}
 
 function commenterName(){return localStorage.getItem("boko_user")||"";}
 function commenterAvatar(){return localStorage.getItem("boko_avatar")||"";}
@@ -1133,7 +1148,7 @@ function avEl(cls,name,av){return av?('<div class="'+cls+' hasimg" style="backgr
 function initials(n){const x=(n||"").trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();return x||"?";}
 function timeAgo(ts){if(!ts)return"";const s=Math.floor((Date.now()-ts)/1000);if(s<60)return"just now";const m=Math.floor(s/60);if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";return Math.floor(h/24)+"d ago";}
 function askNotify(){try{if(window.Notification&&Notification.permission==="default")Notification.requestPermission();}catch(e){}}
-function notifyApproved(p){try{if(window.Notification&&Notification.permission==="granted"){const nn=new Notification("Approved \u2713 "+(p.title||"Post"),{body:(p.platform||"")+" \u00b7 "+kindOf(p)+((p.log&&p.log.length)?(" \u00b7 by "+p.log[p.log.length-1].a):""),icon:K_LIME,tag:"boko-appr-"+p.id});setTimeout(()=>{try{nn.close();}catch(e){}},7000);}}catch(e){}}
+function notifyApproved(p){try{if(window.Notification&&Notification.permission==="granted"){const nn=new Notification("Approved \u2713 "+(p.title||"Post"),{body:platLabel(p)+" \u00b7 "+kindOf(p)+((p.log&&p.log.length)?(" \u00b7 by "+p.log[p.log.length-1].a):""),icon:K_LIME,tag:"boko-appr-"+p.id});setTimeout(()=>{try{nn.close();}catch(e){}},7000);}}catch(e){}}
 function logAct(p,act){p.log=p.log||[];p.log.push({a:(commenterName()||"Someone"),act:act,ts:Date.now()});if(p.log.length>60)p.log=p.log.slice(-60);}
 function schedTs(p){if(!p.date)return 0;let hh=23,mm=59;if(p.time){const m=String(p.time).trim().toLowerCase().match(/^(\d{1,2}):(\d{2})\s*(am|pm)?/);if(m){hh=parseInt(m[1],10);mm=parseInt(m[2],10);const ap=m[3];if(ap==="pm"&&hh<12)hh+=12;if(ap==="am"&&hh===12)hh=0;}}const a=p.date.split("-").map(Number);return new Date(a[0],a[1]-1,a[2],hh,mm,0).getTime();}
 function autoPublishDue(){let ch=false;const now=Date.now();state.forEach(p=>{if(p.status==="scheduled"&&p.date){const t=schedTs(p);if(t&&t<=now){p.status="published";logAct(p,"auto-published (scheduled time reached)");ch=true;}}});if(ch){save();renderBoard();}}

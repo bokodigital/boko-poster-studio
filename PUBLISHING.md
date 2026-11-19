@@ -13,7 +13,9 @@ Always confirm before any live, public post.
 
 Notes:
 - Only posts with status **Approved** are eligible to publish/schedule.
-- A post's **Platform** field on the board determines the destination.
+- A post's **Platforms** on the board determine the destinations. A card can go to more than one
+  (for example Instagram + LinkedIn); Publish opens each destination's scheduling tool once
+  (Instagram and Facebook share Meta Business Suite). HubSpot email cards are HubSpot only.
 - Each card has its own publish control (you review the card details first):
   - **Approved + future date** -> "Schedule" -> opens the destination, copies the
     caption/email, downloads the image, and moves the card to **Scheduled**.

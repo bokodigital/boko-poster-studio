@@ -15,7 +15,7 @@ checklist, and the "$50K isn't needed" 4-week on-ramp.
 ## Board features
 - Kanban columns by status; drag cards between columns
 - Per-card **Approve** / **Request changes** (with notes)
-- Card editor: template, 1:1/Story, headline, accent, CTA, eyebrow, bullets, caption, platform, status
+- Card editor: template, 1:1/Story, headline, accent, CTA, eyebrow, bullets, caption, platforms (one or more per card), status
 - Download PNG (full res) · Copy caption
 - Platform filter, status counters; state saved in browser localStorage
 
