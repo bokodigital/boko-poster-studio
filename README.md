@@ -47,3 +47,15 @@ One Canva account is connected for the whole board (tokens are stored in Vercel 
 6. On the board, open any card > Browse my Canva > approve access in Canva.
 
 Server code: `api/canva.js`. Designs must belong to (or be shared with) the connected Canva account.
+
+## Story stickers (poll / question / quiz / slider)
+Instagram only allows interactive stickers to be added in the mobile app (not the API, Meta Business
+Suite or desktop), so stories with a sticker are posted by hand from a phone. On any Instagram post card,
+the **Story sticker** box stores the sticker type, question, options, placement and an optional
+follow-up. It gives:
+- **Copy story kit**: step-by-step text with the sticker wording, ready to follow on the phone.
+- **Google Calendar reminder** and **Phone reminder (.ics)**: a calendar event at the story time
+  (Sydney time) with the full kit, alerting 10 minutes before and on time.
+- A board strip, **Stories to post from the Instagram app**, listing sticker stories due today or
+  tomorrow with **Posted ✓** to tick them off, plus a desktop notification at story time while the board is open.
+Tiles with a sticker show a 📊 badge.
