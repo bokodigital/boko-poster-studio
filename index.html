@@ -94,6 +94,7 @@
   .badge.fb{background:#e8ebfb;color:#2a3fa8}
   .badge.mig{background:#101316;color:#ff7ab8}
   .badge.mfb{background:#101316;color:#7fb6ff}
+  .badge.mli{background:#101316;color:#8cc4ff}
   .badge.date{background:#eef0f5;color:#3a4048}
   .badge.date.od{background:#fdecea;color:#c0392b}
   .ctitle{font-size:13.5px;font-weight:600;line-height:1.3;color:var(--text)}
@@ -356,9 +357,9 @@ const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","gri
 const DIMS={square:[1080,1080],story:[1080,1920]};
 const KASPECT=1.046;
 const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"rework",label:"Needs Rework"},{id:"review",label:"For Approval"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
-const PLATFORMS=["Instagram","Facebook","Maria Instagram","Maria Facebook","LinkedIn","YouTube","YouTube Shorts","Hubspot"];
+const PLATFORMS=["Instagram","Facebook","LinkedIn","Maria Instagram","Maria Facebook","Maria LinkedIn","YouTube","YouTube Shorts","Hubspot"];
 /* "Instagram"/"Facebook" are the Boko Digital accounts (stored values kept for older cards and tools); "Maria Instagram"/"Maria Facebook" are Automated Fashion by Maria. */
-const PLAT_LABEL={Instagram:"Boko Instagram",Facebook:"Boko Facebook","Maria Instagram":"Maria Automated Fashion Instagram","Maria Facebook":"Maria Automated Fashion Facebook"};
+const PLAT_LABEL={Instagram:"Boko Instagram",Facebook:"Boko Facebook",LinkedIn:"Boko LinkedIn","Maria LinkedIn":"Maria Personal LinkedIn","Maria Instagram":"Maria Automated Fashion Instagram","Maria Facebook":"Maria Automated Fashion Facebook"};
 function pName(pl){return PLAT_LABEL[pl]||pl;}
 function isIGFam(pl){return pl==="Instagram"||pl==="Maria Instagram";}
 function isFBFam(pl){return pl==="Facebook"||pl==="Maria Facebook";}
@@ -374,6 +375,7 @@ const PLAT_ICON={
   Facebook:'<rect width="16" height="16" rx="8" fill="#1877f2"/><path d="M8.9 16V9.6h1.9l.3-2.1H8.9V6.2c0-.6.2-1 1-1h1.2V3.3c-.2 0-.9-.1-1.7-.1-1.7 0-2.8 1-2.8 2.9v1.4H4.8v2.1h1.8V16z" fill="#fff"/>',
   "Maria Instagram":'<rect width="16" height="16" rx="4" fill="#101316"/><rect x="3.2" y="3.2" width="9.6" height="9.6" rx="2.8" fill="none" stroke="#ff4fa3" stroke-width="1.4"/><circle cx="8" cy="8" r="2.3" fill="none" stroke="#ff4fa3" stroke-width="1.4"/><circle cx="11" cy="5" r=".8" fill="#ff4fa3"/>',
   "Maria Facebook":'<rect width="16" height="16" rx="8" fill="#101316"/><path d="M8.9 16V9.6h1.9l.3-2.1H8.9V6.2c0-.6.2-1 1-1h1.2V3.3c-.2 0-.9-.1-1.7-.1-1.7 0-2.8 1-2.8 2.9v1.4H4.8v2.1h1.8V16z" fill="#4c9bff"/>',
+  "Maria LinkedIn":'<rect width="16" height="16" rx="3" fill="#101316"/><circle cx="4.9" cy="4.6" r="1.1" fill="#4ca3ff"/><rect x="3.95" y="6.4" width="1.9" height="6" fill="#4ca3ff"/><path d="M7.4 6.4h1.8v.85c.4-.65 1.05-1 1.95-1 1.45 0 2.15.95 2.15 2.55v3.6h-1.9V9.2c0-.85-.3-1.3-.95-1.3-.75 0-1.15.55-1.15 1.4v3.1H7.4z" fill="#4ca3ff"/>',
   YouTube:'<rect width="16" height="16" rx="4" fill="#ff0000"/><path d="M6.4 5v6l5-3z" fill="#fff"/>',
   "YouTube Shorts":'<rect width="16" height="16" rx="4" fill="#ff0000"/><rect x="4.6" y="2.4" width="6.8" height="11.2" rx="2.2" fill="#fff"/><path d="M7 6v4l3.2-2z" fill="#ff0000"/>',
   Hubspot:'<rect width="16" height="16" rx="4" fill="#ff7a59"/><rect x="3" y="4.6" width="10" height="7" rx="1.2" fill="none" stroke="#fff" stroke-width="1.3"/><path d="M3.6 5.3 8 8.6l4.4-3.3" fill="none" stroke="#fff" stroke-width="1.3"/>'
@@ -432,7 +434,11 @@ function migrateMariaAF(){let ch=false;const re=/maria\s*personal|automated\s*fa
   const a=plats(p);if(!a.some(x=>x==="Instagram"||x==="Facebook"))return;const prim=p.platform;
   const b=a.map(x=>x==="Instagram"?"Maria Instagram":x==="Facebook"?"Maria Facebook":x);
   p.platform=prim==="Instagram"?"Maria Instagram":prim==="Facebook"?"Maria Facebook":prim;setPlats(p,b);p._afm=1;touch(p);ch=true;});if(ch)save();}
-function afterLoad(){document.getElementById("gate").classList.remove("show");migrateHashtags();migrateMariaAF();migrateStripAv();preloadAvatars(()=>{renderBoard();autoPublishDue();if(!window._apTimer)window._apTimer=setInterval(autoPublishDue,60000);setSyncDot();startPoll();if(!localStorage.getItem("boko_user"))showNameGate();try{const _cid=new URLSearchParams(location.search).get("card");if(_cid&&state.find(p=>p.id===_cid))openEditor(_cid);}catch(e){}});}
+/* One-time move: LinkedIn cards tagged for Maria (e.g. "(Linked In Maria)", "Maria personal") or using the founder template go to Maria Personal LinkedIn. _lim marks a card as handled. */
+function migrateMariaLI(){let ch=false;const re=/linked\s*in\s*maria|maria'?s?\s*(personal\s*)?linked\s*in|maria\s*personal/i;state.forEach(p=>{if(p._lim||!hasPlat(p,"LinkedIn"))return;
+  if(!(p.template==="founder"||re.test((p.title||"")+" "+(p.pillar||""))))return;
+  const prim=p.platform;setPlats(p,plats(p).map(x=>x==="LinkedIn"?"Maria LinkedIn":x));if(prim==="LinkedIn")p.platform="Maria LinkedIn";p._lim=1;touch(p);ch=true;});if(ch)save();}
+function afterLoad(){document.getElementById("gate").classList.remove("show");migrateHashtags();migrateMariaAF();migrateMariaLI();migrateStripAv();preloadAvatars(()=>{renderBoard();autoPublishDue();if(!window._apTimer)window._apTimer=setInterval(autoPublishDue,60000);setSyncDot();startPoll();if(!localStorage.getItem("boko_user"))showNameGate();try{const _cid=new URLSearchParams(location.search).get("card");if(_cid&&state.find(p=>p.id===_cid))openEditor(_cid);}catch(e){}});}
 function loadFrom(sv){state=mergeServer(sv);localStorage.setItem(STORAGE,JSON.stringify(state));pushServer();afterLoad();}
 function offline(){syncOn=false;document.getElementById("offbanner").style.display="block";afterLoad();}
 function showGate(msg){const g=document.getElementById("gate");document.getElementById("gerr").textContent=msg||"";g.classList.add("show");
@@ -761,7 +767,7 @@ const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","De
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function fmtDate(d){if(!d)return "";const dt=new Date(d+"T00:00:00");if(isNaN(dt))return d;return WK[dt.getDay()]+" "+dt.getDate()+" "+MON[dt.getMonth()];}
 function isOverdue(p){return p.date && p.date<todayStr() && p.status!=="published";}
-function platClass(p){return p==="Maria Instagram"?"mig":p==="Maria Facebook"?"mfb":p==="Instagram"?"ig":p==="LinkedIn"?"li":(p==="YouTube"||p==="YouTube Shorts")?"yt":p==="Hubspot"?"hs":"fb";}
+function platClass(p){return p==="Maria LinkedIn"?"mli":p==="Maria Instagram"?"mig":p==="Maria Facebook"?"mfb":p==="Instagram"?"ig":p==="LinkedIn"?"li":(p==="YouTube"||p==="YouTube Shorts")?"yt":p==="Hubspot"?"hs":"fb";}
 let curMonth="",curWeek=null,_brd=null,curSlide=0,_openId=null,view="board",_editCmt=null;
 function scheduleBoard(){clearTimeout(_brd);_brd=setTimeout(()=>{if(document.getElementById("overlay").classList.contains("show"))renderBoard();},450);}
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -821,7 +827,7 @@ function renderFilters(){
   ps.querySelector(".pmbtn").textContent=!filter.length?"All platforms":filter.length===1?pName(filter[0]):filter.length===2?(pName(filter[0])+" + "+pName(filter[1])):(filter.length+" platforms");
   ps.querySelector(".pmbtn").title=filter.length?filter.map(pName).join(", "):"All platforms";
 }
-function platColor(p){return p==="Maria Instagram"?"#7d0f4a":p==="Maria Facebook"?"#14206b":p==="Instagram"?"#c2186e":p==="LinkedIn"?"#2456b8":p==="Facebook"?"#2a3fa8":(p==="YouTube"||p==="YouTube Shorts")?"#c0202a":p==="Hubspot"?"#c2640f":"#888";}
+function platColor(p){return p==="Maria LinkedIn"?"#0d2a5c":p==="Maria Instagram"?"#7d0f4a":p==="Maria Facebook"?"#14206b":p==="Instagram"?"#c2186e":p==="LinkedIn"?"#2456b8":p==="Facebook"?"#2a3fa8":(p==="YouTube"||p==="YouTube Shorts")?"#c0202a":p==="Hubspot"?"#c2640f":"#888";}
 function renderCalendar(board){
   const cal=document.createElement("div");cal.className="cal";
   const head=document.createElement("div");head.className="calhead";
@@ -1178,7 +1184,8 @@ const PUBDEST={
   "Maria Instagram":{account:"Automated Fashion by Maria (@automatedfashionbymaria)",tool:"Meta Business Suite",url:"https://business.facebook.com/latest/composer"},
   "Maria Facebook":{account:"Automated Fashion by Maria page",tool:"Meta Business Suite",url:"https://business.facebook.com/latest/composer"},
   Facebook:{account:"Boko Digital Solutions page",tool:"Meta Business Suite",url:"https://business.facebook.com/latest/composer"},
-  LinkedIn:{account:"Maria Jose Mendieta (profile)",tool:"LinkedIn",url:"https://www.linkedin.com/feed/?shareActive=true"},
+  LinkedIn:{account:"Boko Digital Solutions company page (linkedin.com/company/13473040)",tool:"LinkedIn (Boko page)",url:"https://www.linkedin.com/company/13473040/admin/page-posts/published/"},
+  "Maria LinkedIn":{account:"Maria Jose Mendieta (linkedin.com/in/maria-jose-mendieta-mayorga)",tool:"LinkedIn (Maria)",url:"https://www.linkedin.com/feed/?shareActive=true"},
   YouTube:{account:"Boko Digital Solutions channel",tool:"YouTube Studio",url:"https://studio.youtube.com/"},
   "YouTube Shorts":{account:"Boko Digital Solutions channel",tool:"YouTube Studio (Shorts)",url:"https://studio.youtube.com/"},
   Hubspot:{account:"Boko Digital account",tool:"HubSpot email",url:"https://app.hubspot.com/email"}
