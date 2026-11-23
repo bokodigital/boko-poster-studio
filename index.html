@@ -262,6 +262,15 @@
   .cvhead{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px}
   .cvhead .cvlogo{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#00c4cc,#7d2ae8);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
   .cvrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .stbox{border:1px solid #cfe3d6;border-radius:12px;padding:12px;background:#f4fbf6;display:flex;flex-direction:column;gap:8px}
+  .stbox .sthead{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px}
+  .stbox .sthead small{font-weight:400;color:#5b6470;margin-left:auto}
+  .badge.stk{background:#fff4d6;color:#8a6100}
+  .storydue{margin:0 16px 10px;border:1px solid #cfe3d6;background:#f4fbf6;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+  .storydue .sdh{font-weight:700}
+  .storydue .sdi{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .storydue .sdi .sdt{flex:1;min-width:220px}
+  .storydue .sdi small{color:#5b6470}
   .cvrow .f{flex:1;min-width:180px}
   .cvlinked{display:flex;gap:10px;align-items:center}
   .cvlinked img{width:56px;height:56px;object-fit:cover;border-radius:8px;background:#111}
@@ -310,6 +319,7 @@
     <button id="nameBtn" class="newbtn ghostbtn" title="Change your name">👤 Name</button>
   </div>
 </div>
+<div class="storydue" id="storyDue" style="display:none"></div>
 <div class="board" id="board"></div>
 
 <div class="gate" id="gate"><div class="gatecard">
@@ -818,6 +828,7 @@ function renderCalendar(board){
   cal.appendChild(grid);board.appendChild(cal);
 }
 function renderBoard(){
+  try{renderStoryDue();}catch(e){}
   if(!curMonth)curMonth=defaultMonth();
   document.getElementById("monthLabel").textContent=monthLabel(curMonth);
   renderWeekSel();renderFilters();counts();
@@ -848,7 +859,7 @@ function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;c.dataset.id=p.id;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span>${plats(p).map(pl=>`<span class="badge ${platClass(pl)}">${esc(pl)}</span>`).join("")}${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${(autoStory(p)||(p.canvaStory&&p.canvaStory.id))?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
+      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span>${plats(p).map(pl=>`<span class="badge ${platClass(pl)}">${esc(pl)}</span>`).join("")}${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${(autoStory(p)||(p.canvaStory&&p.canvaStory.id))?'<span class="badge story">+STORY</span>':""}${hasSticker(p)?`<span class="badge stk" title="Story sticker: add it in the Instagram app">📊 ${esc(STK_LABEL[p.story.sticker]||"Sticker")}</span>`:""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
       <div class="cact">
@@ -977,6 +988,7 @@ function openEditor(id){
       ${uf("bul")?`<div><label class="fl">Bullets (comma)${p.template==="infographic"?' — use "Label: description" per item':""}</label><input class="f" data-f="bullets" value="${esc((p.bullets||[]).join(', '))}"></div>`:""}
       `}
       ${canvaSectionHTML(p)}
+      ${storyStickerHTML(p)}
       <div><label class="fl">Caption</label><textarea class="f" data-f="caption">${esc(p.caption||'')}</textarea></div>`}
       ${isEmail?'':`<div><label class="fl">Hashtags</label><textarea class="f" data-f="hashtags" style="min-height:52px" placeholder="#AIAutomation #ShopifyAU">${esc(p.hashtags||'')}</textarea></div>`}
       <div class="activity">
@@ -1002,7 +1014,7 @@ function openEditor(id){
     if(cv){if(autoStory(p)){renderPoster(cv,Object.assign({},p,{ratio:"square"}),isCarousel?curSlide:0);const sC=m.querySelector("#mcvS");if(sC)renderPoster(sC,Object.assign({},p,{ratio:"story"}),isCarousel?curSlide:0);}else renderPoster(cv,p,isCarousel?curSlide:0);}
     else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):"";}};
   refreshPrev();
-  if(!isEmail&&!isVid)wireCanva(m,p,id);
+  if(!isEmail&&!isVid){wireCanva(m,p,id);wireStorySticker(m,p,id);}
   const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"){const a=plats(p).filter(x=>x!=="Hubspot"&&x!=="Facebook");setPlats(p,a.length?a:["YouTube"]);}touch(p);save();openEditor(id);});
   const tplseg=m.querySelector('#tplseg');if(tplseg)tplseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;touch(p);save();openEditor(id);});
   const ratioseg=m.querySelector('#ratioseg');if(ratioseg)ratioseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;touch(p);save();openEditor(id);});
@@ -1058,6 +1070,87 @@ function openEditor(id){
   const del=m.querySelector('[data-a="delete"]');if(del)del.onclick=()=>{if(confirm("Delete this card?")){_tomb[id]=Date.now();state=state.filter(x=>x.id!==id);save();closeEditor();renderBoard();toast("Deleted");}};
   document.getElementById("overlay").classList.add("show");
 }
+
+/* ===== Story stickers (poll / question / quiz / slider) =====
+   Instagram only lets you add interactive stickers in the mobile app (not the API, Meta Business Suite or desktop),
+   so the card stores the sticker text and gives a phone reminder + a copyable "story kit" to post it by hand. */
+const STK_LABEL={poll:"Poll",question:"Question",quiz:"Quiz",slider:"Slider"};
+function hasSticker(p){return !!(p&&p.story&&p.story.sticker&&STK_LABEL[p.story.sticker]);}
+function storyEligible(p){return p&&p.type!=="video"&&p.platform!=="Hubspot"&&p.template!=="carousel"&&(hasPlat(p,"Instagram")||hasPlat(p,"Facebook"));}
+function localISO(d){d=d||new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function storyWhen(p){const st=p.story||{};return {date:st.date||p.date||"",time:st.time||p.time||"09:00"};}
+// Wall-clock time in Australia/Sydney -> UTC Date (handles AEST/AEDT)
+function sydToUTC(date,time){const [y,mo,d]=date.split("-").map(Number);const [h,mi]=(time||"09:00").split(":").map(Number);
+  let guess=Date.UTC(y,mo-1,d,h,mi)-10*3600e3;
+  for(let i=0;i<2;i++){const parts={};new Intl.DateTimeFormat("en-AU",{timeZone:"Australia/Sydney",hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).formatToParts(new Date(guess)).forEach(x=>parts[x.type]=x.value);
+    const shown=Date.UTC(+parts.year,+parts.month-1,+parts.day,+parts.hour,+parts.minute);guess+=Date.UTC(y,mo-1,d,h,mi)-shown;}
+  return new Date(guess);}
+function icsStamp(dt){return dt.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");}
+function cardLink(p){return location.origin+location.pathname+"?card="+encodeURIComponent(p.id);}
+function storyKitText(p){const st=p.story||{};const w=storyWhen(p);const L=[];
+  L.push("STORY TO POST: "+(p.title||"Story"));
+  L.push("When: "+(w.date?fmtDate(w.date)+" ":"")+w.time+" (Sydney time)");
+  L.push("Post from the Instagram app on your phone (stickers can't be added from desktop).");
+  L.push("");
+  L.push("1. Download the story image: open the card > Download PNG (use the _story file), or save it from the Canva story design.");
+  L.push("2. Instagram app > + > Story > pick the image.");
+  if(hasSticker(p)){L.push("3. Sticker icon > "+STK_LABEL[st.sticker].toUpperCase());
+    if(st.q)L.push("   Question: "+st.q);
+    if(st.sticker==="poll"||st.sticker==="quiz"){const opts=[st.a,st.b,st.c,st.d].filter(Boolean);if(opts.length)L.push("   Options: "+opts.join(" / ")+(st.sticker==="quiz"&&st.correct?("  (correct: "+st.correct+")"):""));}
+    if(st.sticker==="slider"&&st.emoji)L.push("   Emoji: "+st.emoji);
+    if(st.place)L.push("   Place it: "+st.place);
+    L.push("4. Share to your story.");}
+  else L.push("3. Share to your story.");
+  if(st.followup){L.push("");L.push("Follow-up: "+st.followup);}
+  L.push("");L.push("Card: "+cardLink(p));
+  return L.join("\n");}
+function gcalReminderURL(p){const w=storyWhen(p);if(!w.date)return "";const s=sydToUTC(w.date,w.time),e=new Date(s.getTime()+15*60e3);
+  return "https://calendar.google.com/calendar/render?"+cvQS({action:"TEMPLATE",text:"Post IG story"+(hasSticker(p)?" + "+STK_LABEL[p.story.sticker].toLowerCase():"")+": "+(p.title||""),dates:icsStamp(s)+"/"+icsStamp(e),details:storyKitText(p)});}
+function downloadStoryICS(p){const w=storyWhen(p);if(!w.date){toast("Set a scheduled date first");return;}
+  const s=sydToUTC(w.date,w.time),e=new Date(s.getTime()+15*60e3);const icsEsc=t=>String(t).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n");
+  const title="Post IG story"+(hasSticker(p)?" + "+STK_LABEL[p.story.sticker].toLowerCase():"")+": "+(p.title||"");
+  const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Boko//Poster Studio//EN","BEGIN:VEVENT","UID:story-"+p.id+"@boko-poster-studio","DTSTAMP:"+icsStamp(new Date()),"DTSTART:"+icsStamp(s),"DTEND:"+icsStamp(e),"SUMMARY:"+icsEsc(title),"DESCRIPTION:"+icsEsc(storyKitText(p)),"URL:"+cardLink(p),"BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(title),"TRIGGER:-PT10M","END:VALARM","BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(title),"TRIGGER:PT0M","END:VALARM","END:VEVENT","END:VCALENDAR"].map(l=>{let o="";while(l.length>73){o+=l.slice(0,73)+"\r\n ";l=l.slice(73);}return o+l;}).join("\r\n");
+  const b=new Blob([ics],{type:"text/calendar"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=slugName(p)+"_story_reminder.ics";a.click();setTimeout(()=>URL.revokeObjectURL(u),3000);toast("Reminder downloaded: open it to add to your calendar");}
+function storyStickerHTML(p){if(!storyEligible(p)||!hasPlat(p,"Instagram"))return "";const st=p.story||{};const k=st.sticker||"";const w=storyWhen(p);
+  const opt=(v,l)=>`<option value="${v}" ${k===v?"selected":""}>${l}</option>`;
+  const two=(k==="poll"||k==="quiz");
+  return `<div class="stbox"><div class="sthead">📊 Story sticker<small>Added by hand in the Instagram app</small></div>
+    <div class="two"><div><label class="fl">Sticker</label><select class="f" data-st="sticker">${opt("","None")}${opt("poll","Poll")}${opt("question","Question box")}${opt("quiz","Quiz")}${opt("slider","Emoji slider")}</select></div>
+      <div><label class="fl">Story time (Sydney)</label><input type="time" class="f" data-st="time" value="${esc(st.time||p.time||"")}" placeholder="09:00"></div></div>
+    ${k?`<div><label class="fl">Sticker question ${k==="poll"?'<span class="flhint">optional, shows above the options</span>':""}</label><input class="f" data-st="q" value="${esc(st.q||"")}" placeholder="${k==="question"?"Ask me anything about...":"Be honest: what eats more of your week?"}"></div>`:""}
+    ${two?`<div class="two"><div><label class="fl">Option 1</label><input class="f" data-st="a" value="${esc(st.a||"")}" placeholder="Copy-paste admin"></div><div><label class="fl">Option 2</label><input class="f" data-st="b" value="${esc(st.b||"")}" placeholder="Running campaigns"></div></div>
+      <div class="two"><div><label class="fl">Option 3 <span class="flhint">optional</span></label><input class="f" data-st="c" value="${esc(st.c||"")}"></div><div><label class="fl">Option 4 <span class="flhint">optional</span></label><input class="f" data-st="d" value="${esc(st.d||"")}"></div></div>`:""}
+    ${k==="quiz"?`<div><label class="fl">Correct answer</label><input class="f" data-st="correct" value="${esc(st.correct||"")}"></div>`:""}
+    ${k==="slider"?`<div><label class="fl">Slider emoji</label><input class="f" data-st="emoji" value="${esc(st.emoji||"")}" placeholder="😍"></div>`:""}
+    ${k?`<div><label class="fl">Where to place it</label><input class="f" data-st="place" value="${esc(st.place||"")}" placeholder="Low on the floor/stools, not over Maria"></div>
+    <div><label class="fl">Follow-up story <span class="flhint">optional</span></label><input class="f" data-st="followup" value="${esc(st.followup||"")}" placeholder="Next day: share the result + one fix, end with DM AUDIT"></div>`:""}
+    <div class="cvrow"><button class="btn" data-sk="copy">Copy story kit</button>${w.date?`<a class="btn" data-sk="gcal" href="${esc(gcalReminderURL(p))}" target="_blank" rel="noopener">📅 Google Calendar reminder</a><button class="btn" data-sk="ics">📱 Phone reminder (.ics)</button>`:'<span class="cvnote">Set a scheduled date to get a reminder.</span>'}</div></div>`;}
+function wireStorySticker(m,p,id){
+  m.querySelectorAll("[data-st]").forEach(inp=>{const f=inp.dataset.st;const ev=(inp.tagName==="SELECT"||inp.type==="time")?"onchange":"oninput";
+    inp[ev]=()=>{p.story=p.story||{};p.story[f]=inp.value;if(!p.story.sticker&&f==="sticker")delete p.story.sticker;touch(p);save();scheduleBoard();
+      if(f==="sticker"){logAct(p,inp.value?("set story sticker: "+STK_LABEL[inp.value]):"removed story sticker");openEditor(id);}
+      else{const g=m.querySelector('[data-sk="gcal"]');if(g)g.href=gcalReminderURL(p);}};});
+  const cp=m.querySelector('[data-sk="copy"]');if(cp)cp.onclick=()=>navigator.clipboard.writeText(storyKitText(p)).then(()=>toast("Story kit copied")).catch(()=>prompt("Copy the story kit:",storyKitText(p)));
+  const ic=m.querySelector('[data-sk="ics"]');if(ic)ic.onclick=()=>downloadStoryICS(p);}
+// Board strip: stories with a sticker due today or tomorrow that still need posting by hand
+function renderStoryDue(){const el=document.getElementById("storyDue");if(!el)return;
+  const t=localISO(),tm=localISO(new Date(Date.now()+864e5));
+  const due=state.filter(p=>hasSticker(p)&&p.status!=="published"&&!(p.story&&p.story.posted)&&[t,tm].indexOf(storyWhen(p).date)>=0)
+    .sort((a,b)=>(storyWhen(a).date+storyWhen(a).time).localeCompare(storyWhen(b).date+storyWhen(b).time));
+  if(!due.length){el.style.display="none";el.innerHTML="";return;}
+  el.style.display="";el.innerHTML=`<div class="sdh">📱 Stories to post from the Instagram app (sticker added by hand)</div>`+due.map(p=>{const w=storyWhen(p),st=p.story;
+    return `<div class="sdi" data-id="${esc(p.id)}"><span class="sdt"><b>${w.date===t?"Today":"Tomorrow"} ${esc(w.time)}</b> · ${esc(p.title||"")}<br><small>${esc(STK_LABEL[st.sticker])}${st.q?": "+esc(st.q):""}${(st.a||st.b)?" ("+[st.a,st.b,st.c,st.d].filter(Boolean).map(esc).join(" / ")+")":""}</small></span>
+      <button class="btn" data-sd="open">Open</button><button class="btn" data-sd="copy">Copy kit</button><button class="btn lime" data-sd="done">Posted ✓</button></div>`;}).join("");
+  el.querySelectorAll(".sdi").forEach(row=>{const p=state.find(x=>x.id===row.dataset.id);if(!p)return;
+    row.querySelector('[data-sd="open"]').onclick=()=>openEditor(p.id);
+    row.querySelector('[data-sd="copy"]').onclick=()=>navigator.clipboard.writeText(storyKitText(p)).then(()=>toast("Story kit copied"));
+    row.querySelector('[data-sd="done"]').onclick=()=>{p.story.posted=Date.now();logAct(p,"posted the story with its sticker");touch(p);save();renderStoryDue();toast("Marked as posted");};});
+  storyNotifyTick(due);}
+// Desktop notification at story time while the board is open (the calendar reminder covers the phone)
+let _stkTimers={};
+function storyNotifyTick(due){Object.values(_stkTimers).forEach(clearTimeout);_stkTimers={};
+  due.forEach(p=>{const w=storyWhen(p);const ms=sydToUTC(w.date,w.time).getTime()-Date.now();if(ms<0||ms>864e5)return;
+    _stkTimers[p.id]=setTimeout(()=>{try{if(window.Notification&&Notification.permission==="granted")new Notification("Time to post the story: "+(p.title||""),{body:STK_LABEL[p.story.sticker]+(p.story.q?": "+p.story.q:""),icon:K_LIME,tag:"boko-story-"+p.id});}catch(e){}toast("Time to post the story: "+(p.title||""));},ms);});}
 
 /* ===== Canva integration ===== */
 let _cvStatus=null;const _cvPages={};
