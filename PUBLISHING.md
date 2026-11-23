@@ -7,8 +7,8 @@ Always confirm before any live, public post.
 |-----------|--------------------------------------------|----------------------------|
 | Boko Facebook   | **Boko Digital Solutions** page            | Meta Business Suite        |
 | Boko Instagram  | **Boko Digital Solutions** account         | Meta Business Suite        |
-| Maria Facebook  | **Automated Fashion by Maria** page (facebook.com/automatedfashionbymaria) | Meta Business Suite |
-| Maria Instagram | **@automatedfashionbymaria** (instagram.com/automatedfashionbymaria) | Meta Business Suite |
+| Maria Automated Fashion Facebook  | **Automated Fashion by Maria** page (facebook.com/automatedfashionbymaria) | Meta Business Suite |
+| Maria Automated Fashion Instagram | **@automatedfashionbymaria** (instagram.com/automatedfashionbymaria) | Meta Business Suite |
 | LinkedIn  | **Maria's profile** (Maria Jose Mendieta)  | LinkedIn share composer    |
 | YouTube   | **Boko Digital Solutions** channel         | YouTube Studio (manual)    |
 | Hubspot   | **Boko Digital** account (email)           | HubSpot email              |
@@ -16,7 +16,8 @@ Always confirm before any live, public post.
 Notes:
 - Stored values: Boko Instagram/Facebook are saved as `Instagram`/`Facebook` (kept for older cards and
   tools); Maria's accounts are saved as `Maria Instagram`/`Maria Facebook`. Posts with Maria on the
-  creative (Automated Fashion by Maria) go to the Maria platforms.
+  creative (Automated Fashion by Maria) go to the Maria platforms. On load, cards whose title or pillar
+  says "Maria personal" or "Automated Fashion" are moved once from the Boko IG/FB accounts to Maria's.
 - Only posts with status **Approved** are eligible to publish/schedule.
 - A post's **Platforms** on the board determine the destinations. A card can go to more than one
   (for example Instagram + LinkedIn); Publish opens each destination's scheduling tool once

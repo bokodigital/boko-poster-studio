@@ -348,7 +348,7 @@ const KASPECT=1.046;
 const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"rework",label:"Needs Rework"},{id:"review",label:"For Approval"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
 const PLATFORMS=["Instagram","Facebook","Maria Instagram","Maria Facebook","LinkedIn","YouTube","YouTube Shorts","Hubspot"];
 /* "Instagram"/"Facebook" are the Boko Digital accounts (stored values kept for older cards and tools); "Maria Instagram"/"Maria Facebook" are Automated Fashion by Maria. */
-const PLAT_LABEL={Instagram:"Boko Instagram",Facebook:"Boko Facebook"};
+const PLAT_LABEL={Instagram:"Boko Instagram",Facebook:"Boko Facebook","Maria Instagram":"Maria Automated Fashion Instagram","Maria Facebook":"Maria Automated Fashion Facebook"};
 function pName(pl){return PLAT_LABEL[pl]||pl;}
 function isIGFam(pl){return pl==="Instagram"||pl==="Maria Instagram";}
 function isFBFam(pl){return pl==="Facebook"||pl==="Maria Facebook";}
@@ -417,7 +417,12 @@ function startPoll(){if(!syncOn||_poll)return;_poll=setInterval(()=>{if(document
     if(JSON.stringify(m)!==JSON.stringify(state)){const oldMap={};state.forEach(o=>{oldMap[o.id]={status:o.status,clen:(o.comments||[]).length,cauthors:(o.comments||[]).map(c=>c.a)};});const me=commenterName();m.forEach(np=>{const old=oldMap[np.id];if(np.status==="approved"&&old&&old.status!=="approved")notifyApproved(np);if(old){const nc=np.comments||[];if(nc.length>old.clen){const involved=(np.creator&&np.creator===me)||(old.cauthors&&old.cauthors.indexOf(me)>=0);if(involved){for(let k=old.clen;k<nc.length;k++){const c=nc[k];if(c&&c.a!==me)notifyComment(np,c);}}}}});state=m;localStorage.setItem(STORAGE,JSON.stringify(state));renderBoard();}}}).catch(()=>{});},8000);}
 function migrateStripAv(){let ch=false;state.forEach(p=>{(p.comments||[]).forEach(c=>{if(c.av){delete c.av;ch=true;}if(c.imgs){delete c.imgs;ch=true;}if(c.img){delete c.img;ch=true;}});(p.log||[]).forEach(l=>{if(l.av){delete l.av;ch=true;}});});if(ch)save();}
 function migrateHashtags(){let ch=false;state.forEach(p=>{if(p.platform!=="Hubspot"&&(p.hashtags===undefined||p.hashtags===null)){const t=(p.caption||"").match(/#[\w]+/g);p.hashtags=t?t.join(" "):"";if(t){p.caption=(p.caption||"").replace(/#[\w]+/g,"").replace(/[ \t]+/g," ").replace(/ *\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();}ch=true;}});if(ch)save();}
-function afterLoad(){document.getElementById("gate").classList.remove("show");migrateHashtags();migrateStripAv();preloadAvatars(()=>{renderBoard();autoPublishDue();if(!window._apTimer)window._apTimer=setInterval(autoPublishDue,60000);setSyncDot();startPoll();if(!localStorage.getItem("boko_user"))showNameGate();try{const _cid=new URLSearchParams(location.search).get("card");if(_cid&&state.find(p=>p.id===_cid))openEditor(_cid);}catch(e){}});}
+/* One-time move: cards tagged as Maria's personal / Automated Fashion posts go from the Boko IG/FB accounts to Maria's. _afm marks a card as handled so a later manual change is kept. */
+function migrateMariaAF(){let ch=false;const re=/maria\s*personal|automated\s*fashion|automatedfashionbymaria/i;state.forEach(p=>{if(p._afm||!re.test((p.title||"")+" "+(p.pillar||"")))return;
+  const a=plats(p);if(!a.some(x=>x==="Instagram"||x==="Facebook"))return;const prim=p.platform;
+  const b=a.map(x=>x==="Instagram"?"Maria Instagram":x==="Facebook"?"Maria Facebook":x);
+  p.platform=prim==="Instagram"?"Maria Instagram":prim==="Facebook"?"Maria Facebook":prim;setPlats(p,b);p._afm=1;touch(p);ch=true;});if(ch)save();}
+function afterLoad(){document.getElementById("gate").classList.remove("show");migrateHashtags();migrateMariaAF();migrateStripAv();preloadAvatars(()=>{renderBoard();autoPublishDue();if(!window._apTimer)window._apTimer=setInterval(autoPublishDue,60000);setSyncDot();startPoll();if(!localStorage.getItem("boko_user"))showNameGate();try{const _cid=new URLSearchParams(location.search).get("card");if(_cid&&state.find(p=>p.id===_cid))openEditor(_cid);}catch(e){}});}
 function loadFrom(sv){state=mergeServer(sv);localStorage.setItem(STORAGE,JSON.stringify(state));pushServer();afterLoad();}
 function offline(){syncOn=false;document.getElementById("offbanner").style.display="block";afterLoad();}
 function showGate(msg){const g=document.getElementById("gate");document.getElementById("gerr").textContent=msg||"";g.classList.add("show");
