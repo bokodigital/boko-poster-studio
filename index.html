@@ -92,6 +92,8 @@
   .badge.ig{background:#fce6f1;color:#c2186e}
   .badge.li{background:#e6eefc;color:#2456b8}
   .badge.fb{background:#e8ebfb;color:#2a3fa8}
+  .badge.mig{background:#101316;color:#ff7ab8}
+  .badge.mfb{background:#101316;color:#7fb6ff}
   .badge.date{background:#eef0f5;color:#3a4048}
   .badge.date.od{background:#fdecea;color:#c0392b}
   .ctitle{font-size:13.5px;font-weight:600;line-height:1.3;color:var(--text)}
@@ -344,28 +346,36 @@ const TEMPLATES=["statement","stat","cta","card","lime","checklist","quote","gri
 const DIMS={square:[1080,1080],story:[1080,1920]};
 const KASPECT=1.046;
 const STATUSES=[{id:"idea",label:"Idea"},{id:"drafting",label:"Drafting"},{id:"rework",label:"Needs Rework"},{id:"review",label:"For Approval"},{id:"approved",label:"Approved"},{id:"scheduled",label:"Scheduled"},{id:"published",label:"Published"}];
-const PLATFORMS=["Instagram","LinkedIn","Facebook","YouTube","YouTube Shorts","Hubspot"];
+const PLATFORMS=["Instagram","Facebook","Maria Instagram","Maria Facebook","LinkedIn","YouTube","YouTube Shorts","Hubspot"];
+/* "Instagram"/"Facebook" are the Boko Digital accounts (stored values kept for older cards and tools); "Maria Instagram"/"Maria Facebook" are Automated Fashion by Maria. */
+const PLAT_LABEL={Instagram:"Boko Instagram",Facebook:"Boko Facebook"};
+function pName(pl){return PLAT_LABEL[pl]||pl;}
+function isIGFam(pl){return pl==="Instagram"||pl==="Maria Instagram";}
+function isFBFam(pl){return pl==="Facebook"||pl==="Maria Facebook";}
+function hasMeta(p){return plats(p).some(x=>isIGFam(x)||isFBFam(x));}
 /* Multi-platform: p.platforms lists every platform a card goes to; p.platform stays the primary (first) one so older cards and tools keep working. */
 function plats(p){const a=Array.isArray(p.platforms)?p.platforms.filter(x=>PLATFORMS.indexOf(x)>=0):[];return (a.length&&a.indexOf(p.platform)>=0)?a:(p.platform?[p.platform]:[]);}
 function hasPlat(p,pl){return plats(p).indexOf(pl)>=0;}
 function setPlats(p,arr){arr=PLATFORMS.filter(x=>arr.indexOf(x)>=0);if(!arr.length)return false;p.platforms=arr;if(arr.indexOf(p.platform)<0)p.platform=arr[0];return true;}
-function platLabel(p){return plats(p).join(" + ");}
+function platLabel(p){return plats(p).map(pName).join(" + ");}
 const PLAT_ICON={
   Instagram:'<rect width="16" height="16" rx="4" fill="#d62976"/><rect x="3.2" y="3.2" width="9.6" height="9.6" rx="2.8" fill="none" stroke="#fff" stroke-width="1.4"/><circle cx="8" cy="8" r="2.3" fill="none" stroke="#fff" stroke-width="1.4"/><circle cx="11" cy="5" r=".8" fill="#fff"/>',
   LinkedIn:'<rect width="16" height="16" rx="3" fill="#0a66c2"/><circle cx="4.9" cy="4.6" r="1.1" fill="#fff"/><rect x="3.95" y="6.4" width="1.9" height="6" fill="#fff"/><path d="M7.4 6.4h1.8v.85c.4-.65 1.05-1 1.95-1 1.45 0 2.15.95 2.15 2.55v3.6h-1.9V9.2c0-.85-.3-1.3-.95-1.3-.75 0-1.15.55-1.15 1.4v3.1H7.4z" fill="#fff"/>',
   Facebook:'<rect width="16" height="16" rx="8" fill="#1877f2"/><path d="M8.9 16V9.6h1.9l.3-2.1H8.9V6.2c0-.6.2-1 1-1h1.2V3.3c-.2 0-.9-.1-1.7-.1-1.7 0-2.8 1-2.8 2.9v1.4H4.8v2.1h1.8V16z" fill="#fff"/>',
+  "Maria Instagram":'<rect width="16" height="16" rx="4" fill="#101316"/><rect x="3.2" y="3.2" width="9.6" height="9.6" rx="2.8" fill="none" stroke="#ff4fa3" stroke-width="1.4"/><circle cx="8" cy="8" r="2.3" fill="none" stroke="#ff4fa3" stroke-width="1.4"/><circle cx="11" cy="5" r=".8" fill="#ff4fa3"/>',
+  "Maria Facebook":'<rect width="16" height="16" rx="8" fill="#101316"/><path d="M8.9 16V9.6h1.9l.3-2.1H8.9V6.2c0-.6.2-1 1-1h1.2V3.3c-.2 0-.9-.1-1.7-.1-1.7 0-2.8 1-2.8 2.9v1.4H4.8v2.1h1.8V16z" fill="#4c9bff"/>',
   YouTube:'<rect width="16" height="16" rx="4" fill="#ff0000"/><path d="M6.4 5v6l5-3z" fill="#fff"/>',
   "YouTube Shorts":'<rect width="16" height="16" rx="4" fill="#ff0000"/><rect x="4.6" y="2.4" width="6.8" height="11.2" rx="2.2" fill="#fff"/><path d="M7 6v4l3.2-2z" fill="#ff0000"/>',
   Hubspot:'<rect width="16" height="16" rx="4" fill="#ff7a59"/><rect x="3" y="4.6" width="10" height="7" rx="1.2" fill="none" stroke="#fff" stroke-width="1.3"/><path d="M3.6 5.3 8 8.6l4.4-3.3" fill="none" stroke="#fff" stroke-width="1.3"/>'
 };
-function platIcons(p){return plats(p).map(pl=>PLAT_ICON[pl]?`<span class="pico" title="${esc(pl)}"><svg viewBox="0 0 16 16" width="14" height="14">${PLAT_ICON[pl]}</svg></span>`:"").join("");}
+function platIcons(p){return plats(p).map(pl=>PLAT_ICON[pl]?`<span class="pico" title="${esc(pName(pl))}"><svg viewBox="0 0 16 16" width="14" height="14">${PLAT_ICON[pl]}</svg></span>`:"").join("");}
 const EMAIL_SIG="<table cellspacing=\"0\" cellpadding=\"0\"><tbody><tr>\n<td style=\"width:120px; text-align: center;\"><a href=\"https://boko.com.au/\">\n<img src=\"https://boko.com.au/wp-content/uploads/2024/05/WhatsApp-Image-2024-01-19-at-10.17.06-AM-1024x1024-2.jpg\" style=\"width: 140px;border-radius: 50%;margin-right: 15px; border: 3px solid #8484fa;\">\n<img src=\"https://boko.com.au/wp-content/uploads/2026/02/signlogo.png\" style=\"width: 70px;margin-top: 0px;\"></a></td>\n<td style=\"width:240px;\"><div><span style=\"display: inline-block;font-size: 15px;font-family: Helvetica;line-height: 16px;\"><strong style=\"font-weight:600;font-size: 16px; line-height: 30px;font-family: Helvetica; color:#000\">Maria Mendieta</strong>\n<br><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">Digital Strategist | Founder</span>\n<br><a href=\"tel:+61413615016\" style=\"color:#000;\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">+61 413 615 016</span></a>\n<br><a href=\"https://boko.com.au/\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica;color:#000;\">www.boko.com.au</span></a><br><a href=\"https://boko.com.au/the-lead-generation-discovery-call/\" style=\"color:#000;\"><span style=\"font-size:14px; line-height: 22px;font-family: Helvetica; color:#000;\">Book a free consultation</span></a><br></div><div style=\"margin-top:15px;\"><span><a href=\"https://www.facebook.com/bokodigitalsolutions/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/9034971_logo_facebook_icon.png\" style=\"width:25px;\"></a></span>&nbsp;&nbsp;<span><a href=\"https://www.instagram.com/boko.digital.solutions/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/1161954_instagram_icon.png\" style=\"width:25px;\"></a></span>&nbsp;&nbsp;<span><a href=\"https://www.linkedin.com/in/maria-jose-mendieta-mayorga/\"><img src=\"https://boko.com.au/wp-content/uploads/2024/03/287697_linkedin_icon.png\" style=\"width:23px;\"></a></span>&nbsp;&nbsp;&nbsp;<span><a href=\"https://www.tiktok.com/@bokodigital\"><img src=\"https://boko.com.au/wp-content/uploads/2024/05/7693325_tiktok_social-media_logo_apps_icon.png\" style=\"width:23px;\"></a>&nbsp;&nbsp;&nbsp;</span><span><a href=\"https://maps.app.goo.gl/wC7cMc5uBCfkgh1j8\"><img src=\"https://boko.com.au/wp-content/uploads/2024/12/map-black.png\" style=\"width:23px;\"></a></div></td>\n</tr></tbody></table>";
 const FNAME_TAG={Hubspot:"{{ contact.firstname }}"};
 function fname(text,platform){const tag=FNAME_TAG[platform];return tag?(text||"").replace(/\[\s*first[\s_]*name\s*\]/gi,tag):(text||"");}
 let filter="All";let typeFilter="All";let searchQ="";
 const TYPE_FILTERS=[["All","All"],["Posts","Post"],["Reels","Reel"],["Carousels","Carousel"],["Emails","Email"]];
 function kindOf(p){return p.platform==="Hubspot"?"Email":p.type==="video"?"Reel":p.template==="carousel"?"Carousel":"Post";}
-function autoStory(p){return !(p.canva&&p.canva.id)&&p.type!=="video"&&p.platform!=="Hubspot"&&(hasPlat(p,"Instagram")||hasPlat(p,"Facebook"));}
+function autoStory(p){return !(p.canva&&p.canva.id)&&p.type!=="video"&&p.platform!=="Hubspot"&&hasMeta(p);}
 
 document.getElementById("logo").src=LOGO_LIGHT;
 
@@ -736,7 +746,7 @@ const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","De
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function fmtDate(d){if(!d)return "";const dt=new Date(d+"T00:00:00");if(isNaN(dt))return d;return WK[dt.getDay()]+" "+dt.getDate()+" "+MON[dt.getMonth()];}
 function isOverdue(p){return p.date && p.date<todayStr() && p.status!=="published";}
-function platClass(p){return p==="Instagram"?"ig":p==="LinkedIn"?"li":(p==="YouTube"||p==="YouTube Shorts")?"yt":p==="Hubspot"?"hs":"fb";}
+function platClass(p){return p==="Maria Instagram"?"mig":p==="Maria Facebook"?"mfb":p==="Instagram"?"ig":p==="LinkedIn"?"li":(p==="YouTube"||p==="YouTube Shorts")?"yt":p==="Hubspot"?"hs":"fb";}
 let curMonth="",curWeek=null,_brd=null,curSlide=0,_openId=null,view="board",_editCmt=null;
 function scheduleBoard(){clearTimeout(_brd);_brd=setTimeout(()=>{if(document.getElementById("overlay").classList.contains("show"))renderBoard();},450);}
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -757,7 +767,7 @@ function renderWeekSel(){const sel=document.getElementById("weekSel");const ws=m
     const a=w.start.getDate()+" "+MONTHS[w.start.getMonth()].slice(0,3),b=w.end.getDate()+" "+MONTHS[w.end.getMonth()].slice(0,3);
     return `<option value="${w.key}" ${curWeek===w.key?"selected":""}>Week ${w.n} (${a} - ${b})</option>`;}).join("");
   sel.onchange=()=>{curWeek=sel.value||null;renderBoard();};}
-function matchesSearch(p){if(!searchQ)return true;const q=searchQ;const hay=[p.title,p.headline,p.subhead,p.caption,p.eyebrow,p.pillar,plats(p).join(" "),p.cta,p.hashtags,(p.bullets||[]).join(" "),(p.slides||[]).map(s=>((s.h||"")+" "+(s.b||""))).join(" ")].join(" ").toLowerCase();return hay.indexOf(q)>=0;}
+function matchesSearch(p){if(!searchQ)return true;const q=searchQ;const hay=[p.title,p.headline,p.subhead,p.caption,p.eyebrow,p.pillar,platLabel(p),p.cta,p.hashtags,(p.bullets||[]).join(" "),(p.slides||[]).map(s=>((s.h||"")+" "+(s.b||""))).join(" ")].join(" ").toLowerCase();return hay.indexOf(q)>=0;}
 function visible(){return state.filter(p=>{
   if(!matchesSearch(p))return false;
   if(searchQ)return true;
@@ -784,10 +794,10 @@ function renderFilters(){
   if(!ts.dataset.init){ts.dataset.init="1";ts.innerHTML=TYPE_FILTERS.map(([l,k])=>`<option value="${k}">${k==="All"?"All formats":l}</option>`).join("");ts.onchange=()=>{typeFilter=ts.value;renderBoard();};}
   ts.value=typeFilter;
   const ps=document.getElementById("platSel");
-  if(!ps.dataset.init){ps.dataset.init="1";ps.innerHTML='<option value="All">All platforms</option>'+PLATFORMS.map(p=>`<option value="${p}">${p}</option>`).join("");ps.onchange=()=>{filter=ps.value;renderBoard();};}
+  if(!ps.dataset.init){ps.dataset.init="1";ps.innerHTML='<option value="All">All platforms</option>'+PLATFORMS.map(p=>`<option value="${p}">${pName(p)}</option>`).join("");ps.onchange=()=>{filter=ps.value;renderBoard();};}
   ps.value=filter;
 }
-function platColor(p){return p==="Instagram"?"#c2186e":p==="LinkedIn"?"#2456b8":p==="Facebook"?"#2a3fa8":(p==="YouTube"||p==="YouTube Shorts")?"#c0202a":p==="Hubspot"?"#c2640f":"#888";}
+function platColor(p){return p==="Maria Instagram"?"#7d0f4a":p==="Maria Facebook"?"#14206b":p==="Instagram"?"#c2186e":p==="LinkedIn"?"#2456b8":p==="Facebook"?"#2a3fa8":(p==="YouTube"||p==="YouTube Shorts")?"#c0202a":p==="Hubspot"?"#c2640f":"#888";}
 function renderCalendar(board){
   const cal=document.createElement("div");cal.className="cal";
   const head=document.createElement("div");head.className="calhead";
@@ -848,7 +858,7 @@ function cardEl(p){
   const c=document.createElement("div");c.className="card";c.draggable=true;c.dataset.id=p.id;
   c.innerHTML=`<div class="thumb"></div>
     <div class="cbody">
-      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span>${plats(p).map(pl=>`<span class="badge ${platClass(pl)}">${esc(pl)}</span>`).join("")}${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${(autoStory(p)||(p.canvaStory&&p.canvaStory.id))?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
+      <div class="badges"><span class="badge type">${p.platform==="Hubspot"?"EMAIL":(p.type==="video"?"VIDEO":(p.template==="carousel"?"CAROUSEL":"POST"))}</span>${plats(p).map(pl=>`<span class="badge ${platClass(pl)}">${esc(pName(pl))}</span>`).join("")}${p.date?`<span class="badge date ${isOverdue(p)?'od':''}">📅 ${fmtDate(p.date)}${p.time?" · "+p.time:""}</span>`:""}${(autoStory(p)||(p.canvaStory&&p.canvaStory.id))?'<span class="badge story">+STORY</span>':""}${(p.comments&&p.comments.length)?`<span class="badge cmt">💬 ${p.comments.length}</span>`:""}</div>
       <div class="ctitle">${esc(p.title)}</div>
       <div class="pillar">${esc(p.pillar||"")}</div>
       <div class="cact">
@@ -932,7 +942,7 @@ function openEditor(id){
       ${(isEmail||hasPlat(p,"YouTube")||hasPlat(p,"YouTube Shorts"))?'':`<div class="seg" id="typeseg"><button data-ty="post" class="${!isVid?'on':''}">Post</button><button data-ty="video" class="${isVid?'on':''}">Video</button></div>`}
       ${(isVid||isEmail)?'':`<div class="seg" id="tplseg">${TEMPLATES.map(t=>`<button data-t="${t}" class="${p.template===t?'on':''}">${t}</button>`).join("")}</div>`}
       <div><label class="fl">Status</label><select class="f" data-f="status2">${STATUSES.map(sx=>`<option value="${sx.id}" ${p.status===sx.id?'selected':''}>${sx.label}</option>`).join("")}</select></div>
-      <div><label class="fl">Platforms <span class="flhint">pick one or more</span></label><div class="platpick" data-f="platforms">${PLATFORMS.map(pl=>`<button type="button" data-pl="${pl}" class="${hasPlat(p,pl)?'on':''}" title="${pl==="Hubspot"?"Email goes to HubSpot only":""}"><span class="ck">${hasPlat(p,pl)?'&#10003;':''}</span>${pl}</button>`).join("")}</div></div>
+      <div><label class="fl">Platforms <span class="flhint">pick one or more</span></label><div class="platpick" data-f="platforms">${PLATFORMS.map(pl=>`<button type="button" data-pl="${pl}" class="${hasPlat(p,pl)?'on':''}" title="${pl==="Hubspot"?"Email goes to HubSpot only":""}"><span class="ck">${hasPlat(p,pl)?'&#10003;':''}</span>${pName(pl)}</button>`).join("")}</div></div>
       <div class="two">
         <div><label class="fl">Scheduled date</label><input type="date" class="f" data-f="date" value="${p.date||''}"></div>
         <div><label class="fl">Time (AEST)</label><input type="time" class="f" data-f="time" value="${p.time||''}"></div>
@@ -1003,7 +1013,7 @@ function openEditor(id){
     else{const pv=m.querySelector(".mprev");if(pv)pv.innerHTML=isEmail?gmailPreviewHTML(p):isVid?videoPlayerHTML(p):"";}};
   refreshPrev();
   if(!isEmail&&!isVid)wireCanva(m,p,id);
-  const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"){const a=plats(p).filter(x=>x!=="Hubspot"&&x!=="Facebook");setPlats(p,a.length?a:["YouTube"]);}touch(p);save();openEditor(id);});
+  const ts=m.querySelector('#typeseg');if(ts)ts.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.type=b.dataset.ty;if(p.type==="video"){const a=plats(p).filter(x=>x!=="Hubspot"&&!isFBFam(x));setPlats(p,a.length?a:["YouTube"]);}touch(p);save();openEditor(id);});
   const tplseg=m.querySelector('#tplseg');if(tplseg)tplseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.template=b.dataset.t;touch(p);save();openEditor(id);});
   const ratioseg=m.querySelector('#ratioseg');if(ratioseg)ratioseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{p.ratio=b.dataset.r;touch(p);save();openEditor(id);});
   m.querySelectorAll('[data-sn]').forEach(b=>b.onclick=()=>{const a=b.dataset.sn;const N=p.slides.length;
@@ -1075,7 +1085,7 @@ function canvaSectionHTML(p){const c=p.canva;
   if(c&&c.id){return `<div class="cvbox"><div class="cvhead"><span class="cvlogo">C</span>Canva design <span class="cvnote" style="margin-left:auto">Preview and downloads use this design</span></div>
     <div class="cvlinked"><img src="${canvaThumbSrc(p)}" onerror="this.style.visibility='hidden'"><div class="cvt"><b>${esc(c.title||"Canva design")}</b><small>${c.pages?(c.pages+" page"+(c.pages>1?"s":"")+" · "):""}${esc(c.id)}</small></div></div>
     <div class="cvrow"><a class="btn" href="${esc(c.editUrl||("https://www.canva.com/design/"+c.id+"/edit"))}" target="_blank" rel="noopener">Edit in Canva</a><button class="btn" data-cv="refresh">↻ Refresh from Canva</button><button class="btn" data-cv="unlink">Unlink</button></div>${canvaStoryRowHTML(p)}</div>`;}
-function canvaStoryRowHTML(p){if(p.type==="video"||p.template==="carousel"||!(hasPlat(p,"Instagram")||hasPlat(p,"Facebook")))return "";const s=p.canvaStory;
+function canvaStoryRowHTML(p){if(p.type==="video"||p.template==="carousel"||!hasMeta(p))return "";const s=p.canvaStory;
   if(s&&s.id)return `<div class="cvrow" style="margin-top:8px"><span class="cvnote" style="flex:1">Story 9:16: <b>${esc(s.title||s.id)}</b></span><a class="btn" href="${esc(s.editUrl||("https://www.canva.com/design/"+s.id+"/edit"))}" target="_blank" rel="noopener">Edit story</a><button class="btn" data-cv="sunlink">Unlink story</button></div>`;
   return `<div class="cvrow" style="margin-top:8px"><input class="f" id="cvslink" placeholder="Story 9:16 version: paste its Canva design link"><button class="btn" data-cv="slink">Link story</button></div>`;}
   return `<div class="cvbox"><div class="cvhead"><span class="cvlogo">C</span>Use a Canva design for this card</div>
@@ -1141,6 +1151,8 @@ function renderBoardThumb(id){/* board re-renders on close; cheap no-op live */}
 document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeEditor();});
 const PUBDEST={
   Instagram:{account:"Boko Digital Solutions account",tool:"Meta Business Suite",url:"https://business.facebook.com/latest/composer"},
+  "Maria Instagram":{account:"Automated Fashion by Maria (@automatedfashionbymaria)",tool:"Meta Business Suite",url:"https://business.facebook.com/latest/composer"},
+  "Maria Facebook":{account:"Automated Fashion by Maria page",tool:"Meta Business Suite",url:"https://business.facebook.com/latest/composer"},
   Facebook:{account:"Boko Digital Solutions page",tool:"Meta Business Suite",url:"https://business.facebook.com/latest/composer"},
   LinkedIn:{account:"Maria Jose Mendieta (profile)",tool:"LinkedIn",url:"https://www.linkedin.com/feed/?shareActive=true"},
   YouTube:{account:"Boko Digital Solutions channel",tool:"YouTube Studio",url:"https://studio.youtube.com/"},
@@ -1151,7 +1163,8 @@ function pubCopy(p){if(p.platform==="Hubspot"){copyEmail(p);}else{const tx=fname
 function pubDownload(p){if(p.platform==="Hubspot")return;if(p.type!=="video"&&p.canva&&p.canva.id){downloadCanva(p);return;}if(p.type==="video"){if(p.thumbnail)downloadThumb(p);return;}if(p.template==="carousel"){downloadCarousel(p);return;}if(autoStory(p)){downloadBoth(p);return;}downloadPNG(p);}
 function pubOpen(p){const seen={},tools=[],blocked=[];plats(p).forEach(pl=>{const d=PUBDEST[pl];if(!d||!d.url||seen[d.url])return;seen[d.url]=1;const w=window.open(d.url,"_blank","noopener");tools.push(d.tool);if(w===null&&tools.length>1)blocked.push(d.tool);});
   pubCopy(p);setTimeout(()=>pubDownload(p),120);
-  toast(blocked.length?("Opened "+tools.filter(t=>blocked.indexOf(t)<0).join(" + ")+". Allow pop-ups to also open "+blocked.join(" + ")):("Opened "+(tools.length?tools.join(" + "):"platform")+" — paste & schedule"));}
+  const to=" — post to: "+platLabel(p);
+  toast(blocked.length?("Opened "+tools.filter(t=>blocked.indexOf(t)<0).join(" + ")+". Allow pop-ups to also open "+blocked.join(" + ")+to):("Opened "+(tools.length?tools.join(" + "):"platform")+to));}
 
 function commenterName(){return localStorage.getItem("boko_user")||"";}
 function commenterAvatar(){return localStorage.getItem("boko_avatar")||"";}
